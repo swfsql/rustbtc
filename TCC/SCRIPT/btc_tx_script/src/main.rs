@@ -6,32 +6,85 @@ use hex::FromHex;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 fn main() {
-    println!("Hello, world!");
 
     // example tx msg
     let tx_msg = "F9BEB4D974780000000000000000000002010000E293CDBE01000000016DBDDB085B1D8AF75184F0BC01FAD58D1266E9B63B50881990E4B40D6AEE3629000000008B483045022100F3581E1972AE8AC7C7367A7A253BC1135223ADB9A468BB3A59233F45BC578380022059AF01CA17D00E41837A1D58E97AA31BAE584EDEC28D35BD96923690913BAE9A0141049C02BFC97EF236CE6D8FE5D94013C721E915982ACD2B12B65D9B7D59E20A842005F8FC4E02532E873D37B96F09D6D4511ADA8F14042F46614A4C70C0F14BEFF5FFFFFFFF02404B4C00000000001976A9141AA0CD1CBEA6E7458A7ABAD512A9D9EA1AFB225E88AC80FAE9C7000000001976A9140EAB5BEA436A0484CFAB12485EFDA0B78B4ECC5288AC00000000";
-    let mut vec_msg: Vec<u8> = Vec::from_hex(tx_msg).unwrap();
+    let vec_msg: Vec<u8> = Vec::from_hex(tx_msg).unwrap();
 
     for u in &vec_msg {
       print!("{}-", u);
     }
+    println!("adasda");
 
 
   let mut it = vec_msg.into_iter();
-/*
-  it.skip(4) // magic
-    .skip(12) // tx cmd
-    .skip(4) // payload of 258 bytes
-    .skip(4); // payload checksum
-  */
-  let mut ver = Cursor::new(it.skip(24).take(4).collect::<Vec<u8>>());
+  let header = MsgHeader::new(it.by_ref());
+
+  let mut ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>());
   let ver = ver.read_i32::<LittleEndian>().unwrap();
 
-  println!("\n\nversion: {}", ver);
+
+  let mut ninputs = it.by_ref().next().unwrap().to_le();
+  let ninputs = ninputs;
+  println!("Input Length: {}", ninputs);
+
+  let mut ninputs = it.by_ref().next().unwrap().to_le();
+  let ninputs = ninputs;
+  println!("Input Length: {}", ninputs);
+
+
+  //let inputs: Vec<>;
+  /*
+  for i in (0..ninputs) {
+    let mut ninputs = Cursor::new(it.by_ref().take(1).collect::<Vec<u8>>());
+    let ninputs = ninputs.read_i32::<LittleEndian>().unwrap();
+  }
+  */
 
 
 
+  println!("\nMessage header:");
+  println!("Message network identification: {}", header.network);
+  println!("Message command OP_CODE: {:?}", header.cmd);
+  println!("Payload: {}", header.payload);
+  println!("Payload Checksum: {}", header.payloadchk);
 
+
+  println!("\nTransaction:");
+  println!("Version: {}", ver);
+
+}
+/*
+struct Input {
+  outpoint:
+}
+*/
+
+struct MsgHeader {
+  network: u32,
+  cmd: Vec<u8>,
+  payload: i32,
+  payloadchk: u32,
+}
+
+impl MsgHeader {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> MsgHeader {
+    let mut msg_network = Cursor::new(it.take(4).collect::<Vec<u8>>());
+    println!("A");
+    let mut msg_cmd = it.take(12).map(|u| u.to_le()).collect::<Vec<u8>>();
+    println!("B");
+    let mut msg_payload = Cursor::new(it.take(4).collect::<Vec<u8>>());
+    println!("C");
+    let mut msg_payloadchk = Cursor::new(it.take(4).collect::<Vec<u8>>());
+    println!("D");
+    MsgHeader {
+      network: msg_network.read_u32::<LittleEndian>().unwrap(),
+      //cmd: msg_cmd.read_u32::<LittleEndian>().unwrap(),
+      cmd: msg_cmd,
+      payload: msg_payload.read_i32::<LittleEndian>().unwrap(),
+      payloadchk: msg_payloadchk.read_u32::<LittleEndian>().unwrap(),
+    }
+  }
 }
 
 /*
@@ -67,6 +120,6 @@ CD 1C BE A6 E7 45 8A 7A  BA D5 12 A9 D9 EA 1A FB
 
 */
 
-
+// Almost all integers are encoded in little endian. Only IP or port number are encoded big endian.
 
 
