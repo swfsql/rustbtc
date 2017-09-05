@@ -1,0 +1,8 @@
+[package]
+name = "btc_tx_script"
+version = "0.1.0"
+authors = ["Thiago Machado da Silva <thi@unifei.edu.br>"]
+
+[dependencies]
+hex = "0.2.0"
+byteorder = "1.1.0"
