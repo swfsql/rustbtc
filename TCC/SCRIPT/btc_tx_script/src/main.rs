@@ -1,9 +1,11 @@
 extern crate hex;
 extern crate byteorder;
+extern crate arrayvec;
 use std::io::Cursor;
 
 use hex::FromHex;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+use arrayvec::ArrayVec;
 
 fn main() {
 
@@ -14,44 +16,21 @@ fn main() {
     for u in &vec_msg {
       print!("{}-", u);
     }
-    println!("adasda");
+    println!("");
 
 
   let mut it = vec_msg.into_iter();
   let header = MsgHeader::new(it.by_ref());
 
-  let mut ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>());
-  let ver = ver.read_i32::<LittleEndian>().unwrap();
 
+    println!("\nMessage header:\n");
+    println!("Message network identification: {}", header.network);
+    println!("Message command OP_CODE: {:?}", header.cmd);
+    println!("Payload: {}", header.payload);
+    println!("Payload Checksum: {}", header.payloadchk);
 
-  let mut ninputs = it.by_ref().next().unwrap().to_le();
-  let ninputs = ninputs;
-  println!("Input Length: {}", ninputs);
-
-  let mut ninputs = it.by_ref().next().unwrap().to_le();
-  let ninputs = ninputs;
-  println!("Input Length: {}", ninputs);
-
-
-  //let inputs: Vec<>;
-  /*
-  for i in (0..ninputs) {
-    let mut ninputs = Cursor::new(it.by_ref().take(1).collect::<Vec<u8>>());
-    let ninputs = ninputs.read_i32::<LittleEndian>().unwrap();
-  }
-  */
-
-
-
-  println!("\nMessage header:");
-  println!("Message network identification: {}", header.network);
-  println!("Message command OP_CODE: {:?}", header.cmd);
-  println!("Payload: {}", header.payload);
-  println!("Payload Checksum: {}", header.payloadchk);
-
-
-  println!("\nTransaction:");
-  println!("Version: {}", ver);
+    let tx = Tx::new(it.by_ref());
+    println!("\nTransaction :\n{:?}", tx);
 
 }
 /*
@@ -59,33 +38,120 @@ struct Input {
   outpoint:
 }
 */
+// ArrayVec<[_; 3]>
+// ArrayVec::<[_; 16]>::new();
 
+#[derive(Debug)]
 struct MsgHeader {
   network: u32,
-  cmd: Vec<u8>,
+  cmd: ArrayVec<[u8; 12]>,
   payload: i32,
   payloadchk: u32,
 }
 
 impl MsgHeader {
   fn new(it: &mut std::vec::IntoIter<u8>) -> MsgHeader {
-    let mut msg_network = Cursor::new(it.take(4).collect::<Vec<u8>>());
-    println!("A");
-    let mut msg_cmd = it.take(12).map(|u| u.to_le()).collect::<Vec<u8>>();
-    println!("B");
-    let mut msg_payload = Cursor::new(it.take(4).collect::<Vec<u8>>());
-    println!("C");
-    let mut msg_payloadchk = Cursor::new(it.take(4).collect::<Vec<u8>>());
-    println!("D");
     MsgHeader {
-      network: msg_network.read_u32::<LittleEndian>().unwrap(),
-      //cmd: msg_cmd.read_u32::<LittleEndian>().unwrap(),
-      cmd: msg_cmd,
-      payload: msg_payload.read_i32::<LittleEndian>().unwrap(),
-      payloadchk: msg_payloadchk.read_u32::<LittleEndian>().unwrap(),
+      network: Cursor::new(it.take(4).collect::<Vec<u8>>())
+        .read_u32::<LittleEndian>().unwrap(),
+      cmd: it.take(12).map(|u| u.to_le()).collect::<ArrayVec<[u8; 12]>>(),
+      payload: Cursor::new(it.take(4).collect::<Vec<u8>>())
+        .read_i32::<LittleEndian>().unwrap(),
+      payloadchk: Cursor::new(it.take(4).collect::<Vec<u8>>())
+        .read_u32::<LittleEndian>().unwrap(),
     }
   }
 }
+
+#[derive(Debug)]
+struct Tx {
+  version: i32,
+  inputsLen: u8,
+  inputs: Vec<TxInput>,
+  outputsLen: u8,
+  outputs: Vec<TxOutput>,
+  locktime: u32,
+  // TODO MAYBE witness
+}
+
+impl Tx {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Tx {
+    let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
+      .read_i32::<LittleEndian>().unwrap();
+
+    let ninputs = it.by_ref().next().unwrap().to_le();
+    let mut inputs: Vec<TxInput> = vec![];
+    for i in (0..ninputs) {
+      inputs.push(TxInput::new(it));
+    }
+
+    let noutputs = it.by_ref().next().unwrap().to_le();
+    let mut outputs: Vec<TxOutput> = vec![];
+    for i in (0..noutputs) {
+      outputs.push(TxOutput::new(it));
+    }
+
+    Tx {
+      version: ver,
+      inputsLen: ninputs,
+      inputs: inputs,
+      outputsLen: noutputs,
+      outputs: outputs,
+      locktime: Cursor::new(it.take(4).collect::<Vec<u8>>())
+          .read_u32::<LittleEndian>().unwrap(),
+    }
+
+  }
+}
+
+#[derive(Debug)]
+struct TxInput {
+  prevTx: ArrayVec<[u8; 32]>,
+  prevTxOutIndex: u32,
+  scriptLen: u8,
+  scriptSig: Vec<u8>,
+  sequence: u32,
+}
+
+impl TxInput {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> TxInput {
+      let ptx = it.take(32).map(|u| u.to_le()).collect::<ArrayVec<[u8; 32]>>();
+      let ptxoi = Cursor::new(it.take(4).collect::<Vec<u8>>())
+          .read_u32::<LittleEndian>().unwrap();
+      let slen = it.by_ref().next().unwrap().to_le();
+
+      TxInput {
+        prevTx: ptx,
+        prevTxOutIndex: ptxoi,
+        scriptLen: slen,
+        scriptSig: it.take(slen as usize).map(|u| u.to_le()).collect::<Vec<u8>>(),
+        sequence: Cursor::new(it.take(4).collect::<Vec<u8>>())
+          .read_u32::<LittleEndian>().unwrap(),
+      }
+  }
+}
+
+#[derive(Debug)]
+struct TxOutput {
+  value: i64,
+  pkScriptLen: u8,
+  pkScript: Vec<u8>,
+}
+
+impl TxOutput {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> TxOutput {
+      let val = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
+        .read_i64::<LittleEndian>().unwrap();
+      let pkslen = it.by_ref().next().unwrap().to_le();
+
+      TxOutput {
+        value: val,
+        pkScriptLen: pkslen,
+        pkScript: it.take(pkslen as usize).map(|u| u.to_le()).collect::<Vec<u8>>(),
+      }
+  }
+}
+
 
 /*
 scriptSig:
@@ -123,3 +189,4 @@ CD 1C BE A6 E7 45 8A 7A  BA D5 12 A9 D9 EA 1A FB
 // Almost all integers are encoded in little endian. Only IP or port number are encoded big endian.
 
 
+// ARRAYVEC
