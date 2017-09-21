@@ -72,12 +72,14 @@ impl Msg {
   pub fn new(it: &mut std::vec::IntoIter<u8>) -> Msg {
 
     let header = MsgHeader::new(it);
-    let payload = match header.cmd.clone().into_iter()
-      .map(|x| x as char).collect::<String>().as_ref() {
+    let cmd_str = header.cmd.clone().into_iter()
+      .map(|x| x as char).collect::<String>();
 
-      "tx" => Some(Box::new(Tx::new(it).unwrap())),
-      "ping" => Some(Box::new(Ping::new(it).unwrap())),
-      "pong" => Some(Box::new(Pong::new(it).unwrap())),
+    let payload = match cmd_str.to_string().trim().as_ref() {
+
+      "tx\0\0\0\0\0\0\0\0\0\0" => Some(Tx::new(it).unwrap()),
+      "ping\0\0\0\0\0\0\0\0" => Some(Ping::new(it).unwrap()),
+      "pong\0\0\0\0\0\0\0\0" => Some(Pong::new(it).unwrap()),
       _ => None,
     };
 
@@ -89,6 +91,21 @@ impl Msg {
     }
   }
 
+}
+
+
+impl std::fmt::Debug for Msg {
+  fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+      let mut s = "Message:\n".to_string();
+      s += &format!("├ Message Header: {:?}", self.header);
+      let k = format!("├ Message Payload: {:?}\n", self.payload.as_ref().unwrap());
+      s += match self.payload {
+        //Some(ref payload) => payload.fmt(),
+        Some(ref payload) => &k,
+        None => "None",
+      };
+      write!(f, "{}", s)
+  }
 }
 
 /*
@@ -144,13 +161,13 @@ pub struct Ping {
 
 impl Ping {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping, Box<Error>> {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Box<std::dmt::Debug> {
+  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
           .read_u64::<LittleEndian>()?;
-    Ok(Ping {
+    Ok(Box::new(Ping {
       nounce: nounce,
-    })
+    }))
   }
 }
 
@@ -169,13 +186,13 @@ pub struct Pong {
 
 impl Pong {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong, Box<Error>> {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Box<std::fmt::Debug> {
+  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
           .read_u64::<LittleEndian>()?;
-    Ok(Pong {
+    Ok(Box::new(Pong {
       nounce: nounce,
-    })
+    }))
   }
 }
 
@@ -201,7 +218,7 @@ pub struct Tx {
 
 impl Tx {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx, Box<Error>> {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Box<std::fmt::Debug> {
+  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
     let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
       .read_i32::<LittleEndian>()?;
 
@@ -231,7 +248,7 @@ impl Tx {
     if let Some(_) = it.next() {
       Err("TODO")?;
     }
-    Ok(tx)
+    Ok(Box::new(tx))
   }
 }
 
@@ -293,7 +310,6 @@ pub struct TxInput {
 }
 
 impl TxInput {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> TxInput {
   pub fn new(it: &mut std::vec::IntoIter<u8>) -> TxInput {
       let ptx = it.take(32).map(|u| u.to_le()).collect::<ArrayVec<[u8; 32]>>();
       let ptxoi = Cursor::new(it.take(4).collect::<Vec<u8>>())
