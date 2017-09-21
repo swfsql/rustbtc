@@ -65,8 +65,15 @@ impl std::fmt::Debug for Bytes {
 
 pub struct Msg {
   pub header: MsgHeader,
-  pub payload: Option<Box<std::fmt::Debug>>,
+  pub payload: Option<MsgPayload>,
 }
+
+pub enum MsgPayload {
+  Tx(Tx),
+  Ping(Ping),
+  Pong(Pong),
+}
+
 
 impl Msg {
   pub fn new(it: &mut std::vec::IntoIter<u8>) -> Msg {
@@ -77,9 +84,9 @@ impl Msg {
 
     let payload = match cmd_str.to_string().trim().as_ref() {
 
-      "tx\0\0\0\0\0\0\0\0\0\0" => Some(Tx::new(it).unwrap()),
-      "ping\0\0\0\0\0\0\0\0" => Some(Ping::new(it).unwrap()),
-      "pong\0\0\0\0\0\0\0\0" => Some(Pong::new(it).unwrap()),
+      "tx\0\0\0\0\0\0\0\0\0\0" => Some(MsgPayload::Tx(Tx::new(it).unwrap())),
+      "ping\0\0\0\0\0\0\0\0" => Some(MsgPayload::Ping(Ping::new(it).unwrap())),
+      "pong\0\0\0\0\0\0\0\0" => Some(MsgPayload::Pong(Pong::new(it).unwrap())),
       _ => None,
     };
 
@@ -90,7 +97,6 @@ impl Msg {
       payload: payload,
     }
   }
-
 }
 
 
@@ -98,22 +104,34 @@ impl std::fmt::Debug for Msg {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
       let mut s = "Message:\n".to_string();
       s += &format!("├ Message Header: {:?}", self.header);
-      let k = format!("├ Message Payload: {:?}\n", self.payload.as_ref().unwrap());
-      s += match self.payload {
-        //Some(ref payload) => payload.fmt(),
-        Some(ref payload) => &k,
-        None => "None",
-      };
+      s += &format!("├ Message Payload: \n{}",
+        match self.clone().payload {
+          Some(ref p) => match p {
+            &MsgPayload::Tx(ref tx) => format!("{:?}", tx),
+            &MsgPayload::Ping(ref ping) => format!("{:?}", ping),
+            &MsgPayload::Pong(ref pong) => format!("{:?}", pong),
+          },
+          None => "None".to_string(),
+        }.lines().map(|x| "│ ".to_string() + x + "\n").collect::<String>()
+      );
       write!(f, "{}", s)
   }
 }
 
 /*
-pub enum MsgPayload {
-  Tx,
-  Ping,
-  Pong,
-}*/
+enum BinaryTree<T> {
+    Empty,
+    Node(Box<(T, BinaryTree<T>, BinaryTree<T>)>),
+}
+...
+let a_msg = msg::new_from_hex("hex");
+match a_msg {
+  Empy => ,
+  Node(a) => a: Box<T>,
+}
+*/
+
+
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 pub struct MsgHeader {
@@ -160,14 +178,14 @@ pub struct Ping {
 }
 
 impl Ping {
-  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping, Box<Error>> {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
+  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping, Box<Error>> {
+  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
           .read_u64::<LittleEndian>()?;
-    Ok(Box::new(Ping {
+    Ok(Ping {
       nounce: nounce,
-    }))
+    })
   }
 }
 
@@ -185,14 +203,14 @@ pub struct Pong {
 }
 
 impl Pong {
-  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong, Box<Error>> {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
+  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong, Box<Error>> {
+  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
           .read_u64::<LittleEndian>()?;
-    Ok(Box::new(Pong {
+    Ok(Pong {
       nounce: nounce,
-    }))
+    })
   }
 }
 
@@ -217,8 +235,8 @@ pub struct Tx {
 }
 
 impl Tx {
-  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx, Box<Error>> {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
+  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx, Box<Error>> {
+  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
     let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
       .read_i32::<LittleEndian>()?;
 
@@ -248,7 +266,7 @@ impl Tx {
     if let Some(_) = it.next() {
       Err("TODO")?;
     }
-    Ok(Box::new(tx))
+    Ok(tx)
   }
 }
 
