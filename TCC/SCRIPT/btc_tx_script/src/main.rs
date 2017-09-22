@@ -1,3 +1,11 @@
+
+/*
+
+TODO: validar Msg de acordo com payload_len
+TALVEZ: Validar de acordo com o checksum
+TODO: melhorar Debug for Msg
+*/
+
 extern crate hex;
 use hex::FromHex;
 
@@ -5,14 +13,49 @@ extern crate btc_tx_script;
 use btc_tx_script as btctx;
 
 fn main() {
+  let msg_tx_hex = "".to_string() +
+    "F9BEB4D9" + "747800000000000000000000" + "02010000E293CDBE" +
+    "01000000016DBDDB085B1D8AF75184F0BC01FAD58D1266E9B63B50881990E4B40D6AEE3629000000008B483045022100F3581E1972AE8AC7C7367A7A253BC1135223ADB9A468BB3A59233F45BC578380022059AF01CA17D00E41837A1D58E97AA31BAE584EDEC28D35BD96923690913BAE9A0141049C02BFC97EF236CE6D8FE5D94013C721E915982ACD2B12B65D9B7D59E20A842005F8FC4E02532E873D37B96F09D6D4511ADA8F14042F46614A4C70C0F14BEFF5FFFFFFFF02404B4C00000000001976A9141AA0CD1CBEA6E7458A7ABAD512A9D9EA1AFB225E88AC80FAE9C7000000001976A9140EAB5BEA436A0484CFAB12485EFDA0B78B4ECC5288AC00000000";
+  let msg_tx_vec: Vec<u8> = Vec::from_hex(msg_tx_hex).unwrap();
+  let mut msg_tx_it = msg_tx_vec.into_iter();
+  let msg_tx = btctx::Msg::new(msg_tx_it.by_ref());
+  println!("{:?}", msg_tx);
+
+  let tx = if let Some(btctx::MsgPayload::Tx(tx)) = msg_tx.payload {
+    Some(tx)
+  } else {
+    None
+  };
+  println!("{:?}", tx.unwrap());
 
 
 
-  let msg_hex = "F9BEB4D974780000000000000000000002010000E293CDBE01000000016DBDDB085B1D8AF75184F0BC01FAD58D1266E9B63B50881990E4B40D6AEE3629000000008B483045022100F3581E1972AE8AC7C7367A7A253BC1135223ADB9A468BB3A59233F45BC578380022059AF01CA17D00E41837A1D58E97AA31BAE584EDEC28D35BD96923690913BAE9A0141049C02BFC97EF236CE6D8FE5D94013C721E915982ACD2B12B65D9B7D59E20A842005F8FC4E02532E873D37B96F09D6D4511ADA8F14042F46614A4C70C0F14BEFF5FFFFFFFF02404B4C00000000001976A9141AA0CD1CBEA6E7458A7ABAD512A9D9EA1AFB225E88AC80FAE9C7000000001976A9140EAB5BEA436A0484CFAB12485EFDA0B78B4ECC5288AC00000000";
-  let msg_vec: Vec<u8> = Vec::from_hex(msg_hex).unwrap();
-  let mut msg_it = msg_vec.into_iter();
-  let msg = btctx::Msg::new(msg_it.by_ref());
-  println!("{:?}", msg);
+  //ping
+  let msg_ping_hex = "".to_string() +
+    "F9BEB4D9"+ "70696E670000000000000000" + "02010000E293CDBE" +
+    "0094102111e2af4d";
+  let msg_ping_vec: Vec<u8> = Vec::from_hex(msg_ping_hex).unwrap();
+  let mut msg_ping_it = msg_ping_vec.into_iter();
+  let msg_ping = btctx::Msg::new(msg_ping_it.by_ref());
+  println!("{:?\n}", msg_ping);
+
+
+  let tx = if let Some(btctx::MsgPayload::Tx(tx)) = msg_ping.payload {
+    Some(tx)
+  } else {
+    None
+  };
+  print!("{:?}\n", tx);
+
+  //pong
+
+  let msg_pong_hex = "".to_string() +
+    "F9BEB4D9"+ "706F6E670000000000000000" + "02010000E293CDBE" +
+    "0194102111e2af4d";
+  let msg_pong_vec: Vec<u8> = Vec::from_hex(msg_pong_hex).unwrap();
+  let mut msg_pong_it = msg_pong_vec.into_iter();
+  let msg_pong = btctx::Msg::new(msg_pong_it.by_ref());
+  println!("{:?}", msg_pong);
 
 
   // example tx msg
