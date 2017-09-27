@@ -11,18 +11,13 @@ use std::error::Error;
 use byteorder::{LittleEndian, ReadBytesExt};
 use arrayvec::ArrayVec;
 
-pub struct Bytes(Vec<u8>);
+extern crate hex;
 
-/*
-impl std::iter::Iterator for Bytes {
-  type Item = u8;
-  fn next(&mut self) -> Option<u8> {
-      self.0.next()
-    }
-}
-*/
-
+use hex::FromHex;
 use std::iter::Iterator;
+
+
+pub struct Bytes(Vec<u8>);
 
 impl std::iter::FromIterator<u8> for Bytes {
   fn from_iter<I: IntoIterator<Item=u8>>(iter: I) -> Self {
@@ -33,6 +28,18 @@ impl std::iter::FromIterator<u8> for Bytes {
     b
     // Bytes(iter.collect::<Vec<u8>>())
   }
+}
+
+
+pub trait NewFromHex {
+  fn new_from_hex(hex: &str) -> Result<Self, Box<Error>>
+  where Self: std::marker::Sized {
+    let vec: Vec<u8> = Vec::from_hex(hex).unwrap();
+    let mut it = vec.into_iter();
+    Self::new(it.by_ref())
+  }
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Self, Box<Error>>
+  where Self: std::marker::Sized;
 }
 
 impl std::fmt::Debug for Bytes {
@@ -63,10 +70,6 @@ impl std::fmt::Debug for Bytes {
   }
 }
 
-pub struct Msg {
-  pub header: MsgHeader,
-  pub payload: Option<MsgPayload>,
-}
 
 pub enum MsgPayload {
   Tx(Tx),
@@ -75,10 +78,15 @@ pub enum MsgPayload {
 }
 
 
-impl Msg {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Msg {
+pub struct Msg {
+  pub header: MsgHeader,
+  pub payload: Option<MsgPayload>,
+}
 
-    let header = MsgHeader::new(it);
+impl NewFromHex for Msg {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg, Box<Error>> {
+
+    let header = MsgHeader::new(it).unwrap();
     let cmd_str = header.cmd.clone().into_iter()
       .map(|x| x as char).collect::<String>();
 
@@ -92,45 +100,29 @@ impl Msg {
 
     // header.payload_len // TODO
 
-    Msg {
+    Ok(Msg {
       header: header,
       payload: payload,
-    }
+    })
   }
 }
-
 
 impl std::fmt::Debug for Msg {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
       let mut s = "Message:\n".to_string();
       s += &format!("├ Message Header: {:?}", self.header);
-      s += &format!("├ Message Payload: \n{}",
-        match self.clone().payload {
+      s += &"├ Message Payload: \n".to_string();
+      s += &match self.clone().payload {
           Some(ref p) => match p {
             &MsgPayload::Tx(ref tx) => format!("{:?}", tx),
             &MsgPayload::Ping(ref ping) => format!("{:?}", ping),
             &MsgPayload::Pong(ref pong) => format!("{:?}", pong),
           },
           None => "None".to_string(),
-        }.lines().map(|x| "│ ".to_string() + x + "\n").collect::<String>()
-      );
+        }.lines().map(|x| "│ ".to_string() + x + "\n").collect::<String>();
       write!(f, "{}", s)
   }
 }
-
-/*
-enum BinaryTree<T> {
-    Empty,
-    Node(Box<(T, BinaryTree<T>, BinaryTree<T>)>),
-}
-...
-let a_msg = msg::new_from_hex("hex");
-match a_msg {
-  Empy => ,
-  Node(a) => a: Box<T>,
-}
-*/
-
 
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
@@ -141,9 +133,9 @@ pub struct MsgHeader {
   pub payloadchk: u32,
 }
 
-impl MsgHeader {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> MsgHeader {
-    MsgHeader {
+impl NewFromHex for MsgHeader {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<MsgHeader, Box<Error>> {
+    Ok(MsgHeader {
       network: Cursor::new(it.take(4).collect::<Vec<u8>>())
         .read_u32::<LittleEndian>().unwrap(),
       cmd: it.take(12).map(|u| u.to_le()).collect::<ArrayVec<[u8; 12]>>(),
@@ -151,10 +143,9 @@ impl MsgHeader {
         .read_i32::<LittleEndian>().unwrap(),
       payloadchk: Cursor::new(it.take(4).collect::<Vec<u8>>())
         .read_u32::<LittleEndian>().unwrap(),
-    }
+    })
   }
 }
-
 
 impl std::fmt::Debug for MsgHeader {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
@@ -177,8 +168,8 @@ pub struct Ping {
   pub nounce: u64,
 }
 
-impl Ping {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping, Box<Error>> {
+impl NewFromHex for Ping {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping, Box<Error>> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
@@ -187,6 +178,7 @@ impl Ping {
       nounce: nounce,
     })
   }
+
 }
 
 impl std::fmt::Debug for Ping {
@@ -197,13 +189,14 @@ impl std::fmt::Debug for Ping {
   }
 }
 
+
 // https://bitcoin.org/en/developer-reference#ping
 pub struct Pong {
   pub nounce: u64,
 }
 
-impl Pong {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong, Box<Error>> {
+impl NewFromHex for Pong {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong, Box<Error>> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
@@ -222,6 +215,7 @@ impl std::fmt::Debug for Pong {
   }
 }
 
+
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 // https://bitcoin.org/en/developer-reference#raw-transaction-format
 pub struct Tx {
@@ -234,8 +228,8 @@ pub struct Tx {
   // TODO MAYBE witness
 }
 
-impl Tx {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx, Box<Error>> {
+impl NewFromHex for Tx {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx, Box<Error>> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
     let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
       .read_i32::<LittleEndian>()?;
@@ -243,13 +237,13 @@ impl Tx {
     let ninputs = it.by_ref().next().ok_or("TODO")?.to_le();
     let mut inputs: Vec<TxInput> = vec![];
     for _ in 0..ninputs {
-      inputs.push(TxInput::new(it));
+      inputs.push(TxInput::new(it).unwrap());
     }
 
     let noutputs = it.by_ref().next().ok_or("TODO")?.to_le();
     let mut outputs: Vec<TxOutput> = vec![];
     for _ in 0..noutputs {
-      outputs.push(TxOutput::new(it));
+      outputs.push(TxOutput::new(it).unwrap());
     }
 
     let locktime = Cursor::new(it.take(4).collect::<Vec<u8>>())
@@ -269,7 +263,6 @@ impl Tx {
     Ok(tx)
   }
 }
-
 
 impl std::fmt::Debug for Tx {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
@@ -319,6 +312,7 @@ impl std::fmt::Debug for Tx {
   }
 }
 
+
 pub struct TxInput {
   pub prev_tx: ArrayVec<[u8; 32]>,
   pub prev_tx_out_index: u32,
@@ -327,14 +321,14 @@ pub struct TxInput {
   pub sequence: u32,
 }
 
-impl TxInput {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> TxInput {
+impl NewFromHex for TxInput {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<TxInput, Box<Error>> {
       let ptx = it.take(32).map(|u| u.to_le()).collect::<ArrayVec<[u8; 32]>>();
       let ptxoi = Cursor::new(it.take(4).collect::<Vec<u8>>())
           .read_u32::<LittleEndian>().unwrap();
       let slen = it.by_ref().next().unwrap().to_le();
 
-      TxInput {
+      Ok(TxInput {
         prev_tx: ptx,
         prev_tx_out_index: ptxoi,
         script_len: slen,
@@ -342,10 +336,9 @@ impl TxInput {
           .collect::<Bytes>(),
         sequence: Cursor::new(it.take(4).collect::<Vec<u8>>())
           .read_u32::<LittleEndian>().unwrap(),
-      }
+      })
   }
 }
-
 
 impl std::fmt::Debug for TxInput {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
@@ -368,21 +361,20 @@ pub struct TxOutput {
   pub pk_script: Bytes,
 }
 
-impl TxOutput {
-  pub fn new(it: &mut std::vec::IntoIter<u8>) -> TxOutput {
+impl NewFromHex for TxOutput {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<TxOutput, Box<Error>> {
       let val = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
         .read_i64::<LittleEndian>().unwrap();
       let pkslen = it.by_ref().next().unwrap().to_le();
 
-      TxOutput {
+      Ok(TxOutput {
         value: val,
         pk_script_len: pkslen,
         pk_script: it.take(pkslen as usize).map(|u| u.to_le())
           .collect::<Bytes>(),
-      }
+      })
   }
 }
-
 
 impl std::fmt::Debug for TxOutput {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
@@ -396,40 +388,5 @@ impl std::fmt::Debug for TxOutput {
 }
 
 
-/*
-scriptSig:
-  <sig> <pubKey>
-*/
-
-/*
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 
-// example tx msg
-F9 BE B4 D9 74 78 00 00  00 00 00 00 00 00 00 00
-02 01 00 00 E2 93 CD BE  01 00 00 00 01 6D BD DB
-08 5B 1D 8A F7 51 84 F0  BC 01 FA D5 8D 12 66 E9
-B6 3B 50 88 19 90 E4 B4  0D 6A EE 36 29 00 00 00
-00 8B 48 30 45 02 21 00  F3 58 1E 19 72 AE 8A C7
-C7 36 7A 7A 25 3B C1 13  52 23 AD B9 A4 68 BB 3A
-59 23 3F 45 BC 57 83 80  02 20 59 AF 01 CA 17 D0
-0E 41 83 7A 1D 58 E9 7A  A3 1B AE 58 4E DE C2 8D
-35 BD 96 92 36 90 91 3B  AE 9A 01 41 04 9C 02 BF
-C9 7E F2 36 CE 6D 8F E5  D9 40 13 C7 21 E9 15 98
-2A CD 2B 12 B6 5D 9B 7D  59 E2 0A 84 20 05 F8 FC
-4E 02 53 2E 87 3D 37 B9  6F 09 D6 D4 51 1A DA 8F
-14 04 2F 46 61 4A 4C 70  C0 F1 4B EF F5 FF FF FF
-FF 02 40 4B 4C 00 00 00  00 00 19 76 A9 14 1A A0
-CD 1C BE A6 E7 45 8A 7A  BA D5 12 A9 D9 EA 1A FB
-22 5E 88 AC 80 FA E9 C7  00 00 00 00 19 76 A9 14
-0E AB 5B EA 43 6A 04 84  CF AB 12 48 5E FD A0 B7
-8B 4E CC 52 88 AC 00 00  00 00
-
-77
-0000 0000
-
-*/
-
-// Almost all integers are encoded in little endian. Only IP or port number are encoded big endian.
-
-
-// ARRAYVEC
