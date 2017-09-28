@@ -1,3 +1,6 @@
+// TODO version
+// TODO verack
+
 
 //extern crate hex;
 extern crate byteorder;
@@ -75,6 +78,8 @@ pub enum MsgPayload {
   Tx(Tx),
   Ping(Ping),
   Pong(Pong),
+  //Version(version),
+  //Verack(verack),
 }
 
 
@@ -208,12 +213,193 @@ impl NewFromHex for Pong {
 }
 
 impl std::fmt::Debug for Pong {
+
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
       let mut s = "Pong:\n".to_string();
       s += &format!("├ Nounce: {}\n", self.nounce);
       write!(f, "{}", s)
   }
 }
+
+
+enum VarUint {
+  U8(u8),
+  U16(u16),
+  U32(u32),
+  U64(u64),
+}
+
+impl VarUint {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarUint, Box<Error>> {
+    let value_head = it.by_ref().next().ok_or("TODO")?.to_le();
+    match value_head {
+      //0x00 .. 0xFC => VarInt::U8(value_head), // leu 1 byte
+      0xFD => {
+        let value_body = Cursor::new(it.take(2).collect::<Vec<u8>>())
+          .read_u16::<LittleEndian>().unwrap();
+        Ok(VarUint::U16(value_body))  // ler 16 bit
+      },
+      0xFE => { // ler 32 bit
+        let value_body = Cursor::new(it.take(4).collect::<Vec<u8>>())
+          .read_u32::<LittleEndian>().unwrap();
+        Ok(VarUint::U32(value_body))
+      },
+      0xFF => { // ler 64 bit
+        let value_body = Cursor::new(it.take(8).collect::<Vec<u8>>())
+          .read_u64::<LittleEndian>().unwrap();
+        Ok(VarUint::U64(value_body))
+      },
+      _ => Ok(VarUint::U8(value_head)), // leu 1 byte
+    }
+  }
+}
+
+struct VarStr {
+  length: VarUint,
+  string: Bytes,
+}
+
+impl VarStr {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarStr, Box<Error>> {
+    let len = VarUint::new(it).unwrap();
+    let slen = match len {
+      VarUint::U8(u) => Some(u as usize),
+      VarUint::U16(u) => Some(u as usize),
+      VarUint::U32(u) => Some(u as usize),
+      VarUint::U64(u) => None, // u64 as usize is uncertain on x86 arch
+    };
+
+    Ok(VarStr {
+      length: len,
+      string: it.take(slen.unwrap()).map(|u| u.to_le()).collect::<Bytes>(),
+    })
+  }
+}
+
+
+
+// falta pub time: u32
+// https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
+pub struct NetAddr {
+  pub service: u64,
+  pub ip: ArrayVec<[u8; 16]>,
+  pub port: u16,
+}
+
+/*
+
+// https://en.bitcoin.it/wiki/Protocol_documentation#version
+// https://bitcoin.org/en/developer-reference#version
+pub struct Version {
+  pub version: i32,
+  pub services: u64,
+  pub timestamp: i64,
+  pub addr_recv: NetAddr,
+  pub addr_trans: NetAddr,
+  pub nounce: u64,
+
+  pub version: i32,
+
+  pub version: i32,
+  pub version: i32,
+
+
+
+
+  pub version: i32,
+  pub inputs_len: u8,
+  pub inputs: Vec<TxInput>,
+  pub outputs_len: u8,
+  pub outputs: Vec<TxOutput>,
+  pub locktime: u32,
+  // TODO MAYBE witness
+}
+
+impl NewFromHex for Version {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version, Box<Error>> {
+  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
+    let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
+      .read_i32::<LittleEndian>()?;
+
+    let ninputs = it.by_ref().next().ok_or("TODO")?.to_le();
+    let mut inputs: Vec<TxInput> = vec![];
+    for _ in 0..ninputs {
+      inputs.push(TxInput::new(it).unwrap());
+    }
+
+    let noutputs = it.by_ref().next().ok_or("TODO")?.to_le();
+    let mut outputs: Vec<TxOutput> = vec![];
+    for _ in 0..noutputs {
+      outputs.push(TxOutput::new(it).unwrap());
+    }
+
+    let locktime = Cursor::new(it.take(4).collect::<Vec<u8>>())
+          .read_u32::<LittleEndian>()?;
+
+    let tx = Tx {
+      version: ver,
+      inputs_len: ninputs,
+      inputs: inputs,
+      outputs_len: noutputs,
+      outputs: outputs,
+      locktime: locktime,
+    };
+    if let Some(_) = it.next() {
+      Err("TODO")?;
+    }
+    Ok(tx)
+  }
+}
+
+impl std::fmt::Debug for Version {
+  fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+      let mut s = "Tx:\n".to_string();
+      s += &format!("├ Version: {}\n", self.version);
+      s += &format!("├ Inputs Length: {}\n", self.inputs_len);
+      s += &format!("├ Inputs:\n");
+      for (i, input) in self.inputs.iter().enumerate() {
+        s += &format!(" {:?}", input)
+          .lines()
+          .filter(|&x| x != "]")
+          .enumerate()
+          .map(|(i2, l)|
+            if i2 == 0 {
+              "│ ├".to_string() +
+              &l.split(':').next().unwrap().to_string()
+                .chars().collect::<String>() +
+                &(i).to_string() + ":\n"
+            } else {
+              "│ │ ".to_string() + l + "\n"
+            })
+          .collect::<String>();
+      }
+      s += &format!("├ Outputs Length: {}\n", self.outputs_len);
+      s += &format!("├ Outputs:\n");
+      for (i, output) in self.outputs.iter().enumerate() {
+        s += &format!(" {:?}", output)
+          .lines()
+          .filter(|&x| x != "]")
+          .enumerate()
+          .map(|(i2, l)|
+            if i2 == 0 {
+              "│ ├".to_string() +
+              &l.split(':').next().unwrap().to_string()
+                .chars().collect::<String>() +
+                &(i).to_string() + ":\n"
+            } else {
+              "│ │ ".to_string() + l + "\n"
+            })
+          .collect::<String>();
+      }
+      //let inputs = format!(" {:?}", self.inputs)
+      //s += &inputs;
+      s += &format!("├ Locktime: {}\n", self.locktime);
+
+      write!(f, "{}", s)
+  }
+}
+
+*/
 
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
