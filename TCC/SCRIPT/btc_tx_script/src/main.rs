@@ -54,6 +54,8 @@ fn main() {
   let msg_pong = btctx::Msg::new_from_hex(&msg_pong_hex).unwrap();
   println!("{:?}", msg_pong);
 
+  //
+
 
   // example tx msg
   // https://en.bitcoin.it/wiki/Protocol_documentation#tx
@@ -86,5 +88,44 @@ fn main() {
   //println!("{:?}", pl_ping);
 
 
-}
+println!("======================================================================");
+  let msg_version_hex = "".to_string() +
+  //"F9BEB4D976657273696F6E000000000055000000"
+ "62EA0000010000000000000011B2D05000000000010000000000000000000000000000000000FFFF000000000000010000000000000000000000000000000000FFFF0000000000003B2EB35D8CE617650F2F5361746F7368693A302E372E322FC03E0300";
+ //"9C7C00000100000000000000E615104D00000000010000000000000000000000000000000000FFFF0A000001208D010000000000000000000000000000000000FFFF0A000002208DDD9D202C3AB457130055810100";
+  let msg_version = btctx::Version::new_from_hex(&msg_version_hex).unwrap();
+  println!("LALALAL123");
+  println!("{:?}", msg_version);
 
+
+println!("======================================================================");
+  println!("{:?}", btctx::VarStr::new_from_hex(
+    &"0f2f5361746f7368693a302e392e332f").unwrap());
+
+
+}
+/*
+
+62 EA 00 00                                                                   - 60002 (protocol version 60002)
+ 01 00 00 00 00 00 00 00                                                       - 1 (NODE_NETWORK services)
+ 11 B2 D0 50 00 00 00 00                                                       - Tue Dec 18 10:12:33 PST 2012
+ 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Recipient address info - see Network Address
+ 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Sender address info - see Network Address
+ 3B 2E B3 5D 8C E6 17 65                                                       - Node ID
+ 0F 2F 53 61 74 6F 73 68 69 3A 30 2E 37 2E 32 2F                               - "/Satoshi:0.7.2/" sub-version string (string is 15 bytes long)
+ C0 3E 03 00
+
+
+ 62 EA 00 00                                                                   - 60002 (protocol version 60002)
+ 01 00 00 00 00 00 00 00                                                       - 1 (NODE_NETWORK services)
+ 11 B2 D0 50 00 00 00 00                                                       - Tue Dec 18 10:12:33 PST 2012
+ 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Recipient address info - see Network Address
+ 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Sender address info - see Network Address
+ 3B 2E B3 5D 8C E6 17 65                                                       - Node ID
+ 0F 2F 53 61 74 6F 73 68 69 3A 30 2E 37 2E 32 2F                               - "/Satoshi:0.7.2/" sub-version string (string is 15 bytes long)
+ C0 3E 03 00
+
+
+
+ 62EA0000010000000000000011B2D05000000000010000000000000000000000000000000000FFFF000000000000010000000000000000000000000000000000FFFF0000000000003B2EB35D8CE617650F2F5361746F7368693A302E372E322FC03E0300
+ */

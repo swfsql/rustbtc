@@ -10,6 +10,8 @@ use std::fmt;
 //use std::io::{Error, ErrorKind};
 use std::error::Error;
 
+use std::ascii::AsciiExt;
+
 //use hex::FromHex;
 use byteorder::{LittleEndian, ReadBytesExt};
 use arrayvec::ArrayVec;
@@ -37,7 +39,7 @@ impl std::iter::FromIterator<u8> for Bytes {
 pub trait NewFromHex {
   fn new_from_hex(hex: &str) -> Result<Self, Box<Error>>
   where Self: std::marker::Sized {
-    let vec: Vec<u8> = Vec::from_hex(hex).unwrap();
+    let vec: Vec<u8> = Vec::from_hex(hex)?;
     let mut it = vec.into_iter();
     Self::new(it.by_ref())
   }
@@ -47,6 +49,10 @@ pub trait NewFromHex {
 
 impl std::fmt::Debug for Bytes {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+      let mut all_ascii = true;
+      let as_char = self.0.iter().map(|c| if (*c as char).is_ascii() {*c as char} else {
+      all_ascii = false;
+      '.'}).collect::<String>();
 
       let o = self.0.iter().enumerate()
         .map(|(i, s)|
@@ -69,16 +75,21 @@ impl std::fmt::Debug for Bytes {
         })
         .collect::<String>() + "\n│ │";
 
-      write!(f,"{}", o)
+      if all_ascii {
+        write!(f,"<{}>{}", as_char, o)
+
+      } else {
+        write!(f,"{}", o)
+
+      }
   }
 }
-
 
 pub enum MsgPayload {
   Tx(Tx),
   Ping(Ping),
   Pong(Pong),
-  //Version(version),
+  Version(Version),
   //Verack(verack),
 }
 
@@ -90,7 +101,6 @@ pub struct Msg {
 
 impl NewFromHex for Msg {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg, Box<Error>> {
-
     let header = MsgHeader::new(it).unwrap();
     let cmd_str = header.cmd.clone().into_iter()
       .map(|x| x as char).collect::<String>();
@@ -100,6 +110,7 @@ impl NewFromHex for Msg {
       "tx\0\0\0\0\0\0\0\0\0\0" => Some(MsgPayload::Tx(Tx::new(it).unwrap())),
       "ping\0\0\0\0\0\0\0\0" => Some(MsgPayload::Ping(Ping::new(it).unwrap())),
       "pong\0\0\0\0\0\0\0\0" => Some(MsgPayload::Pong(Pong::new(it).unwrap())),
+      "version\0\0\0\0\0" => Some(MsgPayload::Version(Version::new(it).unwrap())),
       _ => None,
     };
 
@@ -122,6 +133,7 @@ impl std::fmt::Debug for Msg {
             &MsgPayload::Tx(ref tx) => format!("{:?}", tx),
             &MsgPayload::Ping(ref ping) => format!("{:?}", ping),
             &MsgPayload::Pong(ref pong) => format!("{:?}", pong),
+            &MsgPayload::Version(ref version) => format!("{:?}", version),
           },
           None => "None".to_string(),
         }.lines().map(|x| "│ ".to_string() + x + "\n").collect::<String>();
@@ -221,7 +233,7 @@ impl std::fmt::Debug for Pong {
   }
 }
 
-
+#[derive(Debug)]
 enum VarUint {
   U8(u8),
   U16(u16),
@@ -229,7 +241,7 @@ enum VarUint {
   U64(u64),
 }
 
-impl VarUint {
+impl NewFromHex for VarUint {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarUint, Box<Error>> {
     let value_head = it.by_ref().next().ok_or("TODO")?.to_le();
     match value_head {
@@ -249,30 +261,45 @@ impl VarUint {
           .read_u64::<LittleEndian>().unwrap();
         Ok(VarUint::U64(value_body))
       },
-      _ => Ok(VarUint::U8(value_head)), // leu 1 byte
+      _ => {
+        println!("CAIU NO UNDERLINE: <{}>", value_head);
+        Ok(VarUint::U8(value_head)) // leu 1 byte
+      },
+
     }
   }
 }
 
-struct VarStr {
+
+
+pub struct VarStr {
   length: VarUint,
   string: Bytes,
 }
 
-impl VarStr {
+impl NewFromHex for VarStr {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarStr, Box<Error>> {
     let len = VarUint::new(it).unwrap();
     let slen = match len {
       VarUint::U8(u) => Some(u as usize),
       VarUint::U16(u) => Some(u as usize),
       VarUint::U32(u) => Some(u as usize),
-      VarUint::U64(u) => None, // u64 as usize is uncertain on x86 arch
+      VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
     };
-
+    println!("SLEN: <{:?}>", slen);
     Ok(VarStr {
       length: len,
       string: it.take(slen.unwrap()).map(|u| u.to_le()).collect::<Bytes>(),
     })
+  }
+}
+
+impl std::fmt::Debug for VarStr {
+  fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+      let mut s = "Version:\n".to_string();
+      s += &format!("├ Length: {:?}\n", self.length);
+      s += &format!("├ String: {:?}\n", self.string);
+      write!(f, "{}", s)
   }
 }
 
@@ -286,120 +313,114 @@ pub struct NetAddr {
   pub port: u16,
 }
 
-/*
+impl NewFromHex for NetAddr {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<NetAddr, Box<Error>> {
+    let service = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
+      .read_u64::<LittleEndian>()?;
+    let ip = it.by_ref().take(16).map(|u| u.to_le()).collect::<ArrayVec<[u8; 16]>>();
+    let port = Cursor::new(it.by_ref().take(2).collect::<Vec<u8>>())
+      .read_u16::<LittleEndian>()?;
+    Ok(NetAddr{
+      service: service,
+      ip: ip,
+      port: port,
+    })
+  }
+}
+
+impl std::fmt::Debug for NetAddr {
+  fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+
+      let mut s = "Net Addr:\n".to_string();
+      s += &format!("├ Service: {}\n", self.service);
+      s += &format!("├ IP: {:?}\n", self.ip
+        .clone().into_iter().collect::<Bytes>());
+      s += &format!("├ Port: {}\n", self.port);
+      write!(f, "{}", s)
+  }
+}
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#version
 // https://bitcoin.org/en/developer-reference#version
+
 pub struct Version {
   pub version: i32,
   pub services: u64,
   pub timestamp: i64,
   pub addr_recv: NetAddr,
   pub addr_trans: NetAddr,
-  pub nounce: u64,
-
-  pub version: i32,
-
-  pub version: i32,
-  pub version: i32,
-
-
-
-
-  pub version: i32,
-  pub inputs_len: u8,
-  pub inputs: Vec<TxInput>,
-  pub outputs_len: u8,
-  pub outputs: Vec<TxOutput>,
-  pub locktime: u32,
-  // TODO MAYBE witness
+  pub nonce: u64,
+  pub user_agent: VarStr,
+  pub start_height: i32,
+  pub relay: Option<bool>,
 }
 
+// https://bitcoin.org/en/developer-reference#protocol-versions
 impl NewFromHex for Version {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version, Box<Error>> {
-  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
-    let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
+
+    println!("começo do version");
+
+
+    let version = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
       .read_i32::<LittleEndian>()?;
-
-    let ninputs = it.by_ref().next().ok_or("TODO")?.to_le();
-    let mut inputs: Vec<TxInput> = vec![];
-    for _ in 0..ninputs {
-      inputs.push(TxInput::new(it).unwrap());
+    if (version < 60002i32) {
+      Err("Unsuported protocol version")?
     }
-
-    let noutputs = it.by_ref().next().ok_or("TODO")?.to_le();
-    let mut outputs: Vec<TxOutput> = vec![];
-    for _ in 0..noutputs {
-      outputs.push(TxOutput::new(it).unwrap());
-    }
-
-    let locktime = Cursor::new(it.take(4).collect::<Vec<u8>>())
-          .read_u32::<LittleEndian>()?;
-
-    let tx = Tx {
-      version: ver,
-      inputs_len: ninputs,
-      inputs: inputs,
-      outputs_len: noutputs,
-      outputs: outputs,
-      locktime: locktime,
+    println!("version: {}", version);
+    let services = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
+      .read_u64::<LittleEndian>()?;
+    println!("services: {}", services);
+    let timestamp = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
+      .read_i64::<LittleEndian>()?;
+    println!("timestamp: {}", timestamp); // TODO mostrar tempo bonito
+    let addr_recv = NetAddr::new(it)?;
+    println!("addr_recv: {:?}", addr_recv);
+    let addr_trans = NetAddr::new(it)?;
+    println!("addr_trans: {:?}", addr_trans);
+    let nonce = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
+      .read_u64::<LittleEndian>()?;
+    let user_agent = VarStr::new(it)?;
+    println!("bagulho 3");
+    let start_height = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
+      .read_i32::<LittleEndian>()?;
+    println!("bagulho 4");
+    let relay = if version < 70002i32 {
+      None
+    } else {
+      Some(it.by_ref().next().ok_or("TODO")?.to_le() != 0u8)
     };
-    if let Some(_) = it.next() {
-      Err("TODO")?;
-    }
-    Ok(tx)
+    println!("bagulho 5");
+    Ok(Version{
+      version: version,
+      services: services,
+      timestamp: timestamp,
+      addr_recv: addr_recv,
+      addr_trans: addr_trans,
+      nonce: nonce,
+      user_agent: user_agent,
+      start_height: start_height,
+      relay: relay,
+    })
   }
 }
 
 impl std::fmt::Debug for Version {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
-      let mut s = "Tx:\n".to_string();
+      let mut s = "Version:\n".to_string();
       s += &format!("├ Version: {}\n", self.version);
-      s += &format!("├ Inputs Length: {}\n", self.inputs_len);
-      s += &format!("├ Inputs:\n");
-      for (i, input) in self.inputs.iter().enumerate() {
-        s += &format!(" {:?}", input)
-          .lines()
-          .filter(|&x| x != "]")
-          .enumerate()
-          .map(|(i2, l)|
-            if i2 == 0 {
-              "│ ├".to_string() +
-              &l.split(':').next().unwrap().to_string()
-                .chars().collect::<String>() +
-                &(i).to_string() + ":\n"
-            } else {
-              "│ │ ".to_string() + l + "\n"
-            })
-          .collect::<String>();
-      }
-      s += &format!("├ Outputs Length: {}\n", self.outputs_len);
-      s += &format!("├ Outputs:\n");
-      for (i, output) in self.outputs.iter().enumerate() {
-        s += &format!(" {:?}", output)
-          .lines()
-          .filter(|&x| x != "]")
-          .enumerate()
-          .map(|(i2, l)|
-            if i2 == 0 {
-              "│ ├".to_string() +
-              &l.split(':').next().unwrap().to_string()
-                .chars().collect::<String>() +
-                &(i).to_string() + ":\n"
-            } else {
-              "│ │ ".to_string() + l + "\n"
-            })
-          .collect::<String>();
-      }
-      //let inputs = format!(" {:?}", self.inputs)
-      //s += &inputs;
-      s += &format!("├ Locktime: {}\n", self.locktime);
-
+      s += &format!("├ Services: {}\n", self.services);
+      s += &format!("├ Timestamp: {}\n", self.timestamp);
+      s += &format!("├ Addr Receiver: {:?}\n", self.addr_recv);
+      s += &format!("├ Addr Transfer: {:?}\n", self.addr_trans);
+      s += &format!("├ Nonce: {}\n", self.nonce);
+      s += &format!("├ User Agent: {:?}\n", self.user_agent);
+      s += &format!("├ Start Height: {}\n", self.start_height);
+      s += &format!("├ Relay: {:?}\n", self.relay);
       write!(f, "{}", s)
   }
 }
 
-*/
 
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
