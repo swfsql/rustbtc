@@ -1,14 +1,22 @@
-mod TxInput;
-mod TxOutput;
+use std;
+use std::fmt;
+use std::error::Error;
+use Commons::NewFromHex::NewFromHex;
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
+
+
+pub mod Input;
+pub mod Output;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 // https://bitcoin.org/en/developer-reference#raw-transaction-format
 pub struct Tx {
   pub version: i32,
   pub inputs_len: u8,
-  pub inputs: Vec<TxInput>,
+  pub inputs: Vec<Input::Input>,
   pub outputs_len: u8,
-  pub outputs: Vec<TxOutput>,
+  pub outputs: Vec<Output::Output>,
   pub locktime: u32,
   // TODO MAYBE witness
 }
@@ -20,15 +28,15 @@ impl NewFromHex for Tx {
       .read_i32::<LittleEndian>()?;
 
     let ninputs = it.by_ref().next().ok_or("TODO")?.to_le();
-    let mut inputs: Vec<TxInput> = vec![];
+    let mut inputs: Vec<Input::Input> = vec![];
     for _ in 0..ninputs {
-      inputs.push(TxInput::new(it).unwrap());
+      inputs.push(Input::Input::new(it).unwrap());
     }
 
     let noutputs = it.by_ref().next().ok_or("TODO")?.to_le();
-    let mut outputs: Vec<TxOutput> = vec![];
+    let mut outputs: Vec<Output::Output> = vec![];
     for _ in 0..noutputs {
-      outputs.push(TxOutput::new(it).unwrap());
+      outputs.push(Output::Output::new(it).unwrap());
     }
 
     let locktime = Cursor::new(it.take(4).collect::<Vec<u8>>())

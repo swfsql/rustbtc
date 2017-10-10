@@ -1,4 +1,8 @@
+use std;
+use std::fmt;
+use std::error::Error;
 pub struct Bytes(Vec<u8>);
+use std::ascii::AsciiExt;
 
 impl std::iter::FromIterator<u8> for Bytes {
   fn from_iter<I: IntoIterator<Item=u8>>(iter: I) -> Self {

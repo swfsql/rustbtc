@@ -1,5 +1,5 @@
-mod Bytes;
-mod VarUint;
-mod VarStr;
-mod NetAddr;
-mod NewFromHex;
+pub mod Bytes;
+pub mod VarUint;
+pub mod VarStr;
+pub mod NetAddr;
+pub mod NewFromHex;

@@ -1,3 +1,10 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use Commons::{NetAddr, VarStr, NewFromHex};
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#version
 // https://bitcoin.org/en/developer-reference#version
@@ -5,16 +12,16 @@ pub struct Version {
   pub version: i32,
   pub services: u64,
   pub timestamp: i64,
-  pub addr_recv: NetAddr,
-  pub addr_trans: NetAddr,
+  pub addr_recv: NetAddr::NetAddr,
+  pub addr_trans: NetAddr::NetAddr,
   pub nonce: u64,
-  pub user_agent: VarStr,
+  pub user_agent: VarStr::VarStr,
   pub start_height: i32,
   pub relay: Option<bool>,
 }
 
 // https://bitcoin.org/en/developer-reference#protocol-versions
-impl NewFromHex for Version {
+impl NewFromHex::NewFromHex for Version {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version, Box<Error>> {
 
 
@@ -27,11 +34,11 @@ impl NewFromHex for Version {
       .read_u64::<LittleEndian>()?;
     let timestamp = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
       .read_i64::<LittleEndian>()?;
-    let addr_recv = NetAddr::new(it)?;
-    let addr_trans = NetAddr::new(it)?;
+    let addr_recv = NetAddr::NetAddr::new(it)?;
+    let addr_trans = NetAddr::NetAddr::new(it)?;
     let nonce = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
       .read_u64::<LittleEndian>()?;
-    let user_agent = VarStr::new(it)?;
+    let user_agent = VarStr::VarStr::new(it)?;
     let start_height = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
       .read_i32::<LittleEndian>()?;
     let relay = if version < 70002i32 {

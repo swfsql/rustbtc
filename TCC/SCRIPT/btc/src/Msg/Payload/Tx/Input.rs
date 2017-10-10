@@ -1,5 +1,14 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use arrayvec::ArrayVec;
+use Commons::Bytes::Bytes;
+use Commons::NewFromHex::NewFromHex;
+use byteorder::{LittleEndian, ReadBytesExt};
+use std::io::Cursor;
 
-pub struct TxInput {
+
+pub struct Input {
   pub prev_tx: ArrayVec<[u8; 32]>,
   pub prev_tx_out_index: u32,
   pub script_len: u8,
@@ -7,14 +16,14 @@ pub struct TxInput {
   pub sequence: u32,
 }
 
-impl NewFromHex for TxInput {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<TxInput, Box<Error>> {
+impl NewFromHex for Input {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Input, Box<Error>> {
       let ptx = it.take(32).map(|u| u.to_le()).collect::<ArrayVec<[u8; 32]>>();
       let ptxoi = Cursor::new(it.take(4).collect::<Vec<u8>>())
           .read_u32::<LittleEndian>().unwrap();
       let slen = it.by_ref().next().unwrap().to_le();
 
-      Ok(TxInput {
+      Ok(Input {
         prev_tx: ptx,
         prev_tx_out_index: ptxoi,
         script_len: slen,
@@ -26,7 +35,7 @@ impl NewFromHex for TxInput {
   }
 }
 
-impl std::fmt::Debug for TxInput {
+impl std::fmt::Debug for Input {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
       let mut s = "Input:\n".to_string();
       s += &format!("├ Previous Tx: {:?}\n", self.prev_tx

@@ -1,3 +1,11 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use Commons::Bytes::Bytes;
+use arrayvec::ArrayVec;
+use Commons::NewFromHex::NewFromHex;
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address

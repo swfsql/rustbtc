@@ -1,3 +1,9 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use Commons::Bytes::Bytes;
+use Commons::NewFromHex::NewFromHex;
+use Commons::VarUint::VarUint;
 
 pub struct VarStr {
   length: VarUint,
@@ -21,11 +27,12 @@ impl NewFromHex for VarStr {
 }
 
 impl std::fmt::Debug for VarStr {
-
-}
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
       let mut s = "Version:\n".to_string();
       s += &format!("├ Length: {:?}\n", self.length);
       s += &format!("├ String: {:?}", self.string);
       write!(f, "{}", s)
   }
+}
+
+

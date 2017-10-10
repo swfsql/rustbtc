@@ -1,15 +1,23 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use arrayvec::ArrayVec;
+use Commons::NewFromHex::NewFromHex;
+use Commons::Bytes::Bytes;
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
-pub struct MsgHeader {
+pub struct Header {
   pub network: u32,
   pub cmd: ArrayVec<[u8; 12]>,
   pub payload_len: i32,
   pub payloadchk: u32,
 }
 
-impl NewFromHex for MsgHeader {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<MsgHeader, Box<Error>> {
-    Ok(MsgHeader {
+impl NewFromHex for Header {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Header, Box<Error>> {
+    Ok(Header {
       network: Cursor::new(it.take(4).collect::<Vec<u8>>())
         .read_u32::<LittleEndian>().unwrap(),
       cmd: it.take(12).map(|u| u.to_le()).collect::<ArrayVec<[u8; 12]>>(),
@@ -21,7 +29,7 @@ impl NewFromHex for MsgHeader {
   }
 }
 
-impl std::fmt::Debug for MsgHeader {
+impl std::fmt::Debug for Header {
   fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
       let mut s = "Message Header:\n".to_string();
       s += &format!("├ Message Network Identification: {}\n", self.network);

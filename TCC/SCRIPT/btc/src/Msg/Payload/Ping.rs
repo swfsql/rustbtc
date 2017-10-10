@@ -1,3 +1,9 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use Commons::NewFromHex::NewFromHex;
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
 
 // https://bitcoin.org/en/developer-reference#ping
 pub struct Ping {

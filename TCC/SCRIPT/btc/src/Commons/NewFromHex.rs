@@ -1,4 +1,10 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use std::iter::Iterator;
+extern crate hex;
 
+use hex::FromHex;
 
 pub trait NewFromHex {
   fn new_from_hex(hex: &str) -> Result<Self, Box<Error>>

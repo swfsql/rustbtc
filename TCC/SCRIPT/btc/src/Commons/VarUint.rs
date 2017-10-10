@@ -1,7 +1,13 @@
+use std;
+use std::fmt;
+use std::error::Error;
+use std::io::Cursor;
+use Commons::NewFromHex::NewFromHex;
+use byteorder::{LittleEndian, ReadBytesExt};
 
 // https://bitcoin.org/en/developer-reference#ping
 #[derive(Debug)]
-enum VarUint {
+pub enum VarUint {
   U8(u8),
   U16(u16),
   U32(u32),

@@ -20,8 +20,8 @@ extern crate hex;
 use hex::FromHex;
 use std::iter::Iterator;
 
-mod Msg;
-mod Commons;
+pub mod Msg;
+pub mod Commons;
 
 
 
