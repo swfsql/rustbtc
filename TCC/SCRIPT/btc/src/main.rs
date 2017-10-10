@@ -3,24 +3,22 @@
 
 TODO: validar Msg de acordo com payload_len
 TALVEZ: Validar de acordo com o checksum
-TODO: melhorar Debug for Msg
 */
 
 extern crate hex;
 use hex::FromHex;
-use btc_tx_script::NewFromHex;
+use btc::NewFromHex;
 
-extern crate btc_tx_script;
-use btc_tx_script as btctx;
+extern crate btc;
 
 fn main() {
   let msg_tx_hex = "".to_string() +
     "F9BEB4D9" + "747800000000000000000000" + "02010000E293CDBE" +
     "01000000016DBDDB085B1D8AF75184F0BC01FAD58D1266E9B63B50881990E4B40D6AEE3629000000008B483045022100F3581E1972AE8AC7C7367A7A253BC1135223ADB9A468BB3A59233F45BC578380022059AF01CA17D00E41837A1D58E97AA31BAE584EDEC28D35BD96923690913BAE9A0141049C02BFC97EF236CE6D8FE5D94013C721E915982ACD2B12B65D9B7D59E20A842005F8FC4E02532E873D37B96F09D6D4511ADA8F14042F46614A4C70C0F14BEFF5FFFFFFFF02404B4C00000000001976A9141AA0CD1CBEA6E7458A7ABAD512A9D9EA1AFB225E88AC80FAE9C7000000001976A9140EAB5BEA436A0484CFAB12485EFDA0B78B4ECC5288AC00000000";
-  let msg_tx = btctx::Msg::new_from_hex(&msg_tx_hex).unwrap();
+  let msg_tx = btc::Msg::new_from_hex(&msg_tx_hex).unwrap();
   println!("{:?}", msg_tx);
 
-  let tx = if let Some(btctx::MsgPayload::Tx(tx)) = msg_tx.payload {
+  let tx = if let Some(btc::MsgPayload::Tx(tx)) = msg_tx.payload {
     Some(tx)
   } else {
     None
@@ -35,11 +33,11 @@ fn main() {
     "0094102111e2af4d";
   let msg_ping_vec: Vec<u8> = Vec::from_hex(msg_ping_hex).unwrap();
   let mut msg_ping_it = msg_ping_vec.into_iter();
-  let msg_ping = btctx::Msg::new(msg_ping_it.by_ref()).unwrap();
+  let msg_ping = btc::Msg::new(msg_ping_it.by_ref()).unwrap();
   println!("{:?\n}", msg_ping);
 
 
-  let tx = if let Some(btctx::MsgPayload::Tx(tx)) = msg_ping.payload {
+  let tx = if let Some(btc::MsgPayload::Tx(tx)) = msg_ping.payload {
     Some(tx)
   } else {
     None
@@ -51,7 +49,7 @@ fn main() {
   let msg_pong_hex = "".to_string() +
     "F9BEB4D9"+ "706F6E670000000000000000" + "02010000E293CDBE" +
     "0194102111e2af4d";
-  let msg_pong = btctx::Msg::new_from_hex(&msg_pong_hex).unwrap();
+  let msg_pong = btc::Msg::new_from_hex(&msg_pong_hex).unwrap();
   println!("{:?}", msg_pong);
 
   //
@@ -88,44 +86,24 @@ fn main() {
   //println!("{:?}", pl_ping);
 
 
-println!("======================================================================");
+//println!("======================================================================");
   let msg_version_hex = "".to_string() +
-  //"F9BEB4D976657273696F6E000000000055000000"
- "62EA0000010000000000000011B2D05000000000010000000000000000000000000000000000FFFF000000000000010000000000000000000000000000000000FFFF0000000000003B2EB35D8CE617650F2F5361746F7368693A302E372E322FC03E0300";
+  "F9BEB4D976657273696F6E0000000000640000003B648D5A" +
+  "62EA0000010000000000000011B2D05000000000010000000000000000000000000000000000FFFF000000000000010000000000000000000000000000000000FFFF0000000000003B2EB35D8CE617650F2F5361746F7368693A302E372E322FC03E0300";
  //"9C7C00000100000000000000E615104D00000000010000000000000000000000000000000000FFFF0A000001208D010000000000000000000000000000000000FFFF0A000002208DDD9D202C3AB457130055810100";
-  let msg_version = btctx::Version::new_from_hex(&msg_version_hex).unwrap();
-  println!("LALALAL123");
+  let msg_version = btctx::Msg::new_from_hex(&msg_version_hex).unwrap();
   println!("{:?}", msg_version);
 
 
-println!("======================================================================");
-  println!("{:?}", btctx::VarStr::new_from_hex(
-    &"0f2f5361746f7368693a302e392e332f").unwrap());
+ let msg_verack_hex = "F9BEB4D976657261636B000000000000000000005DF6E0E2";
+ let msg_verack = btctx::Msg::new_from_hex(&msg_verack_hex).unwrap();
+ println!("{:?}", msg_verack);
 
 
 }
+
+
 /*
+F9BEB4D976657273696F6E0000000000640000003B648D5A
 
-62 EA 00 00                                                                   - 60002 (protocol version 60002)
- 01 00 00 00 00 00 00 00                                                       - 1 (NODE_NETWORK services)
- 11 B2 D0 50 00 00 00 00                                                       - Tue Dec 18 10:12:33 PST 2012
- 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Recipient address info - see Network Address
- 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Sender address info - see Network Address
- 3B 2E B3 5D 8C E6 17 65                                                       - Node ID
- 0F 2F 53 61 74 6F 73 68 69 3A 30 2E 37 2E 32 2F                               - "/Satoshi:0.7.2/" sub-version string (string is 15 bytes long)
- C0 3E 03 00
-
-
- 62 EA 00 00                                                                   - 60002 (protocol version 60002)
- 01 00 00 00 00 00 00 00                                                       - 1 (NODE_NETWORK services)
- 11 B2 D0 50 00 00 00 00                                                       - Tue Dec 18 10:12:33 PST 2012
- 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Recipient address info - see Network Address
- 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 00 00 00 00 00 - Sender address info - see Network Address
- 3B 2E B3 5D 8C E6 17 65                                                       - Node ID
- 0F 2F 53 61 74 6F 73 68 69 3A 30 2E 37 2E 32 2F                               - "/Satoshi:0.7.2/" sub-version string (string is 15 bytes long)
- C0 3E 03 00
-
-
-
- 62EA0000010000000000000011B2D05000000000010000000000000000000000000000000000FFFF000000000000010000000000000000000000000000000000FFFF0000000000003B2EB35D8CE617650F2F5361746F7368693A302E372E322FC03E0300
- */
+*/

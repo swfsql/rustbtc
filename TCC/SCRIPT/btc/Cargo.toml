@@ -1,0 +1,10 @@
+[package]
+name = "btc"
+version = "0.1.0"
+authors = ["Felipe Cetrulo <fecetrulo@hotmail.com>",
+          "Thiago Machado da Silva <thi@unifei.edu.br>"]
+
+[dependencies]
+hex = "0.2.0"
+byteorder = "1.1.0"
+arrayvec = "0.4.0"
