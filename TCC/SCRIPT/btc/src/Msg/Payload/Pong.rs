@@ -1,20 +1,23 @@
 use std;
 use std::fmt;
 use Commons::NewFromHex::NewFromHex;
-use std::error::Error;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 pub struct Pong {
   pub nounce: u64,
 }
 
 impl NewFromHex for Pong {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong, Box<Error>> {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
-          .read_u64::<LittleEndian>()?;
+          .read_u64::<LittleEndian>().chain_err(|| "")?;
     Ok(Pong {
       nounce: nounce,
     })

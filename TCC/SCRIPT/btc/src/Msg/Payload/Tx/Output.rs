@@ -1,10 +1,13 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use Commons::NewFromHex::NewFromHex;
 use Commons::Bytes::Bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 pub struct Output {
   pub value: i64,
@@ -13,9 +16,9 @@ pub struct Output {
 }
 
 impl NewFromHex for Output {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Output, Box<Error>> {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Output> {
       let val = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-        .read_i64::<LittleEndian>().unwrap();
+        .read_i64::<LittleEndian>().chain_err(|| "")?;
       let pkslen = it.by_ref().next().unwrap().to_le();
 
       Ok(Output {

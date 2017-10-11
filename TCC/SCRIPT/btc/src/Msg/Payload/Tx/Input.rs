@@ -1,11 +1,14 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use arrayvec::ArrayVec;
 use Commons::Bytes::Bytes;
 use Commons::NewFromHex::NewFromHex;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::Cursor;
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 
 pub struct Input {
@@ -17,11 +20,17 @@ pub struct Input {
 }
 
 impl NewFromHex for Input {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Input, Box<Error>> {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Input> {
       let ptx = it.take(32).map(|u| u.to_le()).collect::<ArrayVec<[u8; 32]>>();
       let ptxoi = Cursor::new(it.take(4).collect::<Vec<u8>>())
-          .read_u32::<LittleEndian>().unwrap();
-      let slen = it.by_ref().next().unwrap().to_le();
+          .read_u32::<LittleEndian>()
+          .chain_err(|| "")?;
+      let slen = it.by_ref().next()
+        .chain_err(|| "Error at reading for slen: Iterator returned unexpected None")?
+        .to_le();
+      let sequence = Cursor::new(it.take(4).collect::<Vec<u8>>())
+          .read_u32::<LittleEndian>()
+          .chain_err(|| "Error at u32 for sequence")?;
 
       Ok(Input {
         prev_tx: ptx,
@@ -29,8 +38,7 @@ impl NewFromHex for Input {
         script_len: slen,
         script_sig: it.take(slen as usize).map(|u| u.to_le())
           .collect::<Bytes>(),
-        sequence: Cursor::new(it.take(4).collect::<Vec<u8>>())
-          .read_u32::<LittleEndian>().unwrap(),
+        sequence: sequence,
       })
   }
 }

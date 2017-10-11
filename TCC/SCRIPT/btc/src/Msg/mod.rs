@@ -1,8 +1,10 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use Commons::NewFromHex::NewFromHex;
-use byteorder::{LittleEndian, ReadBytesExt};
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 //use ::Payload::Payload::Verack;
 //use Msg::Payload::Payload::Verack;
@@ -16,22 +18,38 @@ pub struct Msg {
 }
 
 impl NewFromHex for Msg {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg, Box<Error>> {
-    let header = Header::Header::new(it).unwrap();
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
+    let header = Header::Header::new(it).chain_err(|| "")?;
     let cmd_str = header.cmd.clone().into_iter()
       .map(|x| x as char).collect::<String>();
 
     let payload = match cmd_str.to_string().trim().as_ref() {
 
-      "tx\0\0\0\0\0\0\0\0\0\0" => Some(Payload::Payload::Tx(Payload::Tx::Tx::new(it).unwrap())),
-      "ping\0\0\0\0\0\0\0\0" => Some(Payload::Payload::Ping(Payload::Ping::Ping::new(it).unwrap())),
-      "pong\0\0\0\0\0\0\0\0" => Some(Payload::Payload::Pong(Payload::Pong::Pong::new(it).unwrap())),
-      "version\0\0\0\0\0" => Some(Payload::Payload::Version(Payload::Version::Version::new(it).unwrap())),
-      "verack\0\0\0\0\0\0" => Some(Payload::Payload::Verack),
+      "tx\0\0\0\0\0\0\0\0\0\0" => {
+        let tx = Payload::Tx::Tx::new(it).chain_err(|| "")?;
+        Some(Payload::Payload::Tx(tx))
+      },
+      "ping\0\0\0\0\0\0\0\0" => {
+        let ping = Payload::Ping::Ping::new(it).chain_err(|| "")?;
+        Some(Payload::Payload::Ping(ping))
+      },
+      "pong\0\0\0\0\0\0\0\0" => {
+        let pong = Payload::Pong::Pong::new(it).chain_err(|| "")?;
+        Some(Payload::Payload::Pong(pong))
+      },
+      "version\0\0\0\0\0" => {
+        let version = Payload::Version::Version::new(it).chain_err(|| "")?;
+        Some(Payload::Payload::Version(version))
+      },
+      "verack\0\0\0\0\0\0" => {
+        Some(Payload::Payload::Verack)
+      },
       _ => None,
     };
 
     // header.payload_len // TODO
+
+
 
     Ok(Msg {
       header: header,

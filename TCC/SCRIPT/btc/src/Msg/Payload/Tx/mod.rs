@@ -1,10 +1,12 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use Commons::NewFromHex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
-
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 pub mod Input;
 pub mod Output;
@@ -22,10 +24,10 @@ pub struct Tx {
 }
 
 impl NewFromHex for Tx {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx, Box<Error>> {
-  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx> {
+  //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>> {
     let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
-      .read_i32::<LittleEndian>()?;
+      .read_i32::<LittleEndian>().chain_err(|| "")?;
 
     let ninputs = it.by_ref().next().ok_or("TODO")?.to_le();
     let mut inputs: Vec<Input::Input> = vec![];
@@ -40,7 +42,7 @@ impl NewFromHex for Tx {
     }
 
     let locktime = Cursor::new(it.take(4).collect::<Vec<u8>>())
-          .read_u32::<LittleEndian>()?;
+          .read_u32::<LittleEndian>().chain_err(|| "")?;
 
     let tx = Tx {
       version: ver,

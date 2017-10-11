@@ -1,11 +1,14 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use arrayvec::ArrayVec;
 use Commons::NewFromHex::NewFromHex;
 use Commons::Bytes::Bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 pub struct Header {
@@ -16,15 +19,21 @@ pub struct Header {
 }
 
 impl NewFromHex for Header {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Header, Box<Error>> {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Header> {
+    let network = Cursor::new(it.take(4).collect::<Vec<u8>>())
+        .read_u32::<LittleEndian>()
+        .chain_err(|| "Error at u32 parse for network")?;
+    let payload_len = Cursor::new(it.take(4).collect::<Vec<u8>>())
+        .read_i32::<LittleEndian>()
+        .chain_err(|| "Error at i32 parse for payload_len")?;
+    let payloadchk = Cursor::new(it.take(4).collect::<Vec<u8>>())
+        .read_u32::<LittleEndian>()
+        .chain_err(|| "Error at u32 parse for payloadchk")?;
     Ok(Header {
-      network: Cursor::new(it.take(4).collect::<Vec<u8>>())
-        .read_u32::<LittleEndian>().unwrap(),
+      network: network,
       cmd: it.take(12).map(|u| u.to_le()).collect::<ArrayVec<[u8; 12]>>(),
-      payload_len: Cursor::new(it.take(4).collect::<Vec<u8>>())
-        .read_i32::<LittleEndian>().unwrap(),
-      payloadchk: Cursor::new(it.take(4).collect::<Vec<u8>>())
-        .read_u32::<LittleEndian>().unwrap(),
+      payload_len: payload_len,
+      payloadchk: payloadchk,
     })
   }
 }

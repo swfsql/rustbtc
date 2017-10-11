@@ -1,9 +1,12 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use Commons::NewFromHex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 // https://bitcoin.org/en/developer-reference#ping
 pub struct Ping {
@@ -11,11 +14,11 @@ pub struct Ping {
 }
 
 impl NewFromHex for Ping {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping, Box<Error>> {
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
     let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
-          .read_u64::<LittleEndian>()?;
+          .read_u64::<LittleEndian>().chain_err(|| "")?;
     Ok(Ping {
       nounce: nounce,
     })

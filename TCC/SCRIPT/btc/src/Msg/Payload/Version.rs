@@ -1,10 +1,13 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 
 use Commons::{NetAddr, VarStr, NewFromHex};
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#version
 // https://bitcoin.org/en/developer-reference#version
@@ -22,25 +25,24 @@ pub struct Version {
 
 // https://bitcoin.org/en/developer-reference#protocol-versions
 impl NewFromHex::NewFromHex for Version {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version, Box<Error>> {
-
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version> {
 
     let version = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
-      .read_i32::<LittleEndian>()?;
+      .read_i32::<LittleEndian>().chain_err(|| "Error to version as read_i32")?;
     if version < 60002i32 {
       Err(format!("Unsuported protocol version: <{}>", version))?
     }
     let services = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-      .read_u64::<LittleEndian>()?;
+      .read_u64::<LittleEndian>().chain_err(|| "Error to services as read_i64")?;
     let timestamp = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-      .read_i64::<LittleEndian>()?;
+      .read_i64::<LittleEndian>().chain_err(|| "Error to timestamp as read_i64")?;
     let addr_recv = NetAddr::NetAddr::new(it)?;
     let addr_trans = NetAddr::NetAddr::new(it)?;
     let nonce = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-      .read_u64::<LittleEndian>()?;
+      .read_u64::<LittleEndian>().chain_err(|| "Error to services as read_i64")?;
     let user_agent = VarStr::VarStr::new(it)?;
     let start_height = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
-      .read_i32::<LittleEndian>()?;
+      .read_i32::<LittleEndian>().chain_err(|| "")?;
     let relay = if version < 70002i32 {
       None
     } else {

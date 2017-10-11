@@ -1,9 +1,12 @@
 use std;
 use std::fmt;
-use std::error::Error;
 use Commons::Bytes::Bytes;
 use Commons::NewFromHex::NewFromHex;
 use Commons::VarUint::VarUint;
+mod errors {
+    error_chain!{}
+}
+use errors::*;
 
 pub struct VarStr {
   length: VarUint,
@@ -11,17 +14,19 @@ pub struct VarStr {
 }
 
 impl NewFromHex for VarStr {
-  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarStr, Box<Error>> {
-    let len = VarUint::new(it).unwrap();
+  fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarStr> {
+    let len = VarUint::new(it)
+      .chain_err(|| "Error at new VarUint for len")?;
     let slen = match len {
       VarUint::U8(u) => Some(u as usize),
       VarUint::U16(u) => Some(u as usize),
       VarUint::U32(u) => Some(u as usize),
       VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
     };
+    let slen = slen.ok_or("Error at creating VarStr length: too big")?;
     Ok(VarStr {
       length: len,
-      string: it.take(slen.unwrap()).map(|u| u.to_le()).collect::<Bytes>(),
+      string: it.take(slen).map(|u| u.to_le()).collect::<Bytes>(),
     })
   }
 }
