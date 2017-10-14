@@ -26,23 +26,34 @@ pub struct Tx {
 impl NewFromHex for Tx {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>> {
-    let ver = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
-      .read_i32::<LittleEndian>().chain_err(|| "")?;
+    let aux = it.by_ref().take(4).collect::<Vec<u8>>();
+    let ver = Cursor::new(&aux).read_i32::<LittleEndian>()
+      .chain_err(|| format!("Error at reading for ver: read_i32 for {:?}", aux))?;
 
-    let ninputs = it.by_ref().next().ok_or("TODO")?.to_le();
+    let ninputs = it.by_ref().next()
+      .ok_or("Input feed ended unexpectedly when reading the input len info")?
+      .to_le();
     let mut inputs: Vec<Input::Input> = vec![];
-    for _ in 0..ninputs {
-      inputs.push(Input::Input::new(it).unwrap());
+    for i in 0..ninputs {
+      let aux = Input::Input::new(it)
+        .chain_err(|| format!("Error at creating a new input, at input {:?}", i))?;
+      inputs.push(aux);
     }
 
-    let noutputs = it.by_ref().next().ok_or("TODO")?.to_le();
+    let noutputs = it.by_ref().next()
+      .ok_or("Input feed ended unexpectedly when reading the output len info")?
+      .to_le();
     let mut outputs: Vec<Output::Output> = vec![];
-    for _ in 0..noutputs {
-      outputs.push(Output::Output::new(it).unwrap());
+    for i in 0..noutputs {
+      let aux = Output::Output::new(it)
+        .chain_err(|| format!("Error at creating a new Output, at outputs {}", i))?;
+      outputs.push(aux);
     }
 
-    let locktime = Cursor::new(it.take(4).collect::<Vec<u8>>())
-          .read_u32::<LittleEndian>().chain_err(|| "")?;
+    let aux = it.take(4).collect::<Vec<u8>>();
+    let locktime = Cursor::new(&aux)
+          .read_u32::<LittleEndian>()
+          .chain_err(|| format!("Error at reading for locktime: read_u32 for value {:?}", aux))?;
 
     let tx = Tx {
       version: ver,
@@ -53,7 +64,7 @@ impl NewFromHex for Tx {
       locktime: locktime,
     };
     if let Some(_) = it.next() {
-      Err("TODO")?;
+      Err("Error: input feed is bigger than expected")?;
     }
     Ok(tx)
   }
@@ -72,14 +83,20 @@ impl std::fmt::Debug for Tx {
           .enumerate()
           .map(|(i2, l)|
             if i2 == 0 {
-              "│ ├".to_string() +
-              &l.split(':').next().unwrap().to_string()
-                .chars().collect::<String>() +
-                &(i).to_string() + ":\n"
+              let aux = &l.split(':').next();
+              match *aux {
+                Some(a) => Ok(
+                  "│ ├".to_string()
+                  + &a.to_string().chars().collect::<String>()
+                  + &(i).to_string() + ":\n"),
+                None => Ok("ahh".to_string()),//Err(format!("Error when displaying input {}", l)),
+              }
             } else {
-              "│ │ ".to_string() + l + "\n"
-            })
-          .collect::<String>();
+              Ok("│ │ ".to_string() + l + "\n")
+            }
+          )
+          .collect::<Result<String>>().unwrap(); // TODO
+          //chain_err((|| "Error to display some input from a total of {}", self.inputs_len))?;
       }
       s += &format!("├ Outputs Length: {}\n", self.outputs_len);
       s += &format!("├ Outputs:\n");
@@ -91,7 +108,8 @@ impl std::fmt::Debug for Tx {
           .map(|(i2, l)|
             if i2 == 0 {
               "│ ├".to_string() +
-              &l.split(':').next().unwrap().to_string()
+              &l.split(':').next().unwrap() // TODO
+                .to_string()
                 .chars().collect::<String>() +
                 &(i).to_string() + ":\n"
             } else {

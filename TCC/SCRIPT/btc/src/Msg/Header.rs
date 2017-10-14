@@ -20,18 +20,21 @@ pub struct Header {
 
 impl NewFromHex for Header {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Header> {
-    let network = Cursor::new(it.take(4).collect::<Vec<u8>>())
+    let aux = it.take(4).collect::<Vec<u8>>();
+    let network = Cursor::new(&aux).read_u32::<LittleEndian>()
+      .chain_err(|| format!("Error at u32 parse for network for value {:?}", aux))?;
+    let cmd = it.take(12).map(|u| u.to_le())
+      .collect::<ArrayVec<[u8; 12]>>();
+    let aux = it.take(4).collect::<Vec<u8>>();
+    let payload_len = Cursor::new(&aux).read_i32::<LittleEndian>()
+        .chain_err(|| format!("Error at i32 parse for payload_len for value {:?}", aux))?;
+    let aux = it.take(4).collect::<Vec<u8>>();
+    let payloadchk = Cursor::new(&aux)
         .read_u32::<LittleEndian>()
-        .chain_err(|| "Error at u32 parse for network")?;
-    let payload_len = Cursor::new(it.take(4).collect::<Vec<u8>>())
-        .read_i32::<LittleEndian>()
-        .chain_err(|| "Error at i32 parse for payload_len")?;
-    let payloadchk = Cursor::new(it.take(4).collect::<Vec<u8>>())
-        .read_u32::<LittleEndian>()
-        .chain_err(|| "Error at u32 parse for payloadchk")?;
+        .chain_err(|| format!("Error at u32 parse for payloadchk for value {:?}", aux))?;
     Ok(Header {
       network: network,
-      cmd: it.take(12).map(|u| u.to_le()).collect::<ArrayVec<[u8; 12]>>(),
+      cmd: cmd,
       payload_len: payload_len,
       payloadchk: payloadchk,
     })

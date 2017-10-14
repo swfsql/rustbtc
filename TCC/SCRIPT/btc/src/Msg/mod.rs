@@ -19,36 +19,43 @@ pub struct Msg {
 
 impl NewFromHex for Msg {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
-    let header = Header::Header::new(it).chain_err(|| "")?;
+    let header = Header::Header::new(it)
+      .chain_err(|| "Error at creating Header")?;
     let cmd_str = header.cmd.clone().into_iter()
       .map(|x| x as char).collect::<String>();
 
     let payload = match cmd_str.to_string().trim().as_ref() {
 
       "tx\0\0\0\0\0\0\0\0\0\0" => {
-        let tx = Payload::Tx::Tx::new(it).chain_err(|| "")?;
+        let tx = Payload::Tx::Tx::new(it)
+          .chain_err(|| "Error at creating Payload")?;
         Some(Payload::Payload::Tx(tx))
       },
       "ping\0\0\0\0\0\0\0\0" => {
-        let ping = Payload::Ping::Ping::new(it).chain_err(|| "")?;
+        let ping = Payload::Ping::Ping::new(it)
+          .chain_err(|| "Error at creating ping")?;
         Some(Payload::Payload::Ping(ping))
       },
       "pong\0\0\0\0\0\0\0\0" => {
-        let pong = Payload::Pong::Pong::new(it).chain_err(|| "")?;
+        let pong = Payload::Pong::Pong::new(it)
+          .chain_err(|| "Error at creating pong")?;
         Some(Payload::Payload::Pong(pong))
       },
       "version\0\0\0\0\0" => {
-        let version = Payload::Version::Version::new(it).chain_err(|| "")?;
+        let version = Payload::Version::Version::new(it)
+          .chain_err(|| "Error at creating version")?;
         Some(Payload::Payload::Version(version))
       },
       "verack\0\0\0\0\0\0" => {
         Some(Payload::Payload::Verack)
       },
-      _ => None,
+      x => {
+        println!("payload code didnt match: {:?}", x);
+        None
+      },
     };
 
     // header.payload_len // TODO
-
 
 
     Ok(Msg {

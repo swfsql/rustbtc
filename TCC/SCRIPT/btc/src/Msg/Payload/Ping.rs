@@ -17,8 +17,10 @@ impl NewFromHex for Ping {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping> {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
 
-    let nounce = Cursor::new(it.take(8).collect::<Vec<u8>>())
-          .read_u64::<LittleEndian>().chain_err(|| "")?;
+    let aux = it.take(8).collect::<Vec<u8>>();
+    let nounce = Cursor::new(&aux)
+          .read_u64::<LittleEndian>()
+          .chain_err(|| format!("Failed when n-once tried to read {:?} as u64", aux))?;
     Ok(Ping {
       nounce: nounce,
     })

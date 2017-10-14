@@ -27,26 +27,34 @@ pub struct Version {
 impl NewFromHex::NewFromHex for Version {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version> {
 
-    let version = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
-      .read_i32::<LittleEndian>().chain_err(|| "Error to version as read_i32")?;
+    let aux = it.by_ref().take(4).collect::<Vec<u8>>();
+    let version = Cursor::new(&aux)
+      .read_i32::<LittleEndian>()
+      .chain_err(|| format!("Error read to version as i32 for value {:?}", aux))?;
     if version < 60002i32 {
       Err(format!("Unsuported protocol version: <{}>", version))?
     }
-    let services = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-      .read_u64::<LittleEndian>().chain_err(|| "Error to services as read_i64")?;
-    let timestamp = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-      .read_i64::<LittleEndian>().chain_err(|| "Error to timestamp as read_i64")?;
+    let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+    let services = Cursor::new(&aux).read_u64::<LittleEndian>()
+      .chain_err(|| format!("Error read to services as i64 for value {:?}", aux))?;
+    let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+    let timestamp = Cursor::new(&aux).read_i64::<LittleEndian>().
+      chain_err(|| format!("Error read to timestamp as i64 for value {:?}", aux))?;
     let addr_recv = NetAddr::NetAddr::new(it)?;
     let addr_trans = NetAddr::NetAddr::new(it)?;
-    let nonce = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-      .read_u64::<LittleEndian>().chain_err(|| "Error to services as read_i64")?;
+    let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+    let nonce = Cursor::new(&aux).read_u64::<LittleEndian>()
+      .chain_err(|| format!("Error read to services as read_i64 for value {:?}", aux))?;
     let user_agent = VarStr::VarStr::new(it)?;
-    let start_height = Cursor::new(it.by_ref().take(4).collect::<Vec<u8>>())
-      .read_i32::<LittleEndian>().chain_err(|| "")?;
+    let aux = it.by_ref().take(4).collect::<Vec<u8>>();
+    let start_height = Cursor::new(&aux).read_i32::<LittleEndian>()
+      .chain_err(|| format!("Error read to services as read_i64 for value {:?}", aux))?;
     let relay = if version < 70002i32 {
       None
     } else {
-      Some(it.by_ref().next().ok_or("TODO")?.to_le() != 0u8)
+      let aux = it.by_ref().next()
+        .ok_or("Error: input feed ended unexpectdly")?;
+      Some(aux.to_le() != 0u8)
     };
     Ok(Version{
       version: version,

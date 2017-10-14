@@ -18,22 +18,28 @@ pub enum VarUint {
 
 impl NewFromHex for VarUint {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarUint> {
-    let value_head = it.by_ref().next().ok_or("TODO")?.to_le();
+    let value_head = it.by_ref().next().ok_or("Erro at creating value_head")?.to_le();
     match value_head {
       //0x00 .. 0xFC => VarInt::U8(value_head), // leu 1 byte
       0xFD => {
-        let value_body = Cursor::new(it.take(2).collect::<Vec<u8>>())
-          .read_u16::<LittleEndian>().chain_err(|| "")?;
+        let aux = it.take(2).collect::<Vec<u8>>();
+        let value_body = Cursor::new(&aux)
+          .read_u16::<LittleEndian>()
+          .chain_err(|| format!("Failed when VarUint tried to read {:?} as u16", aux))?;
         Ok(VarUint::U16(value_body))  // ler 16 bit
       },
       0xFE => { // ler 32 bit
-        let value_body = Cursor::new(it.take(4).collect::<Vec<u8>>())
-          .read_u32::<LittleEndian>().chain_err(|| "")?;
+        let aux = it.take(4).collect::<Vec<u8>>();
+        let value_body = Cursor::new(&aux)
+          .read_u32::<LittleEndian>()
+          .chain_err(|| format!("Failed when VarUint tried to read {:?} as u32", aux))?;
         Ok(VarUint::U32(value_body))
       },
       0xFF => { // ler 64 bit
-        let value_body = Cursor::new(it.take(8).collect::<Vec<u8>>())
-          .read_u64::<LittleEndian>().chain_err(|| "")?;
+        let aux = it.take(8).collect::<Vec<u8>>();
+        let value_body = Cursor::new(&aux)
+          .read_u64::<LittleEndian>()
+          .chain_err(|| format!("Failed when VarUint tried to read {:?} as u64", aux))?;
         Ok(VarUint::U64(value_body))
       },
       _ => {
@@ -44,5 +50,6 @@ impl NewFromHex for VarUint {
     }
   }
 }
+
 
 

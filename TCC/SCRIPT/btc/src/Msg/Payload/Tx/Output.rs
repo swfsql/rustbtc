@@ -17,15 +17,19 @@ pub struct Output {
 
 impl NewFromHex for Output {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Output> {
-      let val = Cursor::new(it.by_ref().take(8).collect::<Vec<u8>>())
-        .read_i64::<LittleEndian>().chain_err(|| "")?;
-      let pkslen = it.by_ref().next().unwrap().to_le();
+      let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+      let val = Cursor::new(&aux)
+        .read_i64::<LittleEndian>()
+        .chain_err(|| format!("Error at reading for val: read_i64 for {:?}", aux))?;
+      let pkslen = it.by_ref().next()
+        .chain_err(|| "Input unexpectedly ended when reading pkslen")?
+        .to_le();
+      let pk_script = it.take(pkslen as usize).map(|u| u.to_le()).collect::<Bytes>();
 
       Ok(Output {
         value: val,
         pk_script_len: pkslen,
-        pk_script: it.take(pkslen as usize).map(|u| u.to_le())
-          .collect::<Bytes>(),
+        pk_script: pk_script,
       })
   }
 }
