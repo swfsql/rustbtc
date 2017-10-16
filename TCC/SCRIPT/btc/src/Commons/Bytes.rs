@@ -5,7 +5,6 @@ use std::ascii::AsciiExt;
 mod errors {
     error_chain!{}
 }
-use errors::*;
 
 impl std::iter::FromIterator<u8> for Bytes {
   fn from_iter<I: IntoIterator<Item=u8>>(iter: I) -> Self {

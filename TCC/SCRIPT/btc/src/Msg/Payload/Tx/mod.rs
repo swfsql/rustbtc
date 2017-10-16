@@ -28,7 +28,7 @@ impl NewFromHex for Tx {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>> {
     let aux = it.by_ref().take(4).collect::<Vec<u8>>();
     let ver = Cursor::new(&aux).read_i32::<LittleEndian>()
-      .chain_err(|| format!("Error at reading for ver: read_i32 for {:?}", aux))?;
+      .chain_err(|| format!("(Msg::Payload::Tx::Mod) Error at reading for ver: read_i32 for {:?}", aux))?;
 
     let ninputs = it.by_ref().next()
       .ok_or("Input feed ended unexpectedly when reading the input len info")?
@@ -36,7 +36,7 @@ impl NewFromHex for Tx {
     let mut inputs: Vec<Input::Input> = vec![];
     for i in 0..ninputs {
       let aux = Input::Input::new(it)
-        .chain_err(|| format!("Error at creating a new input, at input {:?}", i))?;
+        .chain_err(|| format!("(Msg::Payload::Tx::Mod)Error at creating a new input, at input {:?}", i))?;
       inputs.push(aux);
     }
 
@@ -46,14 +46,14 @@ impl NewFromHex for Tx {
     let mut outputs: Vec<Output::Output> = vec![];
     for i in 0..noutputs {
       let aux = Output::Output::new(it)
-        .chain_err(|| format!("Error at creating a new Output, at outputs {}", i))?;
+        .chain_err(|| format!("(Msg::Payload::Tx::Mod)Error at creating a new Output, at outputs {}", i))?;
       outputs.push(aux);
     }
 
     let aux = it.take(4).collect::<Vec<u8>>();
     let locktime = Cursor::new(&aux)
           .read_u32::<LittleEndian>()
-          .chain_err(|| format!("Error at reading for locktime: read_u32 for value {:?}", aux))?;
+          .chain_err(|| format!("(Msg::Payload::Tx::Mod)Error at reading for locktime: read_u32 for value {:?}", aux))?;
 
     let tx = Tx {
       version: ver,
@@ -64,7 +64,7 @@ impl NewFromHex for Tx {
       locktime: locktime,
     };
     if let Some(_) = it.next() {
-      Err("Error: input feed is bigger than expected")?;
+      Err("(Msg::Payload::Tx::Mod)Error: input feed is bigger than expected")?;
     }
     Ok(tx)
   }

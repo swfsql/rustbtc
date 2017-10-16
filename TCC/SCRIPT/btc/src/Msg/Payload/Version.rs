@@ -30,25 +30,25 @@ impl NewFromHex::NewFromHex for Version {
     let aux = it.by_ref().take(4).collect::<Vec<u8>>();
     let version = Cursor::new(&aux)
       .read_i32::<LittleEndian>()
-      .chain_err(|| format!("Error read to version as i32 for value {:?}", aux))?;
+      .chain_err(|| format!("(Msg::Payload::Version) Error read to version as i32 for value {:?}", aux))?;
     if version < 60002i32 {
       Err(format!("Unsuported protocol version: <{}>", version))?
     }
     let aux = it.by_ref().take(8).collect::<Vec<u8>>();
     let services = Cursor::new(&aux).read_u64::<LittleEndian>()
-      .chain_err(|| format!("Error read to services as i64 for value {:?}", aux))?;
+      .chain_err(|| format!("(Msg::Payload::Version) Error read to services as i64 for value {:?}", aux))?;
     let aux = it.by_ref().take(8).collect::<Vec<u8>>();
     let timestamp = Cursor::new(&aux).read_i64::<LittleEndian>().
-      chain_err(|| format!("Error read to timestamp as i64 for value {:?}", aux))?;
+      chain_err(|| format!("(Msg::Payload::Version) Error read to timestamp as i64 for value {:?}", aux))?;
     let addr_recv = NetAddr::NetAddr::new(it)?;
     let addr_trans = NetAddr::NetAddr::new(it)?;
     let aux = it.by_ref().take(8).collect::<Vec<u8>>();
     let nonce = Cursor::new(&aux).read_u64::<LittleEndian>()
-      .chain_err(|| format!("Error read to services as read_i64 for value {:?}", aux))?;
+      .chain_err(|| format!("(Msg::Payload::Version) Error read to services as read_i64 for value {:?}", aux))?;
     let user_agent = VarStr::VarStr::new(it)?;
     let aux = it.by_ref().take(4).collect::<Vec<u8>>();
     let start_height = Cursor::new(&aux).read_i32::<LittleEndian>()
-      .chain_err(|| format!("Error read to services as read_i64 for value {:?}", aux))?;
+      .chain_err(|| format!("(Msg::Payload::Version) Error read to services as read_i64 for value {:?}", aux))?;
     let relay = if version < 70002i32 {
       None
     } else {

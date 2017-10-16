@@ -25,21 +25,21 @@ impl NewFromHex for VarUint {
         let aux = it.take(2).collect::<Vec<u8>>();
         let value_body = Cursor::new(&aux)
           .read_u16::<LittleEndian>()
-          .chain_err(|| format!("Failed when VarUint tried to read {:?} as u16", aux))?;
+          .chain_err(|| format!("(Commons::VarUint) Failed when VarUint tried to read {:?} as u16", aux))?;
         Ok(VarUint::U16(value_body))  // ler 16 bit
       },
       0xFE => { // ler 32 bit
         let aux = it.take(4).collect::<Vec<u8>>();
         let value_body = Cursor::new(&aux)
           .read_u32::<LittleEndian>()
-          .chain_err(|| format!("Failed when VarUint tried to read {:?} as u32", aux))?;
+          .chain_err(|| format!("Commons::VarUint) Failed when VarUint tried to read {:?} as u32", aux))?;
         Ok(VarUint::U32(value_body))
       },
       0xFF => { // ler 64 bit
         let aux = it.take(8).collect::<Vec<u8>>();
         let value_body = Cursor::new(&aux)
           .read_u64::<LittleEndian>()
-          .chain_err(|| format!("Failed when VarUint tried to read {:?} as u64", aux))?;
+          .chain_err(|| format!("Commons::VarUint) Failed when VarUint tried to read {:?} as u64", aux))?;
         Ok(VarUint::U64(value_body))
       },
       _ => {

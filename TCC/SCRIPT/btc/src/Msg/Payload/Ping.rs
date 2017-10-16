@@ -20,7 +20,7 @@ impl NewFromHex for Ping {
     let aux = it.take(8).collect::<Vec<u8>>();
     let nounce = Cursor::new(&aux)
           .read_u64::<LittleEndian>()
-          .chain_err(|| format!("Failed when n-once tried to read {:?} as u64", aux))?;
+          .chain_err(|| format!("(Msg::Payload::Ping) Failed when n-once tried to read {:?} as u64", aux))?;
     Ok(Ping {
       nounce: nounce,
     })

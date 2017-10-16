@@ -23,7 +23,7 @@ impl NewFromHex for VarStr {
       VarUint::U32(u) => Some(u as usize),
       VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
     };
-    let slen = slen.ok_or("Error at creating VarStr length: too big")?;
+    let slen = slen.ok_or("(Commons::VarStr) Error at creating VarStr length: too big")?;
     let string = it.take(slen).map(|u| u.to_le()).collect::<Bytes>();
     Ok(VarStr {
       length: len,

@@ -20,9 +20,9 @@ impl NewFromHex for Output {
       let aux = it.by_ref().take(8).collect::<Vec<u8>>();
       let val = Cursor::new(&aux)
         .read_i64::<LittleEndian>()
-        .chain_err(|| format!("Error at reading for val: read_i64 for {:?}", aux))?;
+        .chain_err(|| format!("(Msg::Payload::Tx::Output) Error at reading for val: read_i64 for {:?}", aux))?;
       let pkslen = it.by_ref().next()
-        .chain_err(|| "Input unexpectedly ended when reading pkslen")?
+        .chain_err(|| "(Msg::Payload::Tx::Output) Input unexpectedly ended when reading pkslen")?
         .to_le();
       let pk_script = it.take(pkslen as usize).map(|u| u.to_le()).collect::<Bytes>();
 

@@ -24,14 +24,14 @@ impl NewFromHex for Input {
       let ptx = it.take(32).map(|u| u.to_le()).collect::<ArrayVec<[u8; 32]>>();
       let aux = it.take(4).collect::<Vec<u8>>();
       let ptxoi = Cursor::new(&aux).read_u32::<LittleEndian>()
-          .chain_err(|| format!("Error at reading for prev_tx_out_index: read_u32 for value {:?}", aux))?;
+          .chain_err(|| format!("(Msg::Payload::Tx::Input) Error at reading for prev_tx_out_index: read_u32 for value {:?}", aux))?;
       let slen = it.by_ref().next()
-        .chain_err(|| "Error at reading for slen: Iterator returned unexpected None")?
+        .chain_err(|| "Msg::Payload::Tx::Input) Error at reading for slen: Iterator returned unexpected None")?
         .to_le();
       let script_sig = it.take(slen as usize).map(|u| u.to_le()).collect::<Bytes>();
       let aux = it.take(4).collect::<Vec<u8>>();
       let sequence = Cursor::new(&aux).read_u32::<LittleEndian>()
-        .chain_err(|| format!("Error at u32 for sequence for value {:?}", aux))?;
+        .chain_err(|| format!("(Msg::Payload::Tx::Input) Error at u32 for sequence for value {:?}", aux))?;
 
       Ok(Input {
         prev_tx: ptx,
