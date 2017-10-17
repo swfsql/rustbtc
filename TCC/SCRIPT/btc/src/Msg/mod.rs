@@ -36,7 +36,8 @@ impl NewFromHex for Msg {
       .collect::<Vec<u8>>().iter()
       .enumerate()
       .take(header.payload_len as usize)
-      .fold((0i32, Vec::new()), |(_, mut acc), (i, hex)| {
+      // initiate at -1i32 exclusively for the empty payload case
+      .fold((-1i32, Vec::new()), |(_, mut acc), (i, hex)| {
         acc.push(*hex);
         (i as i32, acc)
       });
@@ -49,7 +50,7 @@ impl NewFromHex for Msg {
     chk.input(&sha);
     chk.result(&mut sha);
 
-    let mut chk = Cursor::new(&sha)
+    let chk = Cursor::new(&sha)
         .read_u32::<LittleEndian>()
         .chain_err(|| format!("(Msg::mod) Error at u32 parse for payloadchk for value {:?}", &sha))?;
 
