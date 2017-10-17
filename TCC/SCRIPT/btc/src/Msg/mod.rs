@@ -1,6 +1,13 @@
 use std;
 use std::fmt;
 use Commons::NewFromHex::NewFromHex;
+use std::io::Cursor;
+use byteorder::{LittleEndian, ReadBytesExt};
+extern crate crypto;
+
+use self::crypto::digest::Digest;
+use self::crypto::sha2::Sha256;
+
 mod errors {
     error_chain!{}
 }
@@ -19,10 +26,40 @@ pub struct Msg {
 
 impl NewFromHex for Msg {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
+
     let header = Header::Header::new(it)
       .chain_err(|| "(Msg) Error at creating Header")?;
     let cmd_str = header.cmd.clone().into_iter()
       .map(|x| x as char).collect::<String>();
+
+    let (last_index,payload_arrvec): (i32, Vec<u8>) = it.clone()
+      .collect::<Vec<u8>>().iter()
+      .enumerate()
+      .take(header.payload_len as usize)
+      .fold((0i32, Vec::new()), |(_, mut acc), (i, hex)| {
+        acc.push(*hex);
+        (i as i32, acc)
+      });
+
+    let mut sha = [0; 32];
+    let mut chk = Sha256::new();
+    chk.input(payload_arrvec.as_slice());
+    &chk.result(&mut sha);
+    chk.reset();
+    chk.input(&sha);
+    chk.result(&mut sha);
+
+    let mut chk = Cursor::new(&sha)
+        .read_u32::<LittleEndian>()
+        .chain_err(|| format!("(Msg::mod) Error at u32 parse for payloadchk for value {:?}", &sha))?;
+
+    if last_index + 1 != header.payload_len {
+      bail!("(Msg::mod) Error at payload length (expected: {}, found: {:?})", header.payload_len, last_index + 1);
+    } else if chk != header.payloadchk {
+      bail!("(Msg::mod) Error at payload checksum (expected: {}, found: {:?})", header.payloadchk, &chk);
+    }
+
+     //println!("Só ALEDGRIA4444");
 
     let payload = match cmd_str.to_string().trim().as_ref() {
 

@@ -5,6 +5,7 @@ use Commons::NewFromHex::NewFromHex;
 use Commons::Bytes::Bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
+
 mod errors {
     error_chain!{}
 }

@@ -53,7 +53,7 @@ impl NewFromHex::NewFromHex for Version {
       None
     } else {
       let aux = it.by_ref().next()
-        .ok_or("Error: input feed ended unexpectdly")?;
+        .ok_or("(Msg::Payload::Version) Error: input feed ended unexpectdly for relay")?;
       Some(aux.to_le() != 0u8)
     };
     Ok(Version{

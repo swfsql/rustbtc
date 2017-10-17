@@ -31,7 +31,7 @@ impl NewFromHex for Tx {
       .chain_err(|| format!("(Msg::Payload::Tx::Mod) Error at reading for ver: read_i32 for {:?}", aux))?;
 
     let ninputs = it.by_ref().next()
-      .ok_or("Input feed ended unexpectedly when reading the input len info")?
+      .ok_or("(Msg::Payload::Tx) Input feed ended unexpectedly when reading the input len info")?
       .to_le();
     let mut inputs: Vec<Input::Input> = vec![];
     for i in 0..ninputs {
@@ -41,7 +41,7 @@ impl NewFromHex for Tx {
     }
 
     let noutputs = it.by_ref().next()
-      .ok_or("Input feed ended unexpectedly when reading the output len info")?
+      .ok_or("(Msg::Payload::Tx) Input feed ended unexpectedly when reading the output len info")?
       .to_le();
     let mut outputs: Vec<Output::Output> = vec![];
     for i in 0..noutputs {
