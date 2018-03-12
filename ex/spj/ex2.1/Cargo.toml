@@ -1,6 +1,0 @@
-[package]
-name = "ex1"
-version = "0.1.0"
-authors = ["Thiago Machado da Silva <thi@unifei.edu.br>"]
-
-[dependencies]

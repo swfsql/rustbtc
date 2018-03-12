@@ -1,6 +1,0 @@
-[package]
-name = "50_a"
-version = "0.1.0"
-authors = ["Thiago Machado da Silva <swfsql@gmail.com.br>"]
-
-[dependencies]
