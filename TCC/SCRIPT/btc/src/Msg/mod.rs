@@ -1,6 +1,7 @@
 use std;
 use std::fmt;
 use Commons::NewFromHex::NewFromHex;
+use Commons::IntoBytes::IntoBytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 extern crate crypto;
@@ -50,7 +51,7 @@ impl NewFromHex for Msg {
     chk.input(&sha);
     chk.result(&mut sha);
 
-    let chk = Cursor::new(&sha)
+    let chk  = Cursor::new(&sha)
         .read_u32::<LittleEndian>()
         .chain_err(|| format!("(Msg::mod) Error at u32 parse for payloadchk for value {:?}", &sha))?;
 
@@ -121,3 +122,21 @@ impl std::fmt::Debug for Msg {
       write!(f, "{}", s)
   }
 }
+/*
+impl IntoBytes for Msg {
+  fn into_bytes(&self) -> Result<Vec<u8>> {
+      //self.header.into_bytes();
+      match self.clone().payload {
+          Some(ref p) => match p {
+            //&Payload::Payload::Tx(ref tx) => tx.into_bytes(),
+            &Payload::Payload::Ping(ref ping) => ping.into_bytes(),
+            //&Payload::Payload::Pong(ref pong) => pong.into_bytes(),
+            //&Payload::Payload::Version(ref version) => version.into_bytes(),
+            //&Payload::Payload::Verack => vec![],
+          },
+          None => vec![],
+      };
+      Ok(vec![])
+  }
+}
+*/

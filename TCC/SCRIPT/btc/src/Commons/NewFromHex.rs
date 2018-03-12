@@ -20,4 +20,3 @@ pub trait NewFromHex {
   where Self: std::marker::Sized;
 }
 
-
