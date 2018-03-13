@@ -1,19 +1,3 @@
-/*
-TODO:
-
-
-- testar o server/client do fibers em VPN
-
-
-- mais estruturas das mensagens;
-- comunicação TCP/IP
--
--
-
-*/
-
-//
-
 #![recursion_limit = "1024"]
 #[macro_use]
 extern crate error_chain;
@@ -22,32 +6,27 @@ mod errors {
 }
 use errors::*;
 
+#[macro_use] extern crate log;
+extern crate env_logger;
+
 extern crate hex;
+extern crate time;
 
 extern crate btc;
+
 use btc::commons::new_from_hex::NewFromHex;
 // use btc::commons::into_bytes::IntoBytes;
-use hex::FromHex;
+
+// usually ran with:
+// RUST_LOG=btc=INFO cargo run
 
 fn run() -> Result<()> {
-    println!("change");
+  env_logger::init().unwrap();
 
-    {
-        let msg_pong_hex = "".to_string() + "F9BEB4D9" + "706F6E670000000000000000"
-            + "08000000EAF3B51D" + "0194102111e2af4d";
-        let msg_pong = btc::msg::Msg::new_from_hex(&msg_pong_hex)
-            .chain_err(|| "Falha no hex -> Msg no teste 3")?;
-        println!("{:?}", msg_pong);
-    }
-
-    {
-        let msg_version_hex = "".to_string() +
-    "F9BEB4D976657273696F6E0000000000640000003B648D5A" +
-    "62EA0000010000000000000011B2D05000000000010000000000000000000000000000000000FFFF000000000000010000000000000000000000000000000000FFFF0000000000003B2EB35D8CE617650F2F5361746F7368693A302E372E322FC03E0300";
-        let msg_version = btc::msg::Msg::new_from_hex(&msg_version_hex)
-            .chain_err(|| "Falha no hex -> Msg no teste 4")?;
-        println!("{:?}", msg_version);
-    }
+  info!("\n\
+    -------------------------\n\
+    {}\n\
+    -------------------------", time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap());
 
     {
         let msg_verack_hex = "F9BEB4D976657261636B000000000000000000005DF6E0E2";

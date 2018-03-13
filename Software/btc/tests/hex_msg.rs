@@ -41,8 +41,10 @@ fn ping_payload() {
         .chain_err(|| "Fail in hex -> Msg when testing Ping Payload");
     // let payload = payload.clone().expect(&payload.unwrap_err().display_chain().to_string());
     let payload = unwrap_or_display(payload);
+    let res = format!("{:?}", payload);
 
-    assert_eq!(expected.trim(), format!("{:?}", payload).trim());
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
 }
 
 // uses Msg::new_from_hex()
@@ -73,7 +75,10 @@ fn ping_msg() {
     let msg_ping = btc::msg::Msg::new_from_hex(&ping_msg_hex)
         .chain_err(|| "Fail in hex -> Msg");
     let msg_ping = unwrap_or_display(msg_ping);
-    assert_eq!(expected.trim(), format!("{:?}", &msg_ping).trim());
+    let res = format!("{:?}", &msg_ping);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
 
     // tries to extract a transaction from the payload, of a ping message (should give None)
     let expected = "\
@@ -85,8 +90,107 @@ fn ping_msg() {
     } else {
         None
     };
+    let res = format!("{:?}", &tx);
 
-    assert_eq!(expected.trim(), format!("{:?}", &tx).trim());
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
+}
+
+// uses Msg::new_from_hex()
+#[test]
+fn pong_msg() {
+    let pong_msg_hex = "\
+       F9BEB4D9\
+       706F6E670000000000000000\
+       08000000EAF3B51D\
+       0194102111e2af4d\
+    ";
+    let expected = "\
+      Message:\n\
+      ├ Message Header: Message Header:\n\
+      ├ Message Network Identification: 3652501241\n\
+      ├ Message Command OP_CODE: <pong\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
+      │ ├ 112, 111, 110, 103,    0,   0,   0,   0,\n\
+      │ ├   0,   0,   0,   0,\n\
+      │ │\n\
+      ├ Payload Length: 8\n\
+      ├ Payload Checksum: 498463722\n\
+      ├ Message Payload: \n\
+      │ Pong:\n\
+      │ ├ Nounce: 5597941425041871873\n\
+    ";
+
+    let msg_pong = btc::msg::Msg::new_from_hex(&pong_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
+    let msg_pong = unwrap_or_display(msg_pong);
+    let res = format!("{:?}", &msg_pong);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
+}
+
+
+// uses Msg::new_from_hex()
+#[test]
+fn version_msg() {
+    let version_msg_hex = "\
+    F9BEB4D976657273696F6E0000000000640000003B648D5A\
+    62EA000001000000000000001\
+    1B2D050000000000100000000\
+    0000000000000000000000000\
+    0FFFF00000000000001000000\
+    0000000000000000000000000\
+    000FFFF0000000000003B2EB3\
+    5D8CE617650F2F5361746F736\
+    8693A302E372E322FC03E0300\
+    ";
+    let expected = "\
+      Message:\n\
+      ├ Message Header: Message Header:\n\
+      ├ Message Network Identification: 3652501241\n\
+      ├ Message Command OP_CODE: <version\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
+      │ ├ 118, 101, 114, 115,  105, 111, 110,   0,\n\
+      │ ├   0,   0,   0,   0,\n\
+      │ │\n\
+      ├ Payload Length: 100\n\
+      ├ Payload Checksum: 1519215675\n\
+      ├ Message Payload: \n\
+      │ Version:\n\
+      │ ├ Version: 60002\n\
+      │ ├ Services: 1\n\
+      │ ├ Timestamp: 1355854353\n\
+      │ ├ Addr Receiver: Net Addr:\n\
+      │ ├ Service: 1\n\
+      │ ├ IP: \n\
+      │ │ ├   0,   0,   0,   0,    0,   0,   0,   0,\n\
+      │ │ ├   0,   0, 255, 255,    0,   0,   0,   0,\n\
+      │ │ │\n\
+      │ ├ Port: 0\n\
+      │ ├ Addr Transfer: Net Addr:\n\
+      │ ├ Service: 1\n\
+      │ ├ IP: \n\
+      │ │ ├   0,   0,   0,   0,    0,   0,   0,   0,\n\
+      │ │ ├   0,   0, 255, 255,    0,   0,   0,   0,\n\
+      │ │ │\n\
+      │ ├ Port: 0\n\
+      │ ├ Nonce: 7284544412836900411\n\
+      │ ├ User Agent: Version:\n\
+      │ ├ Length: U8(15)\n\
+      │ ├ String: </Satoshi:0.7.2/>\n\
+      │ │ ├  47,  83,  97, 116,  111, 115, 104, 105,\n\
+      │ │ ├  58,  48,  46,  55,   46,  50,  47,\n\
+      │ │ │\n\
+      │ ├ Start Height: 212672\n\
+      │ ├ Relay: None\n\
+    ";
+
+    let msg_version = btc::msg::Msg::new_from_hex(&version_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
+    let msg_version = unwrap_or_display(msg_version);
+    let res = format!("{:?}", &msg_version);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
 }
 
 // uses Msg::new_from_hex()
