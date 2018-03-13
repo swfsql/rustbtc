@@ -129,7 +129,6 @@ fn pong_msg() {
     assert_eq!(expected.trim(), res.trim());
 }
 
-
 // uses Msg::new_from_hex()
 #[test]
 fn version_msg() {
@@ -192,6 +191,37 @@ fn version_msg() {
     println!("{}", res);
     assert_eq!(expected.trim(), res.trim());
 }
+
+// uses Msg::new_from_hex()
+#[test]
+fn verack_msg() {
+    let verack_msg_hex = "\
+        F9BEB4D976657261636B000000000000000000005DF6E0E2\
+    ";
+    let expected = "\
+      Message:\n\
+      ├ Message Header: Message Header:\n\
+      ├ Message Network Identification: 3652501241\n\
+      ├ Message Command OP_CODE: <verack\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
+      │ ├ 118, 101, 114,  97,   99, 107,   0,   0,\n\
+      │ ├   0,   0,   0,   0,\n\
+      │ │\n\
+      ├ Payload Length: 0\n\
+      ├ Payload Checksum: 3806393949\n\
+      ├ Message Payload: \n\
+      │ Verack\n\
+    ";
+
+    let msg_verack = btc::msg::Msg::new_from_hex(&verack_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
+    let msg_verack = unwrap_or_display(msg_verack);
+    let res = format!("{:?}", &msg_verack);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
+}
+
+
 
 // uses Msg::new_from_hex()
 #[test]
