@@ -22,7 +22,7 @@ impl NewFromHex for Pong {
                 aux
             )
         })?;
-        Ok(Pong { nounce: nounce })
+        Ok(Pong { nounce })
     }
 }
 

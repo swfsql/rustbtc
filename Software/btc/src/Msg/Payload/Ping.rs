@@ -25,7 +25,7 @@ impl NewFromHex for Ping {
                 aux
             )
         })?;
-        Ok(Ping { nonce: nonce })
+        Ok(Ping { nonce })
     }
 }
 

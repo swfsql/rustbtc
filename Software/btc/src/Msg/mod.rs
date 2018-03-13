@@ -48,7 +48,7 @@ impl NewFromHex for Msg {
         let mut sha = [0; 32];
         let mut chk = Sha256::new();
         chk.input(payload_arrvec.as_slice());
-        &chk.result(&mut sha);
+        chk.result(&mut sha);
         chk.reset();
         chk.input(&sha);
         chk.result(&mut sha);
@@ -76,7 +76,7 @@ impl NewFromHex for Msg {
 
         //println!("Só ALEDGRIA4444");
 
-        let payload = match cmd_str.to_string().trim().as_ref() {
+        let payload = match cmd_str.to_string().trim() {
             "tx\0\0\0\0\0\0\0\0\0\0" => {
                 let tx = payload::tx::Tx::new(it).chain_err(|| "(Msg) Error at creating Payload")?;
                 Some(payload::Payload::Tx(tx))
@@ -105,10 +105,7 @@ impl NewFromHex for Msg {
 
         // header.payload_len // TODO
 
-        Ok(Msg {
-            header: header,
-            payload: payload,
-        })
+        Ok(Msg { header, payload })
     }
 }
 
@@ -117,13 +114,13 @@ impl std::fmt::Debug for Msg {
         let mut s = "Message:\n".to_string();
         s += &format!("├ Message Header: {:?}", self.header);
         s += &"├ Message Payload: \n".to_string();
-        s += &match self.clone().payload {
-            Some(ref p) => match p {
-                &payload::Payload::Tx(ref tx) => format!("{:?}", tx),
-                &payload::Payload::Ping(ref ping) => format!("{:?}", ping),
-                &payload::Payload::Pong(ref pong) => format!("{:?}", pong),
-                &payload::Payload::Version(ref version) => format!("{:?}", version),
-                &payload::Payload::Verack => format!("Verack"),
+        s += &match self.payload {
+            Some(ref p) => match *p {
+                payload::Payload::Tx(ref tx) => format!("{:?}", tx),
+                payload::Payload::Ping(ref ping) => format!("{:?}", ping),
+                payload::Payload::Pong(ref pong) => format!("{:?}", pong),
+                payload::Payload::Version(ref version) => format!("{:?}", version),
+                payload::Payload::Verack => "Verack".into(),
             },
             None => "None".to_string(),
         }.lines()

@@ -27,21 +27,21 @@ impl NewFromHex for Tx {
     fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx> {
         //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>> {
         let aux = it.by_ref().take(4).collect::<Vec<u8>>();
-        let ver = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
+        let version = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
             format!(
-                "(Msg::payload::tx::Mod) Error at reading for ver: read_i32 for {:?}",
+                "(Msg::payload::tx::Mod) Error at reading for version: read_i32 for {:?}",
                 aux
             )
         })?;
 
-        let ninputs = it.by_ref()
+        let inputs_len = it.by_ref()
             .next()
             .ok_or(
                 "(Msg::payload::tx) Input feed ended unexpectedly when reading the input len info",
             )?
             .to_le();
         let mut inputs: Vec<input::Input> = vec![];
-        for i in 0..ninputs {
+        for i in 0..inputs_len {
             let aux = input::Input::new(it).chain_err(|| {
                 format!(
                     "(Msg::payload::tx::Mod)Error at creating a new input, at input {:?}",
@@ -51,14 +51,14 @@ impl NewFromHex for Tx {
             inputs.push(aux);
         }
 
-        let noutputs = it.by_ref()
+        let outputs_len = it.by_ref()
             .next()
             .ok_or(
                 "(Msg::payload::tx) Input feed ended unexpectedly when reading the output len info",
             )?
             .to_le();
         let mut outputs: Vec<output::Output> = vec![];
-        for i in 0..noutputs {
+        for i in 0..outputs_len {
             let aux = output::Output::new(it).chain_err(|| {
                 format!(
                     "(Msg::payload::tx::Mod)Error at creating a new Output, at outputs {}",
@@ -77,14 +77,14 @@ impl NewFromHex for Tx {
         })?;
 
         let tx = Tx {
-            version: ver,
-            inputs_len: ninputs,
-            inputs: inputs,
-            outputs_len: noutputs,
-            outputs: outputs,
-            locktime: locktime,
+            version,
+            inputs_len,
+            inputs,
+            outputs_len,
+            outputs,
+            locktime,
         };
-        if let Some(_) = it.next() {
+        if it.next().is_some() {
             Err("(Msg::payload::tx::Mod)Error: input feed is bigger than expected")?;
         }
         Ok(tx)
@@ -96,7 +96,7 @@ impl std::fmt::Debug for Tx {
         let mut s = "Tx:\n".to_string();
         s += &format!("├ Version: {}\n", self.version);
         s += &format!("├ Inputs Length: {}\n", self.inputs_len);
-        s += &format!("├ Inputs:\n");
+        s += "├ Inputs:\n";
         for (i, input) in self.inputs.iter().enumerate() {
             s += &format!(" {:?}", input)
                 .lines()
@@ -121,7 +121,7 @@ impl std::fmt::Debug for Tx {
                            //chain_err((|| "Error to display some input from a total of {}", self.inputs_len))?;
         }
         s += &format!("├ Outputs Length: {}\n", self.outputs_len);
-        s += &format!("├ Outputs:\n");
+        s += "├ Outputs:\n";
         for (i, output) in self.outputs.iter().enumerate() {
             s += &format!(" {:?}", output)
                 .lines()

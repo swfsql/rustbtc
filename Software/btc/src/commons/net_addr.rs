@@ -38,11 +38,7 @@ impl NewFromHex for NetAddr {
                 aux
             )
         })?;
-        Ok(NetAddr {
-            service: service,
-            ip: ip,
-            port: port,
-        })
+        Ok(NetAddr { service, ip, port })
     }
 }
 

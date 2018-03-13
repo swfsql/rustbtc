@@ -18,24 +18,26 @@ pub struct Output {
 impl NewFromHex for Output {
     fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Output> {
         let aux = it.by_ref().take(8).collect::<Vec<u8>>();
-        let val = Cursor::new(&aux).read_i64::<LittleEndian>().chain_err(|| {
+        let value = Cursor::new(&aux).read_i64::<LittleEndian>().chain_err(|| {
             format!(
-                "(Msg::payload::tx::output) Error at reading for val: read_i64 for {:?}",
+                "(Msg::payload::tx::output) Error at reading for value: read_i64 for {:?}",
                 aux
             )
         })?;
-        let pkslen = it.by_ref()
+        let pk_script_len = it.by_ref()
             .next()
-            .chain_err(|| "(Msg::payload::tx::output) Input unexpectedly ended when reading pkslen")?
+            .chain_err(|| {
+                "(Msg::payload::tx::output) Input unexpectedly ended when reading pk_script_len"
+            })?
             .to_le();
-        let pk_script = it.take(pkslen as usize)
+        let pk_script = it.take(pk_script_len as usize)
             .map(|u| u.to_le())
             .collect::<Bytes>();
 
         Ok(Output {
-            value: val,
-            pk_script_len: pkslen,
-            pk_script: pk_script,
+            value,
+            pk_script_len,
+            pk_script,
         })
     }
 }

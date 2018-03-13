@@ -76,15 +76,15 @@ impl new_from_hex::NewFromHex for Version {
             Some(aux.to_le() != 0u8)
         };
         Ok(Version {
-            version: version,
-            services: services,
-            timestamp: timestamp,
-            addr_recv: addr_recv,
-            addr_trans: addr_trans,
-            nonce: nonce,
-            user_agent: user_agent,
-            start_height: start_height,
-            relay: relay,
+            version,
+            services,
+            timestamp,
+            addr_recv,
+            addr_trans,
+            nonce,
+            user_agent,
+            start_height,
+            relay,
         })
     }
 }

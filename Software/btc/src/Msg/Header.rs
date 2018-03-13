@@ -46,10 +46,10 @@ impl NewFromHex for Header {
             )
         })?;
         Ok(Header {
-            network: network,
-            cmd: cmd,
-            payload_len: payload_len,
-            payloadchk: payloadchk,
+            network,
+            cmd,
+            payload_len,
+            payloadchk,
         })
     }
 }
