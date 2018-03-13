@@ -1,7 +1,7 @@
 use std;
 use std::fmt;
-use Commons::NewFromHex::NewFromHex;
-use Commons::IntoBytes::IntoBytes;
+use commons::new_from_hex::NewFromHex;
+// use Commons::into_bytes::into_bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 extern crate crypto;
@@ -14,21 +14,21 @@ mod errors {
 }
 use errors::*;
 
-//use ::Payload::Payload::Verack;
-//use Msg::Payload::Payload::Verack;
+//use ::payload::payload::Verack;
+//use Msg::payload::payload::Verack;
 
-pub mod Header;
-pub mod Payload;
+pub mod header;
+pub mod payload;
 
 pub struct Msg {
-  pub header: Header::Header,
-  pub payload: Option<Payload::Payload>,
+  pub header: header::Header,
+  pub payload: Option<payload::Payload>,
 }
 
 impl NewFromHex for Msg {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
 
-    let header = Header::Header::new(it)
+    let header = header::Header::new(it)
       .chain_err(|| "(Msg) Error at creating Header")?;
     let cmd_str = header.cmd.clone().into_iter()
       .map(|x| x as char).collect::<String>();
@@ -66,27 +66,27 @@ impl NewFromHex for Msg {
     let payload = match cmd_str.to_string().trim().as_ref() {
 
       "tx\0\0\0\0\0\0\0\0\0\0" => {
-        let tx = Payload::Tx::Tx::new(it)
+        let tx = payload::tx::Tx::new(it)
           .chain_err(|| "(Msg) Error at creating Payload")?;
-        Some(Payload::Payload::Tx(tx))
+        Some(payload::Payload::Tx(tx))
       },
       "ping\0\0\0\0\0\0\0\0" => {
-        let ping = Payload::Ping::Ping::new(it)
+        let ping = payload::ping::Ping::new(it)
           .chain_err(|| "(Msg) Error at creating ping")?;
-        Some(Payload::Payload::Ping(ping))
+        Some(payload::Payload::Ping(ping))
       },
       "pong\0\0\0\0\0\0\0\0" => {
-        let pong = Payload::Pong::Pong::new(it)
+        let pong = payload::pong::Pong::new(it)
           .chain_err(|| "(Msg) Error at creating pong")?;
-        Some(Payload::Payload::Pong(pong))
+        Some(payload::Payload::Pong(pong))
       },
       "version\0\0\0\0\0" => {
-        let version = Payload::Version::Version::new(it)
+        let version = payload::version::Version::new(it)
           .chain_err(|| "(Msg) Error at creating version")?;
-        Some(Payload::Payload::Version(version))
+        Some(payload::Payload::Version(version))
       },
       "verack\0\0\0\0\0\0" => {
-        Some(Payload::Payload::Verack)
+        Some(payload::Payload::Verack)
       },
       x => {
         println!("payload code didnt match: {:?}", x);
@@ -111,11 +111,11 @@ impl std::fmt::Debug for Msg {
       s += &"├ Message Payload: \n".to_string();
       s += &match self.clone().payload {
           Some(ref p) => match p {
-            &Payload::Payload::Tx(ref tx) => format!("{:?}", tx),
-            &Payload::Payload::Ping(ref ping) => format!("{:?}", ping),
-            &Payload::Payload::Pong(ref pong) => format!("{:?}", pong),
-            &Payload::Payload::Version(ref version) => format!("{:?}", version),
-            &Payload::Payload::Verack => format!("Verack"),
+            &payload::Payload::Tx(ref tx) => format!("{:?}", tx),
+            &payload::Payload::Ping(ref ping) => format!("{:?}", ping),
+            &payload::Payload::Pong(ref pong) => format!("{:?}", pong),
+            &payload::Payload::Version(ref version) => format!("{:?}", version),
+            &payload::Payload::Verack => format!("Verack"),
           },
           None => "None".to_string(),
         }.lines().map(|x| "│ ".to_string() + x + "\n").collect::<String>();
@@ -128,11 +128,11 @@ impl IntoBytes for Msg {
       //self.header.into_bytes();
       match self.clone().payload {
           Some(ref p) => match p {
-            //&Payload::Payload::Tx(ref tx) => tx.into_bytes(),
-            &Payload::Payload::Ping(ref ping) => ping.into_bytes(),
-            //&Payload::Payload::Pong(ref pong) => pong.into_bytes(),
-            //&Payload::Payload::Version(ref version) => version.into_bytes(),
-            //&Payload::Payload::Verack => vec![],
+            //&Payload::payload::tx(ref tx) => tx.into_bytes(),
+            &Payload::payload::ping(ref ping) => ping.into_bytes(),
+            //&Payload::payload::pong(ref pong) => pong.into_bytes(),
+            //&Payload::payload::version(ref version) => version.into_bytes(),
+            //&Payload::payload::Verack => vec![],
           },
           None => vec![],
       };

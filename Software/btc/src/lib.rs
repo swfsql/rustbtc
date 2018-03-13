@@ -13,8 +13,8 @@ extern crate arrayvec;
 
 extern crate hex;
 
-pub mod Msg;
-pub mod Commons;
+pub mod msg;
+pub mod commons;
 
 
 

@@ -1,8 +1,8 @@
 use std;
 use std::fmt;
-use Commons::Bytes::Bytes;
-use Commons::NewFromHex::NewFromHex;
-use Commons::VarUint::VarUint;
+use commons::bytes::Bytes;
+use commons::new_from_hex::NewFromHex;
+use commons::var_uint::VarUint;
 mod errors {
     error_chain!{}
 }
@@ -23,7 +23,7 @@ impl NewFromHex for VarStr {
       VarUint::U32(u) => Some(u as usize),
       VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
     };
-    let slen = slen.ok_or("(Commons::VarStr) Error at creating VarStr length: too big")?;
+    let slen = slen.ok_or("(Commons::var_str) Error at creating VarStr length: too big")?;
     let string = it.take(slen).map(|u| u.to_le()).collect::<Bytes>();
     Ok(VarStr {
       length: len,

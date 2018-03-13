@@ -1,7 +1,7 @@
 use std;
 use std::fmt;
 pub struct Bytes(Vec<u8>);
-use std::ascii::AsciiExt;
+// use std::ascii::AsciiExt;
 mod errors {
     error_chain!{}
 }

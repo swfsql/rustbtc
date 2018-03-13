@@ -1,6 +1,6 @@
 use std;
 use std::fmt;
-use Commons::NewFromHex::NewFromHex;
+use commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {
@@ -8,17 +8,17 @@ mod errors {
 }
 use errors::*;
 
-pub mod Input;
-pub mod Output;
+pub mod input;
+pub mod output;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 // https://bitcoin.org/en/developer-reference#raw-transaction-format
 pub struct Tx {
   pub version: i32,
   pub inputs_len: u8,
-  pub inputs: Vec<Input::Input>,
+  pub inputs: Vec<input::Input>,
   pub outputs_len: u8,
-  pub outputs: Vec<Output::Output>,
+  pub outputs: Vec<output::Output>,
   pub locktime: u32,
   // TODO MAYBE witness
 }
@@ -28,32 +28,32 @@ impl NewFromHex for Tx {
   //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>> {
     let aux = it.by_ref().take(4).collect::<Vec<u8>>();
     let ver = Cursor::new(&aux).read_i32::<LittleEndian>()
-      .chain_err(|| format!("(Msg::Payload::Tx::Mod) Error at reading for ver: read_i32 for {:?}", aux))?;
+      .chain_err(|| format!("(Msg::payload::tx::Mod) Error at reading for ver: read_i32 for {:?}", aux))?;
 
     let ninputs = it.by_ref().next()
-      .ok_or("(Msg::Payload::Tx) Input feed ended unexpectedly when reading the input len info")?
+      .ok_or("(Msg::payload::tx) Input feed ended unexpectedly when reading the input len info")?
       .to_le();
-    let mut inputs: Vec<Input::Input> = vec![];
+    let mut inputs: Vec<input::Input> = vec![];
     for i in 0..ninputs {
-      let aux = Input::Input::new(it)
-        .chain_err(|| format!("(Msg::Payload::Tx::Mod)Error at creating a new input, at input {:?}", i))?;
+      let aux = input::Input::new(it)
+        .chain_err(|| format!("(Msg::payload::tx::Mod)Error at creating a new input, at input {:?}", i))?;
       inputs.push(aux);
     }
 
     let noutputs = it.by_ref().next()
-      .ok_or("(Msg::Payload::Tx) Input feed ended unexpectedly when reading the output len info")?
+      .ok_or("(Msg::payload::tx) Input feed ended unexpectedly when reading the output len info")?
       .to_le();
-    let mut outputs: Vec<Output::Output> = vec![];
+    let mut outputs: Vec<output::Output> = vec![];
     for i in 0..noutputs {
-      let aux = Output::Output::new(it)
-        .chain_err(|| format!("(Msg::Payload::Tx::Mod)Error at creating a new Output, at outputs {}", i))?;
+      let aux = output::Output::new(it)
+        .chain_err(|| format!("(Msg::payload::tx::Mod)Error at creating a new Output, at outputs {}", i))?;
       outputs.push(aux);
     }
 
     let aux = it.take(4).collect::<Vec<u8>>();
     let locktime = Cursor::new(&aux)
           .read_u32::<LittleEndian>()
-          .chain_err(|| format!("(Msg::Payload::Tx::Mod)Error at reading for locktime: read_u32 for value {:?}", aux))?;
+          .chain_err(|| format!("(Msg::payload::tx::Mod)Error at reading for locktime: read_u32 for value {:?}", aux))?;
 
     let tx = Tx {
       version: ver,
@@ -64,7 +64,7 @@ impl NewFromHex for Tx {
       locktime: locktime,
     };
     if let Some(_) = it.next() {
-      Err("(Msg::Payload::Tx::Mod)Error: input feed is bigger than expected")?;
+      Err("(Msg::payload::tx::Mod)Error: input feed is bigger than expected")?;
     }
     Ok(tx)
   }

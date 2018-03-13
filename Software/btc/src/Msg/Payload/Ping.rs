@@ -1,9 +1,9 @@
 use std;
 use std::fmt;
-use Commons::NewFromHex::NewFromHex;
-use Commons::IntoBytes::IntoBytes;
+use commons::new_from_hex::NewFromHex;
+use commons::into_bytes::IntoBytes;
 use std::io::Cursor;
-use byteorder::{LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 mod errors {
     error_chain!{}
 }
@@ -21,7 +21,7 @@ impl NewFromHex for Ping {
     let aux = it.take(8).collect::<Vec<u8>>();
     let nonce = Cursor::new(&aux)
           .read_u64::<LittleEndian>()
-          .chain_err(|| format!("(Msg::Payload::Ping) Failed when n-once tried to read {:?} as u64", aux))?;
+          .chain_err(|| format!("(Msg::payload::ping) Failed when n-once tried to read {:?} as u64", aux))?;
     Ok(Ping {
       nonce: nonce,
     })

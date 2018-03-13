@@ -1,6 +1,6 @@
 use std;
 use std::fmt;
-use Commons::NewFromHex::NewFromHex;
+use commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {
@@ -18,7 +18,7 @@ impl NewFromHex for Pong {
     let aux = it.take(8).collect::<Vec<u8>>();
     let nounce = Cursor::new(&aux)
           .read_u64::<LittleEndian>()
-          .chain_err(|| format!("(Msg::Payload::Pong) Failed when n-once tried to read {:?} as u64", aux))?;
+          .chain_err(|| format!("(Msg::payload::pong) Failed when n-once tried to read {:?} as u64", aux))?;
     Ok(Pong {
       nounce: nounce,
     })

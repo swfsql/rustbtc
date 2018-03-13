@@ -1,8 +1,8 @@
 use std;
 use std::fmt;
-use Commons::Bytes::Bytes;
+use commons::bytes::Bytes;
 use arrayvec::ArrayVec;
-use Commons::NewFromHex::NewFromHex;
+use commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {
@@ -22,11 +22,11 @@ impl NewFromHex for NetAddr {
   fn new(it: &mut std::vec::IntoIter<u8>) -> Result<NetAddr> {
     let aux = it.by_ref().take(8).collect::<Vec<u8>>();
     let service = Cursor::new(&aux).read_u64::<LittleEndian>()
-      .chain_err(|| format!("(Commons::NetAddr) Error at u64 parse for service for value {:?}", aux))?;
+      .chain_err(|| format!("(Commons::net_addr) Error at u64 parse for service for value {:?}", aux))?;
     let ip = it.by_ref().take(16).map(|u| u.to_le()).collect::<ArrayVec<[u8; 16]>>();
     let aux = it.by_ref().take(2).collect::<Vec<u8>>();
     let port = Cursor::new(&aux).read_u16::<LittleEndian>()
-      .chain_err(|| format!("(Commons::NetAddr) Error at u16 parse for port for value {:?}", aux))?;
+      .chain_err(|| format!("(Commons::net_addr) Error at u16 parse for port for value {:?}", aux))?;
     Ok(NetAddr{
       service: service,
       ip: ip,

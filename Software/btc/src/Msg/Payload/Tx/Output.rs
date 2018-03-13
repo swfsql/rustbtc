@@ -1,7 +1,7 @@
 use std;
 use std::fmt;
-use Commons::NewFromHex::NewFromHex;
-use Commons::Bytes::Bytes;
+use commons::new_from_hex::NewFromHex;
+use commons::bytes::Bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {
@@ -20,9 +20,9 @@ impl NewFromHex for Output {
       let aux = it.by_ref().take(8).collect::<Vec<u8>>();
       let val = Cursor::new(&aux)
         .read_i64::<LittleEndian>()
-        .chain_err(|| format!("(Msg::Payload::Tx::Output) Error at reading for val: read_i64 for {:?}", aux))?;
+        .chain_err(|| format!("(Msg::payload::tx::output) Error at reading for val: read_i64 for {:?}", aux))?;
       let pkslen = it.by_ref().next()
-        .chain_err(|| "(Msg::Payload::Tx::Output) Input unexpectedly ended when reading pkslen")?
+        .chain_err(|| "(Msg::payload::tx::output) Input unexpectedly ended when reading pkslen")?
         .to_le();
       let pk_script = it.take(pkslen as usize).map(|u| u.to_le()).collect::<Bytes>();
 
