@@ -21,6 +21,7 @@ fn unwrap_or_display<T>(res: Result<T>) -> T {
     }
 }
 
+// uses Ping::new()
 #[test]
 fn ping_payload() {
     let ping_pl_hex = "\
@@ -44,6 +45,51 @@ fn ping_payload() {
     assert_eq!(expected.trim(), format!("{:?}", payload).trim());
 }
 
+// uses Msg::new_from_hex()
+// tries to extract some (transaction) payload information from a different kind (ping) of message
+#[test]
+fn ping_msg() {
+    let ping_msg_hex = "\
+      F9BEB4D9\
+      70696E670000000000000000\
+      0800000088EA8176\
+      0094102111e2af4d\
+    ";
+    let expected = "\
+      Message:\n\
+      ├ Message Header: Message Header:\n\
+      ├ Message Network Identification: 3652501241\n\
+      ├ Message Command OP_CODE: <ping\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
+      │ ├ 112, 105, 110, 103,    0,   0,   0,   0,\n\
+      │ ├   0,   0,   0,   0,\n\
+      │ │\n\
+      ├ Payload Length: 8\n\
+      ├ Payload Checksum: 1988225672\n\
+      ├ Message Payload: \n\
+      │ Ping:\n\
+      │ ├ Nonce: 5597941425041871872\n\
+    ";
+
+    let msg_ping = btc::msg::Msg::new_from_hex(&ping_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
+    let msg_ping = unwrap_or_display(msg_ping);
+    assert_eq!(expected.trim(), format!("{:?}", &msg_ping).trim());
+
+    // tries to extract a transaction from the payload, of a ping message (should give None)
+    let expected = "\
+      None\n\
+    ";
+
+    let tx = if let Some(btc::msg::payload::Payload::Tx(tx)) = msg_ping.payload {
+        Some(tx)
+    } else {
+        None
+    };
+
+    assert_eq!(expected.trim(), format!("{:?}", &tx).trim());
+}
+
+// uses Msg::new_from_hex()
 #[test]
 fn tx_msg() {
     let tx_msg_hex = "\
@@ -158,3 +204,4 @@ fn tx_msg() {
     // };
 
 }
+
