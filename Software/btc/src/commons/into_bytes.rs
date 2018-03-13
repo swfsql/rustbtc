@@ -6,5 +6,5 @@ mod errors {
 use errors::*;
 
 pub trait IntoBytes {
-  fn into_bytes(&self) -> Result<Vec<u8>>;
+    fn into_bytes(&self) -> Result<Vec<u8>>;
 }

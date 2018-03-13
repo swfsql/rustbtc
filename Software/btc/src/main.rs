@@ -12,15 +12,15 @@ TODO:
 
 */
 
-// 
+//
 
 #![recursion_limit = "1024"]
-#[macro_use] extern crate error_chain;
+#[macro_use]
+extern crate error_chain;
 mod errors {
     error_chain!{}
 }
 use errors::*;
-
 
 extern crate hex;
 
@@ -29,24 +29,20 @@ use btc::commons::new_from_hex::NewFromHex;
 use btc::commons::into_bytes::IntoBytes;
 use hex::FromHex;
 
-
 fn run() -> Result<()> {
+    println!("change");
 
-  println!("change");
+    let ping_pl_hex = "0094102111e2af4d";
+    let ping_pl_vec: Vec<u8> = Vec::from_hex(ping_pl_hex).chain_err(|| "Falha no hex -> Vec<u8>")?;
+    println!("{:?}", &ping_pl_vec);
+    let mut ping_pl_it = ping_pl_vec.into_iter();
+    let ping_pl = btc::msg::payload::ping::Ping::new(ping_pl_it.by_ref())
+        .chain_err(|| "Falha no hex -> Msg no teste do ping payload")?;
+    println!("{:?\n}", ping_pl);
 
+    println!("{:?}", &ping_pl.into_bytes());
 
-  let ping_pl_hex = "0094102111e2af4d";
-  let ping_pl_vec: Vec<u8> = Vec::from_hex(ping_pl_hex)
-    .chain_err(|| "Falha no hex -> Vec<u8>")?;
-  println!("{:?}", &ping_pl_vec);
-  let mut ping_pl_it = ping_pl_vec.into_iter();
-  let ping_pl = btc::msg::payload::ping::Ping::new(ping_pl_it.by_ref())
-    .chain_err(|| "Falha no hex -> Msg no teste do ping payload")?;
-  println!("{:?\n}", ping_pl);
-
-  println!("{:?}", &ping_pl.into_bytes());
-
-  /*
+    /*
   let msg_tx_hex = "".to_string() +
     "F9BEB4D9" + "747800000000000000000000" + "02010000E293CDBE" +
     "01000000016DBDDB085B1D8AF75184F0BC01FAD58D1266E9B63B50881990E4B40D6AEE3629000000008B483045022100F3581E1972AE8AC7C7367A7A253BC1135223ADB9A468BB3A59233F45BC578380022059AF01CA17D00E41837A1D58E97AA31BAE584EDEC28D35BD96923690913BAE9A0141049C02BFC97EF236CE6D8FE5D94013C721E915982ACD2B12B65D9B7D59E20A842005F8FC4E02532E873D37B96F09D6D4511ADA8F14042F46614A4C70C0F14BEFF5FFFFFFFF02404B4C00000000001976A9141AA0CD1CBEA6E7458A7ABAD512A9D9EA1AFB225E88AC80FAE9C7000000001976A9140EAB5BEA436A0484CFAB12485EFDA0B78B4ECC5288AC00000000";
@@ -102,30 +98,25 @@ fn run() -> Result<()> {
   println!("{:?}", msg_verack);
   */
 
-
-  Ok(())
-
+    Ok(())
 }
-
 
 fn main() {
-  if let Err(ref e) = run() {
-    use std::io::Write;
-    let stderr = &mut ::std::io::stderr();
-    let errmsg = "Error writing to stderr";
-    writeln!(stderr, "error: {}", e).expect(errmsg);
+    if let Err(ref e) = run() {
+        use std::io::Write;
+        let stderr = &mut ::std::io::stderr();
+        let errmsg = "Error writing to stderr";
+        writeln!(stderr, "error: {}", e).expect(errmsg);
 
-    for e in e.iter().skip(1) {
-      writeln!(stderr, "caused by: {}", e).expect(errmsg);
-    }
+        for e in e.iter().skip(1) {
+            writeln!(stderr, "caused by: {}", e).expect(errmsg);
+        }
 
-    // The backtrace is not always generated. Try to run this example
-    // with `RUST_BACKTRACE=1`.
-    if let Some(backtrace) = e.backtrace() {
-      writeln!(stderr, "backtrace: {:?}", backtrace).expect(errmsg);
+        // The backtrace is not always generated. Try to run this example
+        // with `RUST_BACKTRACE=1`.
+        if let Some(backtrace) = e.backtrace() {
+            writeln!(stderr, "backtrace: {:?}", backtrace).expect(errmsg);
+        }
+        ::std::process::exit(1);
     }
-    ::std::process::exit(1);
-  }
 }
-
-
