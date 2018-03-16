@@ -43,6 +43,7 @@ struct Peer {
     name: BytesMut,
     lines: Lines,
     addr: SocketAddr,
+    num: u8,
 }
 
 #[derive(Debug)]
@@ -62,6 +63,7 @@ impl Peer {
             name,
             lines,
             addr,
+            num: 0,
         }
     }
 }
@@ -72,7 +74,7 @@ impl Future for Peer {
 
     fn poll(&mut self) -> Poll<(), io::Error> {
 
-    println!("poll called");
+        println!("poll called");
 
         let _ = self.lines.poll_flush()?;
 
@@ -80,10 +82,14 @@ impl Future for Peer {
             println!("Received line ({:?}) : {:?}", self.name, line);
 
             if let Some(message) = line {
+
                 let mut line = self.name.clone();
                 line.put(": ");
                 line.put(&message);
+                line.put(format!(" [{}]", self.num));
                 line.put("\r\n");
+
+                self.num += 1;
 
                 let line = line.freeze();
                 //self.msgs_to_send.push(line.clone());
