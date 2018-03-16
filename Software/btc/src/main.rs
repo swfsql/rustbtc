@@ -21,96 +21,186 @@ extern crate btc;
 // RUST_LOG=btc=INFO cargo run
 
 
-
 extern crate tokio;
+#[macro_use]
 extern crate futures;
+extern crate bytes;
 
 use tokio::io;
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
+use futures::sync::mpsc;
+use futures::future::{self, Either};
+use bytes::{BytesMut, Bytes, BufMut};
 
 use std::collections::HashMap;
-use std::iter;
-use std::env;
-use std::io::{BufReader,BufWriter};
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
 struct Peer {
-  socket: tokio::net::TcpStream,
-  state: u32,
+    name: BytesMut,
+    lines: Lines,
+    addr: SocketAddr,
+}
+
+#[derive(Debug)]
+struct Lines {
+    socket: TcpStream,
+    rd: BytesMut,
+    wr: BytesMut,
 }
 
 impl Peer {
-  fn new(socket: tokio::net::TcpStream) -> Peer {
-    Peer {
-      socket,
-      state: 0,
+    fn new(name: BytesMut,
+           lines: Lines) -> Peer
+    {
+        let addr = lines.socket.peer_addr().unwrap();
+
+        Peer {
+            name,
+            lines,
+            addr,
+        }
     }
-  }
-
-  fn task(socket: tokio::net::TcpStream) {
-
-    // The client's socket address
-    let addr = socket.peer_addr().unwrap();
-
-    println!("New Connection: {}", addr);
-
-    let (reader, writer) = socket.split();
-
-    let reader = BufReader::new(reader);
-    let writer = BufWriter::new(writer);
-
-    let iter = stream::iter_ok::<_, io::Error>(iter::repeat(()));
-
-    let socket_reader = iter.fold((reader, writer), move |(reader, writer), _| {
-        // Read a line off the socket, failing if we're at EOF
-        let line = io::read_until(reader, b'\n', Vec::new());
-        let line = line.and_then(|(reader, vec)| {
-            if vec.len() == 0 {
-                Err(io::Error::new(io::ErrorKind::BrokenPipe, "broken pipe"))
-            } else {
-                Ok((reader, vec))
-            }
-        });
-
-        // Convert the bytes we read into a string, and then send that
-        // string to all other connected clients.
-        let line = line.map(|(reader, vec)| {
-            (reader, String::from_utf8(vec))
-        });
-
-        line.map(move |(reader, message)| {
-            println!("{}: {:?}", addr, message);
-
-            // state logic
-            if let &Ok(ref msg) = &message {
-              println!("CUSTOM MESSAGE: {:?}", msg);
-              let msgback = format!("Take back this message: {}", &msg);
-              let amt = io::write_all(writer, msgback.into_bytes());
-            } else {
-                // tx.unbounded_send("You didn't send valid UTF-8.".to_string()).unwrap();
-            }
-
-            (reader, writer)
-        })
-    });
-
-    let socket_reader = socket_reader.map_err(|_| ());
-    let connection = socket_reader.map(|_| ());
-
-    // Spawn a task to process the connection
-    tokio::spawn(connection.then(move |_| {
-        println!("Connection {} closed.", addr);
-        Ok(())
-    }));
-  } 
 }
 
-// impl Future for Peer {
+impl Future for Peer {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&mut self) -> Poll<(), io::Error> {
+
+    println!("poll called");
+
+        let _ = self.lines.poll_flush()?;
+
+        while let Async::Ready(line) = self.lines.poll()? {
+            println!("Received line ({:?}) : {:?}", self.name, line);
+
+            if let Some(message) = line {
+                let mut line = self.name.clone();
+                line.put(": ");
+                line.put(&message);
+                line.put("\r\n");
+
+                let line = line.freeze();
+                //self.msgs_to_send.push(line.clone());
+                self.lines.buffer(&line.clone());
+
+            } else {
+                return Ok(Async::Ready(()));
+            }
+        }
 
 
-// }
+        let _ = self.lines.poll_flush()?;
+
+        Ok(Async::NotReady)
+    }
+}
+
+impl Lines {
+    fn new(socket: TcpStream) -> Self {
+        Lines {
+            socket,
+            rd: BytesMut::new(),
+            wr: BytesMut::new(),
+        }
+    }
+
+    fn buffer(&mut self, line: &[u8]) {
+        self.wr.reserve(line.len());
+
+        self.wr.put(line);
+    }
+
+    fn poll_flush(&mut self) -> Poll<(), io::Error> {
+        while !self.wr.is_empty() {
+            let n = try_ready!(self.socket.poll_write(&self.wr));
+
+            assert!(n > 0);
+
+            let _ = self.wr.split_to(n);
+        }
+
+        Ok(Async::Ready(()))
+    }
+
+    fn fill_read_buf(&mut self) -> Poll<(), io::Error> {
+        loop {
+            self.rd.reserve(1024);
+
+            let n = try_ready!(self.socket.read_buf(&mut self.rd));
+
+            if n == 0 {
+                return Ok(Async::Ready(()));
+            }
+        }
+    }
+}
+
+impl Stream for Lines {
+    type Item = BytesMut;
+    type Error = io::Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+
+        println!("lines poll called");
+
+        let sock_closed = self.fill_read_buf()?.is_ready();
+
+        let pos = self.rd.windows(2).enumerate()
+            .find(|&(_, bytes)| bytes == b"\r\n")
+            .map(|(i, _)| i);
+
+        if let Some(pos) = pos {
+            let mut line = self.rd.split_to(pos + 2);
+
+            line.split_off(pos);
+
+            return Ok(Async::Ready(Some(line)));
+        }
+
+        if sock_closed {
+            Ok(Async::Ready(None))
+        } else {
+            Ok(Async::NotReady)
+        }
+    }
+}
+
+fn process(socket: TcpStream) {
+    let lines = Lines::new(socket);
+
+    let connection = lines.into_future()
+        .map_err(|(e, _)| e)
+        .and_then(|(name, lines)| {
+            let name = match name {
+                Some(name) => name,
+                None => {
+                    return Either::A(future::ok(()));
+                }
+            };
+
+            println!("`{:?}` is joining the chat", name);
+
+            let peer = Peer::new(
+                name,
+                lines
+                );
+
+            Either::B(peer)
+        })
+        .map_err(|e| {
+            println!("connection error = {:?}", e);
+        });
+
+    tokio::spawn(connection);
+}
+
+
 
 
 fn run() -> Result<()> {
@@ -120,28 +210,21 @@ fn run() -> Result<()> {
     {}\n\
     -start-------------------", time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap());
 
-    // Create the TCP listener we'll accept connections on.
-    let addr = env::args().nth(1).unwrap_or("127.0.0.1:8080".to_string());
-    let addr = addr.parse().unwrap();
+
+    let addr = "127.0.0.1:6142".parse().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();
-    println!("Listening on: {}", addr);
 
-    // The server task asynchronously iterates over and processes each incoming
-    // connection.
-    let srv = listener.incoming()
-        .map_err(|e| println!("failed to accept socket; error = {:?}", e))
-        .for_each(move |stream| {
+    let server = listener.incoming().for_each(move |socket| {
+        process(socket);
+        Ok(())
+    })
+    .map_err(|err| {
+        println!("accept error = {:?}", err);
+    });
 
-            Peer::task(stream);
-
-
-
-            Ok(())
-        });
-
-    // execute server
-    tokio::run(srv);
+    println!("server running on localhost:6142");
+    tokio::run(server);
 
 
   info!("\n\
