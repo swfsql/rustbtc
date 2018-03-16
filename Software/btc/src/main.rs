@@ -6,6 +6,10 @@ mod errors {
 }
 use errors::*;
 
+#[macro_use]
+extern crate state_machine_future;
+
+
 #[macro_use] extern crate log;
 extern crate env_logger;
 
@@ -22,6 +26,7 @@ extern crate btc;
 
 
 extern crate tokio;
+
 #[macro_use]
 extern crate futures;
 extern crate bytes;
@@ -29,21 +34,20 @@ extern crate bytes;
 use tokio::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
-use futures::sync::mpsc;
+use futures::{Async, Future, Poll };
 use futures::future::{self, Either};
 use bytes::{BytesMut, Bytes, BufMut};
 
+use state_machine_future::RentToOwn;
+
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex,mpsc};
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
 struct Peer {
-    name: BytesMut,
     lines: Lines,
-    addr: SocketAddr,
-    num: u8,
 }
 
 #[derive(Debug)]
@@ -54,16 +58,12 @@ struct Lines {
 }
 
 impl Peer {
-    fn new(name: BytesMut,
-           lines: Lines) -> Peer
+    fn new(lines: Lines) -> Peer
     {
         let addr = lines.socket.peer_addr().unwrap();
 
         Peer {
-            name,
             lines,
-            addr,
-            num: 0,
         }
     }
 }
@@ -79,17 +79,12 @@ impl Future for Peer {
         let _ = self.lines.poll_flush()?;
 
         while let Async::Ready(line) = self.lines.poll()? {
-            println!("Received line ({:?}) : {:?}", self.name, line);
+            println!("Received line : {:?}", line);
 
             if let Some(message) = line {
 
-                let mut line = self.name.clone();
-                line.put(": ");
-                line.put(&message);
-                line.put(format!(" [{}]", self.num));
+                let mut line = message.clone();
                 line.put("\r\n");
-
-                self.num += 1;
 
                 let line = line.freeze();
                 //self.msgs_to_send.push(line.clone());
@@ -177,36 +172,84 @@ impl Stream for Lines {
     }
 }
 
-fn process(socket: TcpStream) {
-    let lines = Lines::new(socket);
 
-    let connection = lines.into_future()
-        .map_err(|(e, _)| e)
-        .and_then(|(name, lines)| {
-            let name = match name {
-                Some(name) => name,
-                None => {
-                    return Either::A(future::ok(()));
-                }
-            };
+#[derive(StateMachineFuture)]
+enum Machina {
+    #[state_machine_future(start, transitions(Waiting))]
+    Init(Peer),
 
-            println!("`{:?}` is joining the chat", name);
+    #[state_machine_future(transitions(Init, End))]
+    Waiting(Peer),
 
-            let peer = Peer::new(
-                name,
-                lines
-                );
+    #[state_machine_future(ready)]
+    End(Peer),
 
-            Either::B(peer)
-        })
-        .map_err(|e| {
-            println!("connection error = {:?}", e);
-        });
+    #[state_machine_future(error)]
+    Error(std::io::Error),
+}
 
-    tokio::spawn(connection);
+impl PollMachina for Machina {
+    fn poll_init<'a>(
+        peer: &'a mut RentToOwn<'a, Init>
+    ) -> Poll<AfterInit, std::io::Error> {
+
+        while let Some(msg) = try_ready!(peer.0.lines.poll()) {
+            let msg = String::from_utf8(msg.to_vec()).unwrap();
+
+            if msg == "PING?" {
+                let peer = peer.take();
+                let waiting = Waiting(peer.0);
+                transition!(waiting)
+            }
+        }
+        panic!("peer machina invalid state")
+    }
+
+    fn poll_waiting<'a>(
+        peer: &'a mut RentToOwn<'a, Waiting>
+    ) -> Poll<AfterWaiting, std::io::Error> {
+
+        while let Some(msg) = try_ready!(peer.0.lines.poll()) {
+            let msg = String::from_utf8(msg.to_vec()).unwrap();
+
+            if msg == "PING" {
+                peer.0.lines.buffer("PONG".as_bytes());
+                let _ = peer.0.lines.poll_flush()?;
+
+                let peer = peer.take();
+                let init = Init(peer.0);
+                transition!(init)
+
+            } else if msg == "BYE" {
+                peer.0.lines.buffer("HAVE A GOOD ONE".as_bytes());
+                let _ = peer.0.lines.poll_flush()?;
+
+                let peer = peer.take();
+                let end = End(peer.0);
+                transition!(end)
+            }
+        }
+        panic!("peer machina invalid state")
+    }
 }
 
 
+
+fn process(socket: TcpStream) {
+
+    let peer = Peer::new(
+            Lines::new(socket)
+        );
+
+//        .map_err(|_| ());
+
+    let peer_machina = Machina::start(peer)
+        .map_err(|_| ())
+        .map(|_| ());
+
+    tokio::spawn(peer_machina);
+    println!("depois do spawn");
+}
 
 
 fn run() -> Result<()> {
