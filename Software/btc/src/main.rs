@@ -44,7 +44,6 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex,mpsc};
 
-//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@//
 
 struct Peer {
     lines: Lines,
@@ -172,37 +171,125 @@ impl Stream for Lines {
     }
 }
 
+#[derive(StateMachineFuture)]
+enum ComposedStateMachina {
+    #[state_machine_future(start, transitions(InnerB,InnerEnd))]
+    InnerA(Peer),
+
+    #[state_machine_future(transitions(InnerEnd))]
+    InnerB(Peer),
+
+    #[state_machine_future(ready)]
+    InnerEnd((Peer, String)),
+
+    #[state_machine_future(error)]
+    InnerError(std::io::Error),
+}
+
+impl PollComposedStateMachina for ComposedStateMachina {
+    fn poll_inner_a<'a>(
+        peer: &'a mut RentToOwn<'a, InnerA>
+    ) -> Poll<AfterInnerA, std::io::Error> {
+
+        while let Some(msg) = try_ready!(peer.0.lines.poll()) {
+            let msg = String::from_utf8(msg.to_vec()).unwrap();
+
+            match msg.as_ref() {
+                "B" => {
+                    peer.0.lines.buffer("GOING TO B".as_bytes());
+                    let _ = peer.0.lines.poll_flush()?;
+
+                    let next = InnerB(peer.take().0);
+                    println!("going to InnerB");
+                    transition!(next)
+                },
+                _ =>  {
+                    peer.0.lines.buffer("...".as_bytes());
+                    let _ = peer.0.lines.poll_flush()?;
+
+                    let next = InnerEnd((peer.take().0, msg));
+                    println!("going to InnerEnd");
+                    transition!(next)
+                },
+            }
+        }
+        // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
+        panic!("Peer connection aborted.");
+    }
+
+    fn poll_inner_b<'a>(
+        peer: &'a mut RentToOwn<'a, InnerB>
+    ) -> Poll<AfterInnerB, std::io::Error> {
+
+        while let Some(msg) = try_ready!(peer.0.lines.poll()) {
+            let msg = String::from_utf8(msg.to_vec()).unwrap();
+
+            let peer = peer.take();
+            let next = InnerEnd((peer.0, msg));
+            println!("going to InnerEnd");
+            transition!(next)
+        }
+        // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
+        panic!("Peer connection aborted.");
+    }
+}
 
 #[derive(StateMachineFuture)]
 enum Machina {
-    #[state_machine_future(start, transitions(Waiting))]
-    Init(Peer),
+    #[state_machine_future(start, transitions(Standby))]
+    Welcome(Peer),
 
-    #[state_machine_future(transitions(Init, End))]
+    #[state_machine_future(transitions(Waiting))]
+    Standby(Peer),
+
+    #[state_machine_future(transitions(ComposedState, End))]
     Waiting(Peer),
+
+    #[state_machine_future(transitions(Standby, Waiting))]
+    ComposedState(ComposedStateMachinaFuture),
 
     #[state_machine_future(ready)]
     End(Peer),
 
     #[state_machine_future(error)]
-    Error(std::io::Error),
+    MachinaError(std::io::Error),
 }
 
 impl PollMachina for Machina {
-    fn poll_init<'a>(
-        peer: &'a mut RentToOwn<'a, Init>
-    ) -> Poll<AfterInit, std::io::Error> {
+
+    fn poll_welcome<'a>(
+        peer: &'a mut RentToOwn<'a, Welcome>
+    ) -> Poll<AfterWelcome, std::io::Error> {
+
+        peer.0.lines.buffer("WELCOME".as_bytes());
+        let _ = peer.0.lines.poll_flush()?;
+        let _ = peer.0.lines.poll_flush()?; // to make sure
+        println!("sent WELCOME");
+
+        transition!(Standby(peer.take().0))
+    }
+
+    fn poll_standby<'a>(
+        peer: &'a mut RentToOwn<'a, Standby>
+    ) -> Poll<AfterStandby, std::io::Error> {
 
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
             let msg = String::from_utf8(msg.to_vec()).unwrap();
 
-            if msg == "PING?" {
-                let peer = peer.take();
-                let waiting = Waiting(peer.0);
-                transition!(waiting)
+            match msg.as_ref() {
+                "PING?" => {
+                    println!("going to WAITING");
+                    let peer = peer.take();
+                    let waiting = Waiting(peer.0);
+                    transition!(waiting)
+                },
+                _ => {
+                    println!("BATATA: <{:?}>", &msg);
+                },
             }
         }
-        panic!("peer machina invalid state")
+        // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
+        panic!("Peer connection aborted.");
     }
 
     fn poll_waiting<'a>(
@@ -212,25 +299,61 @@ impl PollMachina for Machina {
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
             let msg = String::from_utf8(msg.to_vec()).unwrap();
 
-            if msg == "PING" {
-                peer.0.lines.buffer("PONG".as_bytes());
-                let _ = peer.0.lines.poll_flush()?;
+            match msg.as_ref() {
+                "A" => {
+                    peer.0.lines.buffer("Inside Composed State".as_bytes());
+                    let _ = peer.0.lines.poll_flush()?;
 
-                let peer = peer.take();
-                let init = Init(peer.0);
-                transition!(init)
+                    let peer = peer.take();
+                    let mach = ComposedStateMachina::start(peer.0);
+                    let next = ComposedState(mach);
+                    println!("going to ComposedState");
+                    transition!(next)
+                },
+                "BYE" => {
+                    peer.0.lines.buffer("HAVE A GOOD ONE".as_bytes());
+                    let _ = peer.0.lines.poll_flush()?;
 
-            } else if msg == "BYE" {
-                peer.0.lines.buffer("HAVE A GOOD ONE".as_bytes());
-                let _ = peer.0.lines.poll_flush()?;
+                    let peer = peer.take();
+                    let next = End(peer.0);
+                    println!("going to END");
+                    transition!(next)
+                },
+                _ => {
 
-                let peer = peer.take();
-                let end = End(peer.0);
-                transition!(end)
+                },
             }
         }
-        panic!("peer machina invalid state")
+        // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
+        panic!("Peer connection aborted.");
     }
+
+    fn poll_composed_state<'a>(
+        mach: &'a mut RentToOwn<'a, ComposedState>
+    ) -> Poll<AfterComposedState, std::io::Error> {
+
+        let (mut peer, mut msg) = try_ready!(mach.0.poll());
+
+        match msg.as_ref() {
+            "PING" => {
+                peer.lines.buffer("PONG".as_bytes());
+                let _ = peer.lines.poll_flush()?;
+
+                let next = Standby(peer);
+                println!("going to Standby");
+                transition!(next)
+            },
+            _ => {
+                peer.lines.buffer("...".as_bytes());
+                let _ = peer.lines.poll_flush()?;
+
+                let next = Waiting(peer);
+                println!("going to Waiting");
+                transition!(next)
+            },
+        }
+    }
+
 }
 
 
@@ -260,7 +383,7 @@ fn run() -> Result<()> {
     -start-------------------", time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap());
 
 
-    let addr = "127.0.0.1:6142".parse().unwrap();
+    let addr = "127.0.0.1:8080".parse().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();
 
@@ -272,7 +395,7 @@ fn run() -> Result<()> {
         println!("accept error = {:?}", err);
     });
 
-    println!("server running on localhost:6142");
+    println!("server running on localhost:8080");
     tokio::run(server);
 
 
