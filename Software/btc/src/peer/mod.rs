@@ -1,18 +1,8 @@
-use std;
-use std::fmt;
-
 use tokio::io;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpStream};
 use tokio::prelude::*;
 use futures::{Async, Future, Poll };
-use futures::future::{self, Either};
-use bytes::{BytesMut, Bytes, BufMut};
-
-use state_machine_future::RentToOwn;
-
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex,mpsc};
+use bytes::{BufMut};
 
 use codec::lines::Lines;
 

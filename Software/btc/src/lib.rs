@@ -15,7 +15,7 @@ extern crate hex;
 
 #[macro_use]
 extern crate state_machine_future;
-#[macro_use] extern crate log;
+extern crate log;
 extern crate env_logger;
 extern crate time;
 extern crate tokio;

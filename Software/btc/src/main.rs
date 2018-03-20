@@ -6,9 +6,7 @@ mod errors {
 }
 use errors::*;
 
-#[macro_use]
 extern crate state_machine_future;
-
 
 #[macro_use] extern crate log;
 extern crate env_logger;
@@ -24,27 +22,13 @@ extern crate btc;
 // usually ran with:
 // RUST_LOG=btc=INFO cargo run
 
-
 extern crate tokio;
 
-#[macro_use]
 extern crate futures;
 extern crate bytes;
 
-use tokio::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
-use futures::{Async, Future, Poll };
-use futures::future::{self, Either};
-use bytes::{BytesMut, Bytes, BufMut};
-
-use state_machine_future::RentToOwn;
-
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex,mpsc};
-
-
 
 
 fn process(socket: TcpStream) {

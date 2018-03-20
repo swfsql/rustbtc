@@ -1,20 +1,11 @@
 mod composed_state;
 
 use std;
-use std::fmt;
 
-use tokio::io;
-use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
-use futures::{Async, Future, Poll };
-use futures::future::{self, Either};
-use bytes::{BytesMut, Bytes, BufMut};
 
 use state_machine_future::RentToOwn;
 
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex,mpsc};
 
 use peer::Peer;
 
@@ -116,7 +107,7 @@ impl PollMachina for Machina {
         mach: &'a mut RentToOwn<'a, ComposedState>
     ) -> Poll<AfterComposedState, std::io::Error> {
 
-        let (mut peer, mut msg) = try_ready!(mach.0.poll());
+        let (mut peer, msg) = try_ready!(mach.0.poll());
 
         match msg.as_ref() {
             "PING" => {
