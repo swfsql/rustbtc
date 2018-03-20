@@ -8,65 +8,58 @@ use peer::Peer;
 
 #[derive(StateMachineFuture)]
 pub enum Machina {
-    #[state_machine_future(start, transitions(InnerB,InnerEnd))]
-    InnerA(Peer),
+    #[state_machine_future(start, transitions(B, End))]
+    A(Peer),
 
-    #[state_machine_future(transitions(InnerEnd))]
-    InnerB(Peer),
+    #[state_machine_future(transitions(End))]
+    B(Peer),
 
     #[state_machine_future(ready)]
-    InnerEnd((Peer, String)),
+    End((Peer, String)),
 
     #[state_machine_future(error)]
-    InnerError(std::io::Error),
+    Error(std::io::Error),
 }
 
-
 impl PollMachina for Machina {
-    fn poll_inner_a<'a>(
-        peer: &'a mut RentToOwn<'a, InnerA>
-    ) -> Poll<AfterInnerA, std::io::Error> {
-
+    fn poll_a<'a>(peer: &'a mut RentToOwn<'a, A>) -> Poll<AfterA, std::io::Error> {
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
             let msg = String::from_utf8(msg.to_vec()).unwrap();
 
             match msg.as_ref() {
                 "B" => {
-                    peer.0.lines.buffer("GOING TO B".as_bytes());
+                    peer.0.lines.buffer(b"GOING TO B");
                     let _ = peer.0.lines.poll_flush()?;
 
-                    let next = InnerB(peer.take().0);
-                    println!("going to InnerB");
+                    let next = B(peer.take().0);
+                    println!("going to B");
                     transition!(next)
-                },
-                _ =>  {
-                    peer.0.lines.buffer("...".as_bytes());
+                }
+                _ => {
+                    peer.0.lines.buffer(b"...");
                     let _ = peer.0.lines.poll_flush()?;
 
-                    let next = InnerEnd((peer.take().0, msg));
-                    println!("going to InnerEnd");
+                    let next = End((peer.take().0, msg));
+                    println!("going to End");
                     transition!(next)
-                },
+                }
             }
         }
-        // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
+        // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted,
+        //  "Peer connection aborted."))
         panic!("Peer connection aborted.");
     }
 
-    fn poll_inner_b<'a>(
-        peer: &'a mut RentToOwn<'a, InnerB>
-    ) -> Poll<AfterInnerB, std::io::Error> {
-
+    fn poll_b<'a>(peer: &'a mut RentToOwn<'a, B>) -> Poll<AfterB, std::io::Error> {
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
             let msg = String::from_utf8(msg.to_vec()).unwrap();
 
             let peer = peer.take();
-            let next = InnerEnd((peer.0, msg));
-            println!("going to InnerEnd");
+            let next = End((peer.0, msg));
+            println!("going to End");
             transition!(next)
         }
         // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
         panic!("Peer connection aborted.");
     }
 }
-

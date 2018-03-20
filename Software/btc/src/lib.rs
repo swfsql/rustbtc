@@ -12,16 +12,15 @@ extern crate byteorder;
 
 extern crate hex;
 
-
-#[macro_use]
-extern crate state_machine_future;
-extern crate log;
+extern crate bytes;
 extern crate env_logger;
-extern crate time;
-extern crate tokio;
 #[macro_use]
 extern crate futures;
-extern crate bytes;
+extern crate log;
+#[macro_use]
+extern crate state_machine_future;
+extern crate time;
+extern crate tokio;
 
 pub mod msg;
 pub mod commons;

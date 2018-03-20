@@ -1,11 +1,8 @@
 use tokio::io;
-use tokio::net::{TcpStream};
+use tokio::net::TcpStream;
 use tokio::prelude::*;
-use futures::{Async, Poll };
-use bytes::{BytesMut, BufMut};
-
-
-
+use futures::{Async, Poll};
+use bytes::{BufMut, BytesMut};
 
 #[derive(Debug)]
 pub struct Lines {
@@ -13,7 +10,6 @@ pub struct Lines {
     rd: BytesMut,
     wr: BytesMut,
 }
-
 
 impl Lines {
     pub fn new(socket: TcpStream) -> Self {
@@ -60,12 +56,13 @@ impl Stream for Lines {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-
         println!("lines poll called");
 
         let sock_closed = self.fill_read_buf()?.is_ready();
 
-        let pos = self.rd.windows(2).enumerate()
+        let pos = self.rd
+            .windows(2)
+            .enumerate()
             .find(|&(_, bytes)| bytes == b"\r\n")
             .map(|(i, _)| i);
 
@@ -84,6 +81,3 @@ impl Stream for Lines {
         }
     }
 }
-
-
-

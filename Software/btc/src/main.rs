@@ -8,8 +8,9 @@ use errors::*;
 
 extern crate state_machine_future;
 
-#[macro_use] extern crate log;
 extern crate env_logger;
+#[macro_use]
+extern crate log;
 
 extern crate hex;
 extern crate time;
@@ -24,18 +25,16 @@ extern crate btc;
 
 extern crate tokio;
 
-extern crate futures;
 extern crate bytes;
+extern crate futures;
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
-
 fn process(socket: TcpStream) {
+    let peer = btc::peer::Peer::new(socket);
 
-    let peer = btc::peer::Peer::new(socket); 
-
-//        .map_err(|_| ());
+    //        .map_err(|_| ());
 
     let peer_machina = btc::peer::machina::Machina::start(peer)
         .map_err(|_| ())
@@ -45,34 +44,39 @@ fn process(socket: TcpStream) {
     println!("depois do spawn");
 }
 
-
 fn run() -> Result<()> {
-  env_logger::init().unwrap();
+    env_logger::init().unwrap();
 
-  info!("\n\
-    {}\n\
-    -start-------------------", time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap());
-
+    info!(
+        "\n\
+         {}\n\
+         -start-------------------",
+        time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap()
+    );
 
     let addr = "127.0.0.1:8080".parse().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();
 
-    let server = listener.incoming().for_each(move |socket| {
-        process(socket);
-        Ok(())
-    })
-    .map_err(|err| {
-        println!("accept error = {:?}", err);
-    });
+    let server = listener
+        .incoming()
+        .for_each(move |socket| {
+            process(socket);
+            Ok(())
+        })
+        .map_err(|err| {
+            println!("accept error = {:?}", err);
+        });
 
     println!("server running on localhost:8080");
     tokio::run(server);
 
-
-  info!("\n\
-    ---------------------end-\n\
-    {}", time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap());
+    info!(
+        "\n\
+         ---------------------end-\n\
+         {}",
+        time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap()
+    );
     Ok(())
 }
 
