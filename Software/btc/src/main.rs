@@ -36,9 +36,6 @@ use tokio::prelude::*;
 
 use std::thread;
 
-use std::path::PathBuf;
-use structopt::StructOpt;
-
 fn process_peer(socket: TcpStream) {
     let peer = btc::peer::Peer::new(socket);
 
@@ -52,11 +49,11 @@ fn process_peer(socket: TcpStream) {
     println!("depois do spawn");
 }
 fn process_admin(socket: TcpStream) {
-    let peer = btc::peer::Peer::new(socket);
+    let peer = btc::admin::Peer::new(socket);
 
     //        .map_err(|_| ());
 
-    let peer_machina = btc::peer::machina::Machina::start(peer)
+    let peer_machina = btc::admin::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
 
