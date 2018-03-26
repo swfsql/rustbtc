@@ -45,7 +45,7 @@ impl PollMachina for Machina {
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
             let msg = String::from_utf8(msg.to_vec()).unwrap();
 
-            // The first element can be empty, 
+            // The first element can be empty,
             // since the arg parser will consider
             // the first one as the the program's name
             let arg_msg = format!(" {}", &msg);
@@ -77,7 +77,7 @@ impl PollMachina for Machina {
                     args::AdminCmd::Debug(_) => {},
                 },
             }
-            
+
             // never reached
             match msg.as_ref() {
                 "PING?" => {
@@ -119,5 +119,5 @@ impl PollMachina for Machina {
         panic!("Peer connection aborted.");
     }
 
-    
+
 }

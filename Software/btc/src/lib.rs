@@ -30,3 +30,4 @@ pub mod commons;
 pub mod peer;
 pub mod admin;
 pub mod codec;
+pub mod scheduler;
