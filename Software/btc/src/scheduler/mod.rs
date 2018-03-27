@@ -15,6 +15,8 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use std::io::{Error, ErrorKind};
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
 
 #[derive(Debug)]
 enum WorkerRequest {
@@ -33,6 +35,10 @@ enum WorkerRequest {
     }
 }
 
+type RequestPriority = u8;
+#[derive(Debug)]
+struct WorkerRequestPriority(WorkerRequest, RequestPriority);
+
 #[derive(Debug)]
 enum WorkerResponse {
     String(String),
@@ -41,31 +47,62 @@ enum WorkerResponse {
 
 type RequestId = usize;
 
+#[derive(Hash,Eq,PartialEq,Debug)]
+struct AddrReqId (SocketAddr, RequestId);
+
 // peer <-> scheduler <-> worker
-type Tx_mpsc = mpsc::Sender<(WorkerRequest,
+type Tx_mpsc = mpsc::Sender<(WorkerRequestPriority,
     Tx_one,
-    SocketAddr,
-    RequestId)>;
-type Rx_mpsc = mpsc::Receiver<(WorkerRequest,
+    AddrReqId)>;
+type Rx_mpsc = mpsc::Receiver<(WorkerRequestPriority,
     Tx_one,
-    SocketAddr,
-    RequestId)>;
+    AddrReqId)>;
 type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
 type Tx_one = oneshot::Sender<(WorkerResponse,
-    SocketAddr,
-    RequestId)>;
+    AddrReqId)>;
 type Rx_one = oneshot::Receiver<(WorkerResponse,
-    SocketAddr,
-    RequestId)>;
+    AddrReqId)>;
 
+struct Worker {
+
+}
+
+impl Worker {
+    fn new() -> Worker {
+        Worker{}
+    }
+}
+
+struct Outbox(Tx_mpsc, HashMap<AddrReqId, Rx_one>);
+
+impl Eq for Outbox { }
+
+impl PartialOrd for Outbox {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Outbox {
+    fn cmp(&self, other: &Outbox) -> Ordering {
+        self.1.len().cmp(&other.1.len())
+    }
+}
+
+impl PartialEq for Outbox {
+    fn eq(&self, other: &Outbox) -> bool {
+        self.1.len() == other.1.len()
+    }
+}
 
 struct Scheduler {
         // tuple(Rx from peer mpsc; Tx to peer oneshot (after received on each request))
     inbox: HashMap<SocketAddr, (Rx_mpsc_sf, HashMap<RequestId, Tx_one>)>,
         // selector: Vec<_>,
         // tuple(Tx to worker mpsc; Rx from worker oneshot)
-    outbox: Vec<(Tx_mpsc, Rx_one)>,
+    outbox: Vec<Outbox>
 }
+
 
 impl Future for Scheduler {
     type Item = ();
@@ -77,8 +114,13 @@ impl Future for Scheduler {
 
           let ret = {
             //
-            let outbox_rx_one = futures::future::select_all(self.outbox.iter_mut()
-                .map(|&mut(_, ref mut rx_one)| rx_one));
+            let outbox_rx_one = futures::future::select_all(
+                self.outbox
+                    .iter_mut()
+                    .flat_map(|&mut Outbox(_, ref mut rx_one_hm)|
+                        rx_one_hm
+                            .iter_mut()
+                            .map(|(_, fut)| fut)));
             // select all from first futures from channel stream
             let inbox_rx_mpsc = futures::future::select_all(self.inbox.iter_mut()
                 .map(|(_, &mut(ref mut rx_mpsc, _))| rx_mpsc));
@@ -100,11 +142,11 @@ impl Future for Scheduler {
                       _index, _vec_other_mpsc), _other_either)))) => {
 
                   println!("parabéns, recebido rx_mpsc: {:#?}", first);
-                  let (wrkmsg, rx_one, addr, req_id) = first.unwrap();
+                  let (wrkmsg, rx_one, addr_req_id) = first.unwrap();
 
                   // the tail must be taken out of this scope, because
                   // there's no replace access into the self.inbox
-                  Ok(Async::Ready(Some((rx_one, addr, tail_stream, req_id))))
+                  Ok(Async::Ready(Some((rx_one, addr_req_id, tail_stream))))
                   // there is already a &mut to self.inbox in a scope outer to the
                   // tail_stream. Solution: move tail_stream out, and then a new
                   // &mut access to self.inbox is available.
@@ -126,16 +168,16 @@ impl Future for Scheduler {
           match ret {
             // replace the tail's first future (that will contain the next tail)
             // back into the channel (inbox)
-            Ok(Async::Ready(Some((rx_one, addr, tail_stream, req_id)))) => {
+            Ok(Async::Ready(Some((rx_one, addr_req_id, tail_stream)))) => {
 
               let &mut(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
-                self.inbox.get_mut(&addr).unwrap();
+                self.inbox.get_mut(&addr_req_id.0).unwrap();
               *prev_rx_mpsc_sf = tail_stream.into_future();
-              if prev_oneshots.contains_key(&req_id) {
+              if prev_oneshots.contains_key(&addr_req_id.1) {
                   println!("Error: colliding oneshot key");
                   panic!("TODO");
               }
-              prev_oneshots.insert(req_id, rx_one);
+              prev_oneshots.insert(addr_req_id.1, rx_one);
 
               /*self.inbox
                 .entry(addr)
@@ -161,14 +203,14 @@ impl Future for Scheduler {
         (
             // primeiro elemento da stream
             std::option::Option<(
-                scheduler::WorkerRequest,
+                scheduler::WorkerRequestPriority,
                 futures::Sender<(scheduler::WorkerResponse, std::net::SocketAddr)>,
                 std::net::SocketAddr
             )>,
 
             // restante da stream do único canal escolhido
             futures::sync::mpsc::Receiver<(
-                scheduler::WorkerRequest,
+                scheduler::WorkerRequestPriority,
                 futures::Sender<(scheduler::WorkerResponse, std::net::SocketAddr)>,
                 std::net::SocketAddr
             )>
@@ -179,7 +221,7 @@ impl Future for Scheduler {
 
         // restante do vetor de todos os canais (que estão no hashmap)
         std::vec::Vec<&mut futures::stream::StreamFuture<futures::sync::mpsc::Receiver<(
-            scheduler::WorkerRequest,
+            scheduler::WorkerRequestPriority,
             futures::Sender<(scheduler::WorkerResponse, std::net::SocketAddr)>,
             std::net::SocketAddr
         )>>>
