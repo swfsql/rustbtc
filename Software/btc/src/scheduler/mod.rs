@@ -73,6 +73,7 @@ impl Worker {
     }
 }
 
+struct Inbox(Rx_mpsc_sf, HashMap<RequestId, Tx_one>);
 struct Outbox(Tx_mpsc, HashMap<AddrReqId, Rx_one>);
 
 impl Eq for Outbox { }
@@ -97,7 +98,7 @@ impl PartialEq for Outbox {
 
 struct Scheduler {
         // tuple(Rx from peer mpsc; Tx to peer oneshot (after received on each request))
-    inbox: HashMap<SocketAddr, (Rx_mpsc_sf, HashMap<RequestId, Tx_one>)>,
+    inbox: HashMap<SocketAddr, Inbox>,
         // selector: Vec<_>,
         // tuple(Tx to worker mpsc; Rx from worker oneshot)
     outbox: Vec<Outbox>
@@ -123,7 +124,7 @@ impl Future for Scheduler {
                             .map(|(_, fut)| fut)));
             // select all from first futures from channel stream
             let inbox_rx_mpsc = futures::future::select_all(self.inbox.iter_mut()
-                .map(|(_, &mut(ref mut rx_mpsc, _))| rx_mpsc));
+                .map(|(_, &mut Inbox(ref mut rx_mpsc, _))| rx_mpsc));
             //
             let mut fut = outbox_rx_one.select2(inbox_rx_mpsc)
             .map_err(|_| Error::new(ErrorKind::Other, "TODO: error in select2 for sched!")); // TODO: change
@@ -170,7 +171,7 @@ impl Future for Scheduler {
             // back into the channel (inbox)
             Ok(Async::Ready(Some((rx_one, addr_req_id, tail_stream)))) => {
 
-              let &mut(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
+              let &mut Inbox(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
                 self.inbox.get_mut(&addr_req_id.0).unwrap();
               *prev_rx_mpsc_sf = tail_stream.into_future();
               if prev_oneshots.contains_key(&addr_req_id.1) {
