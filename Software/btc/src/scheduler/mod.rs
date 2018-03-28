@@ -5,7 +5,6 @@ use tokio::prelude::*;
 use std::net::SocketAddr;
 use std::thread;
 
-
 use tokio::io;
 use futures;
 use futures::sync::{mpsc,oneshot};
@@ -19,51 +18,20 @@ use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
 mod worker;
+mod commons;
 
-#[derive(Debug)]
-enum WorkerRequest {
-    NewPeer {
-        addr: SocketAddr,
-    },
-    KillPeer {
-        addr: SocketAddr,
-    },
-    InfoPeer {
-        addr: SocketAddr,
-    },
-    ListPeers,
-    SendPing {
-        addr: SocketAddr,
-    }
-}
-
-type RequestPriority = u8;
-#[derive(Debug)]
-struct WorkerRequestPriority(WorkerRequest, RequestPriority);
-
-#[derive(Debug)]
-enum WorkerResponse {
-    String(String),
-    Bool(bool),
-}
-
-type RequestId = usize;
-
-#[derive(Hash,Eq,PartialEq,Debug)]
-struct AddrReqId (SocketAddr, RequestId);
-
-// peer <-> scheduler <-> worker
-type Tx_mpsc = mpsc::Sender<(WorkerRequestPriority,
+use self::commons::{
+    Tx_mpsc,
+    Rx_mpsc,
+    Rx_mpsc_sf,
     Tx_one,
-    AddrReqId)>;
-type Rx_mpsc = mpsc::Receiver<(WorkerRequestPriority,
-    Tx_one,
-    AddrReqId)>;
-type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
-type Tx_one = oneshot::Sender<(WorkerResponse,
-    AddrReqId)>;
-type Rx_one = oneshot::Receiver<(WorkerResponse,
-    AddrReqId)>;
+    Rx_one,
+    WorkerRequest,
+    RequestPriority,
+    WorkerRequestPriority,
+    WorkerResponse,
+    RequestId,
+    AddrReqId};
 
 
 struct Inbox(Rx_mpsc_sf, HashMap<RequestId, Tx_one>);
@@ -98,7 +66,6 @@ enum AorB<C, D> {
     A(C),
     B(D),
 }
-
 
 impl Future for Scheduler {
     type Item = ();
@@ -201,10 +168,13 @@ type Rx_one = oneshot::Receiver<(
                 prev_oneshots.remove(&addr_req_id.1)
                     .unwrap()
                     .complete((wrk_response, addr_req_id));
+                //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
+
             }
             Ok(Async::Ready(AorB::B((_, rx_one, addr_req_id, tail_stream)))) => {
 
               self.outbox.sort_unstable();
+              //TODO: spawn worker if .len() == x (maximum tasks of an unique worker TODO)
 
               let &mut Inbox(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
                 self.inbox.get_mut(&addr_req_id.0).unwrap();
