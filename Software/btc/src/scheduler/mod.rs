@@ -29,7 +29,9 @@ use self::commons::{
     WorkerRequest,
     RequestPriority,
     WorkerRequestPriority,
+    WorkerRequestContent,
     WorkerResponse,
+    WorkerResponseContent,
     RequestId,
     AddrReqId};
 
@@ -128,7 +130,7 @@ type Rx_one = oneshot::Receiver<(
                       _index, _vec_other_mpsc), _other_either)))) => {
 
                   println!("parabéns, recebido rx_mpsc: {:#?}", first);
-                  let (wrkmsg, rx_one, addr_req_id) = first.unwrap();
+                  let WorkerRequestContent(wrkmsg, rx_one, addr_req_id) = first.unwrap();
 
                   // the tail must be taken out of this scope, because
                   // there's no replace access into the self.inbox

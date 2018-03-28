@@ -22,18 +22,25 @@ use std::cmp::Ordering;
 pub struct AddrReqId (pub SocketAddr, pub RequestId);
 
 // peer <-> scheduler <-> worker
-pub type Tx_mpsc = mpsc::Sender<(WorkerRequestPriority,
-    Tx_one,
-    AddrReqId)>;
-pub type Rx_mpsc = mpsc::Receiver<(WorkerRequestPriority,
-    Tx_one,
-    AddrReqId)>;
+pub type Tx_mpsc = mpsc::Sender<WorkerRequestContent>;
+pub type Rx_mpsc = mpsc::Receiver<WorkerRequestContent>;
 pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
 pub type Tx_one = oneshot::Sender<(WorkerResponse,
     AddrReqId)>;
 pub type Rx_one = oneshot::Receiver<(WorkerResponse,
     AddrReqId)>;
 
+
+#[derive(Debug)]
+pub struct WorkerRequestContent(
+  pub WorkerRequestPriority,
+  pub Tx_one,
+  pub AddrReqId);
+
+#[derive(Debug)]
+pub struct WorkerResponseContent(
+  pub WorkerResponse,
+  pub AddrReqId);
 
 #[derive(Debug)]
 pub enum WorkerRequest {
@@ -49,7 +56,8 @@ pub enum WorkerRequest {
     ListPeers,
     SendPing {
         addr: SocketAddr,
-    }
+    },
+    Hello,
 }
 
 pub type RequestPriority = u8;

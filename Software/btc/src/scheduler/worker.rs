@@ -20,6 +20,21 @@ use std::cmp::Ordering;
 
 use scheduler::commons;
 
+use self::commons::{
+    Tx_mpsc,
+    Rx_mpsc,
+    Rx_mpsc_sf,
+    Tx_one,
+    Rx_one,
+    WorkerRequest,
+    RequestPriority,
+    WorkerRequestPriority,
+    WorkerRequestContent,
+    WorkerResponse,
+    WorkerResponseContent,
+    RequestId,
+    AddrReqId};
+
 struct Worker {
 
 }
