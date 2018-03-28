@@ -97,11 +97,13 @@ impl PartialEq for Outbox {
 }
 
 struct Scheduler {
-        // tuple(Rx from peer mpsc; Tx to peer oneshot (after received on each request))
     inbox: HashMap<SocketAddr, Inbox>,
-        // selector: Vec<_>,
-        // tuple(Tx to worker mpsc; Rx from worker oneshot)
     outbox: Vec<Outbox>
+}
+
+enum AorB<C, D> {
+    A(C),
+    B(D),
 }
 
 
@@ -134,9 +136,32 @@ impl Future for Scheduler {
             // other returns are normal future workflow.
             match fut.poll() {
               //
-              Ok(Async::Ready(Either::A(rx_one))) => {
-                  println!("parabéns, recebido rx_one: {:#?}", rx_one);
-                  Ok(Async::Ready(None)) // TODO
+
+
+  /*
+type Rx_one = oneshot::Receiver<(
+    WorkerResponse,
+    AddrReqId
+)>;
+
+              Either A:
+              count(vetor_canais_worker(hashmap)):
+                Caso >0:
+                  Retira esta tarefa do worker do hashmap
+                  ordenar tb
+                Caso = 0:
+                  Mata o worker.*/
+
+              // from Outbox
+              //Ok(Async::Ready(Either::A(rx_one))) => {
+
+              Ok(Async::Ready(Either::A((((wrk_response, addr_req_id),
+                      _index, _vec_other_mpsc), _other_either)))) => {
+
+                  Ok(Async::Ready(AorB::A((wrk_response, addr_req_id))))
+
+                  //println!("parabéns, recebido rx_one: {:#?}", addr_req_id);
+                  //Ok(Async::Ready(None)) // TODO
               },
               //
               Ok(Async::Ready(Either::B((((first, tail_stream),
@@ -147,7 +172,7 @@ impl Future for Scheduler {
 
                   // the tail must be taken out of this scope, because
                   // there's no replace access into the self.inbox
-                  Ok(Async::Ready(Some((rx_one, addr_req_id, tail_stream))))
+                  Ok(Async::Ready(AorB::B((wrkmsg, rx_one, addr_req_id, tail_stream))))
                   // there is already a &mut to self.inbox in a scope outer to the
                   // tail_stream. Solution: move tail_stream out, and then a new
                   // &mut access to self.inbox is available.
@@ -169,7 +194,24 @@ impl Future for Scheduler {
           match ret {
             // replace the tail's first future (that will contain the next tail)
             // back into the channel (inbox)
-            Ok(Async::Ready(Some((rx_one, addr_req_id, tail_stream)))) => {
+            Ok(Async::Ready(AorB::A((wrk_response, addr_req_id)))) => {
+                self.outbox
+                    .iter_mut()
+                    .map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
+                    .find(|ref mut hm| hm.contains_key(&addr_req_id))
+                    .unwrap()
+                    .remove(&addr_req_id);
+
+                let &mut Inbox(_, ref mut prev_oneshots) =
+                    self.inbox.get_mut(&addr_req_id.0).unwrap();
+
+                prev_oneshots.remove(&addr_req_id.1)
+                    .unwrap()
+                    .complete((wrk_response, addr_req_id));
+            }
+            Ok(Async::Ready(AorB::B((_, rx_one, addr_req_id, tail_stream)))) => {
+
+              self.outbox.sort_unstable();
 
               let &mut Inbox(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
                 self.inbox.get_mut(&addr_req_id.0).unwrap();
