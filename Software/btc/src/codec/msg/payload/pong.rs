@@ -1,6 +1,6 @@
 use std;
 use std::fmt;
-use commons::new_from_hex::NewFromHex;
+use codec::msg::commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {

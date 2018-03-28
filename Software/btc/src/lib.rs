@@ -25,8 +25,6 @@ extern crate tokio;
 #[macro_use]
 extern crate structopt;
 
-pub mod msg;
-pub mod commons;
 pub mod peer;
 pub mod admin;
 pub mod codec;

@@ -1,7 +1,7 @@
 use std;
 use std::fmt;
-use commons::new_from_hex::NewFromHex;
-// use Commons::into_bytes::into_bytes;
+use codec::msg::commons::new_from_hex::NewFromHex;
+// use codec::msg::commons::into_bytes::into_bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 extern crate crypto;
@@ -15,10 +15,11 @@ mod errors {
 use errors::*;
 
 //use ::payload::payload::Verack;
-//use Msg::payload::payload::Verack;
+//use codec::msg::payload::payload::Verack;
 
 pub mod header;
 pub mod payload;
+pub mod commons;
 
 pub struct Msg {
     pub header: header::Header,

@@ -1,8 +1,8 @@
 use std;
 use std::fmt;
 use arrayvec::ArrayVec;
-use commons::new_from_hex::NewFromHex;
-use commons::bytes::Bytes;
+use codec::msg::commons::new_from_hex::NewFromHex;
+use codec::msg::commons::bytes::Bytes;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 

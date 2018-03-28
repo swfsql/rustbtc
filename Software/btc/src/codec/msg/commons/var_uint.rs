@@ -1,6 +1,6 @@
 use std;
 use std::io::Cursor;
-use commons::new_from_hex::NewFromHex;
+use codec::msg::commons::new_from_hex::NewFromHex;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {
     error_chain!{}

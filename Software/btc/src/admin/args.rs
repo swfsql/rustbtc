@@ -1,4 +1,4 @@
-use msg;
+use codec::msg;
 use std::net::SocketAddr;
 
 #[derive(StructOpt,Debug)]
@@ -71,7 +71,7 @@ pub enum PeerCmd {
     Add {
 
         #[structopt(long = "addr")]
-        /// The socket address to connect to. example: <addr="127.0.0.1:8080"> 
+        /// The socket address to connect to. example: <addr="127.0.0.1:8080">
         addr: SocketAddr,
 
         #[structopt(long = "wait")]
@@ -84,11 +84,11 @@ pub enum PeerCmd {
     Remove {
 
         #[structopt(long = "addr")]
-        /// The peer's socket address that is to be disconnected. example: <addr="127.0.0.1:8080"> 
+        /// The peer's socket address that is to be disconnected. example: <addr="127.0.0.1:8080">
         addr: SocketAddr,
 
         #[structopt(long = "id")]
-        /// The peer's ID that is to be disconnected. example: <ID="3"> 
+        /// The peer's ID that is to be disconnected. example: <ID="3">
         id: u64,
     },
 }

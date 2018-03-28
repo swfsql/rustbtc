@@ -18,6 +18,8 @@ use std::io::{Error, ErrorKind};
 use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
+mod worker;
+
 #[derive(Debug)]
 enum WorkerRequest {
     NewPeer {
@@ -63,15 +65,6 @@ type Tx_one = oneshot::Sender<(WorkerResponse,
 type Rx_one = oneshot::Receiver<(WorkerResponse,
     AddrReqId)>;
 
-struct Worker {
-
-}
-
-impl Worker {
-    fn new() -> Worker {
-        Worker{}
-    }
-}
 
 struct Inbox(Rx_mpsc_sf, HashMap<RequestId, Tx_one>);
 struct Outbox(Tx_mpsc, HashMap<AddrReqId, Rx_one>);

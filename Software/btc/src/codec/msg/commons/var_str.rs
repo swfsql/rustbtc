@@ -1,8 +1,8 @@
 use std;
 use std::fmt;
-use commons::bytes::Bytes;
-use commons::new_from_hex::NewFromHex;
-use commons::var_uint::VarUint;
+use codec::msg::commons::bytes::Bytes;
+use codec::msg::commons::new_from_hex::NewFromHex;
+use codec::msg::commons::var_uint::VarUint;
 mod errors {
     error_chain!{}
 }
