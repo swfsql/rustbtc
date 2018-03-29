@@ -67,10 +67,11 @@ pub type RequestPriority = u8;
 pub type RequestId = usize;
 
 #[derive(Debug)]
-pub struct WorkerRequestPriority(WorkerRequest, RequestPriority);
+pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
 
 #[derive(Debug)]
 pub enum WorkerResponse {
+    Empty,
     String(String),
     Bool(bool),
 }

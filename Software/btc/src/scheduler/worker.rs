@@ -17,9 +17,12 @@ use tokio::io;
 //use std::collections::BinaryHeap;
 //use std::cmp::Ordering;
 
+use std::ops::Deref;
+use std::ops::DerefMut;
+
 use scheduler::commons;
 
-use self::commons::{Rx_mpsc, WorkerRequestContent};
+use self::commons::{Rx_mpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent};
 
 /*use self::commons::{AddrReqId, RequestId, RequestPriority, Rx_mpsc, Rx_mpsc_sf, Rx_one, Tx_mpsc,
                     Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
@@ -65,15 +68,49 @@ impl Future for Worker {
         }
 
         reqs.sort_unstable();
-        if let Some(req) = reqs.iter().rev().next() {
-            let resp = match req {
+        if let Some(mut req) = reqs.pop() {
+            let mut req = *req;
+            let WorkerRequestContent(
+                WorkerRequestPriority(wrk_req, _req_pri),
+                tx_one,
+                addr) = req;
+            let resp = match wrk_req {
+                WorkerRequest::Hello => {
+                    println!("Hi! Request received: {:#?}", wrk_req);
+                    WorkerResponse::Empty
+                },
                 _ => {
-                    println!("Request received: {:#?}", req);
-                    ()
-                }
+                    println!("Request received: {:#?}", wrk_req);
+                    WorkerResponse::Empty
+                },
             };
+
+            tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone()))));
             task::current().notify();
         }
         Ok(Async::NotReady)
     }
 }
+
+
+/*
+pub struct WorkerRequestContent(
+    pub WorkerRequestPriority,
+    pub Tx_one,
+    pub AddrReqId);
+pub struct WorkerRequestPriority(
+    WorkerRequest,
+    RequestPriority);
+*/
+/*
+
+pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
+
+#[derive(Debug)]
+pub enum WorkerResponse {
+    Empty,
+    String(String),
+    Bool(bool),
+}
+
+*/
