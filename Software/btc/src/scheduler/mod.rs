@@ -165,6 +165,8 @@ type Rx_one = oneshot::Receiver<(
             // replace the tail's first future (that will contain the next tail)
             // back into the channel (inbox)
             Ok(Async::Ready(AorB::A((wrk_response, addr_req_id)))) => {
+
+                //Removing oneshot from hashmap from the worker who completed the task.
                 self.outbox
                     .iter_mut()
                     .map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
@@ -172,18 +174,22 @@ type Rx_one = oneshot::Receiver<(
                     .unwrap()
                     .remove(&addr_req_id);
 
+                // Getting the oneshot channel to the peer
                 let &mut Inbox(_, ref mut prev_oneshots) =
                     self.inbox.get_mut(&addr_req_id.0).unwrap();
 
+                // forwards the message to the peer
                 prev_oneshots.remove(&addr_req_id.1)
                     .unwrap()
                     .complete(WorkerResponseContent(wrk_response, addr_req_id));
-                //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
 
+                //**************************************************************
+                //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
+                //**************************************************************
             }
             Ok(Async::Ready(AorB::B((wrk_msg, tx_one, addr_req_id, tail_stream)))) => {
 
-              // reverse sorting
+              // reverse sorting, so its not needed
               self.outbox.sort_unstable_by(|a, b| b.cmp(a));
 
               let new_box_flag =  {
