@@ -5,6 +5,7 @@ use tokio::prelude::*;
 use std::net::SocketAddr;
 use std::thread;
 
+use tokio;
 use tokio::io;
 use futures;
 use futures::sync::{mpsc,oneshot};
@@ -38,6 +39,13 @@ use self::commons::{
 
 struct Inbox(Rx_mpsc_sf, HashMap<RequestId, Tx_one>);
 struct Outbox(Tx_mpsc, HashMap<AddrReqId, Rx_one>);
+
+impl Outbox {
+  fn new(tx: Tx_mpsc) -> Outbox {
+    Outbox(tx, HashMap::new())
+
+  }
+}
 
 impl Eq for Outbox { }
 
@@ -117,7 +125,7 @@ type Rx_one = oneshot::Receiver<(
               // from Outbox
               //Ok(Async::Ready(Either::A(rx_one))) => {
 
-              Ok(Async::Ready(Either::A((((wrk_response, addr_req_id),
+              Ok(Async::Ready(Either::A(((WorkerResponseContent(wrk_response, addr_req_id),
                       _index, _vec_other_mpsc), _other_either)))) => {
 
                   Ok(Async::Ready(AorB::A((wrk_response, addr_req_id))))
@@ -130,11 +138,11 @@ type Rx_one = oneshot::Receiver<(
                       _index, _vec_other_mpsc), _other_either)))) => {
 
                   println!("parabéns, recebido rx_mpsc: {:#?}", first);
-                  let WorkerRequestContent(wrkmsg, rx_one, addr_req_id) = first.unwrap();
+                  let WorkerRequestContent(wrkmsg, tx_one, addr_req_id) = first.unwrap();
 
                   // the tail must be taken out of this scope, because
                   // there's no replace access into the self.inbox
-                  Ok(Async::Ready(AorB::B((wrkmsg, rx_one, addr_req_id, tail_stream))))
+                  Ok(Async::Ready(AorB::B((wrkmsg, tx_one, addr_req_id, tail_stream))))
                   // there is already a &mut to self.inbox in a scope outer to the
                   // tail_stream. Solution: move tail_stream out, and then a new
                   // &mut access to self.inbox is available.
@@ -157,6 +165,8 @@ type Rx_one = oneshot::Receiver<(
             // replace the tail's first future (that will contain the next tail)
             // back into the channel (inbox)
             Ok(Async::Ready(AorB::A((wrk_response, addr_req_id)))) => {
+
+                //Removing oneshot from hashmap from the worker who completed the task.
                 self.outbox
                     .iter_mut()
                     .map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
@@ -164,30 +174,84 @@ type Rx_one = oneshot::Receiver<(
                     .unwrap()
                     .remove(&addr_req_id);
 
+                // Getting the oneshot channel to the peer
                 let &mut Inbox(_, ref mut prev_oneshots) =
                     self.inbox.get_mut(&addr_req_id.0).unwrap();
 
+                // forwards the message to the peer
                 prev_oneshots.remove(&addr_req_id.1)
                     .unwrap()
-                    .complete((wrk_response, addr_req_id));
+                    .complete(WorkerResponseContent(wrk_response, addr_req_id));
+
+                //**************************************************************
                 //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
-
+                //**************************************************************
             }
-            Ok(Async::Ready(AorB::B((_, rx_one, addr_req_id, tail_stream)))) => {
+            Ok(Async::Ready(AorB::B((wrk_msg, tx_one, addr_req_id, tail_stream)))) => {
 
-              self.outbox.sort_unstable();
-              //TODO: spawn worker if .len() == x (maximum tasks of an unique worker TODO)
-              let (tx, rx) = mpsc::channel(10);
-              worker::Worker::new(rx);
+              // reverse sorting, so its not needed
+              self.outbox.sort_unstable_by(|a, b| b.cmp(a));
 
+              let new_box_flag =  {
+                if let Some(ref mut outbox) = self.outbox.iter().rev().next() {
+                    if outbox.1.len() >= 10 {
+                      true
+                    } else {
+                      false
+                    }
+                } else {
+                  true
+                }
+              };
+
+              if new_box_flag {
+                  let (tx, rx) = mpsc::channel(10); // sched => worker mpsc
+                  // The worker future (could be a machine)
+                  let worker =  worker::Worker::new(rx)
+                    .map(|item| ())
+                    .map_err(|err| ());
+                  // spawn the worke's future
+                  tokio::spawn(worker);
+                  // create a new outbox, that is created for each new worker
+                  self.outbox.push(Outbox::new(tx));
+              };
+
+              let outbox = self.outbox.iter_mut().rev().next().unwrap();
+
+
+              {
+                // extract the inner variables
+                let &mut Outbox(ref mut tx, ref mut hm) = outbox;
+                //Creating a new oneshot channel.
+                let (otx, orx) = oneshot::channel::<WorkerResponseContent>();
+
+                //Creating a new WorkerRequestContent with desired values (work message, one shot to Worker, peer ID/Address)
+                let wrk_req_cont =  WorkerRequestContent(
+                  wrk_msg,
+                  otx,
+                  addr_req_id.clone());
+
+                // unwrap is safe because there is a sufficient control over
+                // channel usage; and receptor won't be dropped before transmissor
+                tx.try_send(wrk_req_cont).unwrap();
+
+                //Adding one_shot to outbox.
+                hm.insert(addr_req_id.clone(), orx);
+              }
+
+
+              // get the Inbox related to the peer,
               let &mut Inbox(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
                 self.inbox.get_mut(&addr_req_id.0).unwrap();
+              // extract and replace the first future from the channel
               *prev_rx_mpsc_sf = tail_stream.into_future();
               if prev_oneshots.contains_key(&addr_req_id.1) {
                   println!("Error: colliding oneshot key");
                   panic!("TODO");
               }
-              prev_oneshots.insert(addr_req_id.1, rx_one);
+
+              //
+              prev_oneshots.insert(addr_req_id.1, tx_one);
 
               /*self.inbox
                 .entry(addr)
@@ -205,9 +269,8 @@ type Rx_one = oneshot::Receiver<(
     }
 }
 
+
 /*
-
-
 (
     (
         (
