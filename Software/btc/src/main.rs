@@ -37,7 +37,6 @@ use tokio::prelude::*;
 use std::net::SocketAddr;
 use std::thread;
 
-
 fn process_peer(socket: TcpStream) {
     let peer = btc::peer::Peer::new(socket);
 

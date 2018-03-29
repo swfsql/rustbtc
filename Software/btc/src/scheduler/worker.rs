@@ -5,10 +5,9 @@ use tokio::prelude::*;
 use std::net::SocketAddr;
 use std::thread;
 
-
 use tokio::io;
 use futures;
-use futures::sync::{mpsc,oneshot};
+use futures::sync::{mpsc, oneshot};
 use futures::future::{select_all, Either};
 
 use std::collections::HashMap;
@@ -20,27 +19,14 @@ use std::cmp::Ordering;
 
 use scheduler::commons;
 
-use self::commons::{
-    Tx_mpsc,
-    Rx_mpsc,
-    Rx_mpsc_sf,
-    Tx_one,
-    Rx_one,
-    WorkerRequest,
-    RequestPriority,
-    WorkerRequestPriority,
-    WorkerRequestContent,
-    WorkerResponse,
-    WorkerResponseContent,
-    RequestId,
-    AddrReqId};
-
+use self::commons::{AddrReqId, RequestId, RequestPriority, Rx_mpsc, Rx_mpsc_sf, Rx_one, Tx_mpsc,
+                    Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+                    WorkerResponse, WorkerResponseContent};
 
 struct Inbox(Rx_mpsc, Vec<WorkerRequestContent>);
 
-
 pub struct Worker {
-  inbox: Inbox,
+    inbox: Inbox,
 }
 
 /*
@@ -52,41 +38,39 @@ pub struct WorkerRequestContent(
   pub AddrReqId);
 */
 
-
 impl Worker {
     pub fn new(rx_mpsc: Rx_mpsc) -> Worker {
-        Worker{
-          inbox: Inbox(rx_mpsc, vec![]),
+        Worker {
+            inbox: Inbox(rx_mpsc, vec![]),
         }
     }
 }
-
 
 impl Future for Worker {
     type Item = ();
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<(), io::Error> {
-      let Inbox(ref mut rec, ref mut reqs) = self.inbox;
-        loop{
-          match rec.poll() {
-           Ok(Async::Ready(Some(wrk_req))) => {
-            reqs.push(wrk_req);
-           },
-           Ok(Async::NotReady) => break,
-           _ => panic!("Unexpected value for worker polling on reader channel"),
-          };
+        let Inbox(ref mut rec, ref mut reqs) = self.inbox;
+        loop {
+            match rec.poll() {
+                Ok(Async::Ready(Some(wrk_req))) => {
+                    reqs.push(wrk_req);
+                }
+                Ok(Async::NotReady) => break,
+                _ => panic!("Unexpected value for worker polling on reader channel"),
+            };
         }
 
         reqs.sort_unstable();
         if let Some(req) = reqs.iter().rev().next() {
-          let resp = match req {
-            _ => {
-              println!("Request received: {:#?}", req);
-              ()
-            },
-          };
-          task::current().notify();
+            let resp = match req {
+                _ => {
+                    println!("Request received: {:#?}", req);
+                    ()
+                }
+            };
+            task::current().notify();
         }
         Ok(Async::NotReady)
     }

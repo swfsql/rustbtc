@@ -59,22 +59,26 @@ impl PollMachina for Machina {
                     // }
                     println!("Error detected when parsing admin cmds");
                     peer.0.lines.buffer(b"Command could not be executed\r\n");
-                    peer.0.lines.buffer(format!("Cause: {:?}\r\n", e.kind).as_bytes());
-                    peer.0.lines.buffer(format!(
-                        "Message:\r\n{}\r\n", e.message.replace("\n", "\r\n")).as_bytes()
+                    peer.0
+                        .lines
+                        .buffer(format!("Cause: {:?}\r\n", e.kind).as_bytes());
+                    peer.0.lines.buffer(
+                        format!("Message:\r\n{}\r\n", e.message.replace("\n", "\r\n")).as_bytes(),
                     );
-                    peer.0.lines.buffer(format!("Aditional Info:\r\n{:?}\r\n", e.info).as_bytes());
+                    peer.0
+                        .lines
+                        .buffer(format!("Aditional Info:\r\n{:?}\r\n", e.info).as_bytes());
                     println!("{:?}", e);
                     let _ = peer.0.lines.poll_flush()?;
                     continue;
-                },
+                }
                 Ok(matches) => match args::AdminCmd::from_clap(&matches) {
-                    args::AdminCmd::Peer(_) => {},
-                    args::AdminCmd::Wallet(_) => {},
-                    args::AdminCmd::Blockchain(_) => {},
-                    args::AdminCmd::Node(_) => {},
-                    args::AdminCmd::Util(_) => {},
-                    args::AdminCmd::Debug(_) => {},
+                    args::AdminCmd::Peer(_) => {}
+                    args::AdminCmd::Wallet(_) => {}
+                    args::AdminCmd::Blockchain(_) => {}
+                    args::AdminCmd::Node(_) => {}
+                    args::AdminCmd::Util(_) => {}
+                    args::AdminCmd::Debug(_) => {}
                 },
             }
 
@@ -118,6 +122,4 @@ impl PollMachina for Machina {
         // "Peer connection aborted."))
         panic!("Peer connection aborted.");
     }
-
-
 }

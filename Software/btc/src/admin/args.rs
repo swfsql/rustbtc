@@ -1,11 +1,10 @@
 use codec::msg;
 use std::net::SocketAddr;
 
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 #[structopt(name = "")]
 /// Adiministrative commands
 pub enum AdminCmd {
-
     #[structopt(name = "peer")]
     /// Peer-related tasks
     Peer(PeerCmd),
@@ -31,15 +30,12 @@ pub enum AdminCmd {
     Debug(DebugCmd),
 }
 
-
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 /// Peer commands
 pub enum PeerCmd {
-
     #[structopt(name = "list")]
     /// Shows a list of peers
     List {
-
         #[structopt(long = "show-state")]
         /// Shows the peer's state
         show_state: bool,
@@ -56,7 +52,6 @@ pub enum PeerCmd {
     #[structopt(name = "send")]
     /// Enqueue a message to be sent to some peer
     Send {
-
         // #[structopt(long = "raw-msg",parse(try_from_str = "parse_todo"))]
         /// Sends a raw message to a choosen peer, when in standby
         // raw_msg: msg::Msg,
@@ -69,7 +64,6 @@ pub enum PeerCmd {
     #[structopt(name = "add")]
     /// Connects with a new peer
     Add {
-
         #[structopt(long = "addr")]
         /// The socket address to connect to. example: <addr="127.0.0.1:8080">
         addr: SocketAddr,
@@ -82,7 +76,6 @@ pub enum PeerCmd {
     #[structopt(name = "rm")]
     /// Closes the connection with a peer
     Remove {
-
         #[structopt(long = "addr")]
         /// The peer's socket address that is to be disconnected. example: <addr="127.0.0.1:8080">
         addr: SocketAddr,
@@ -93,15 +86,12 @@ pub enum PeerCmd {
     },
 }
 
-
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 /// Wallet command
 pub enum WalletCmd {
-
     #[structopt(name = "list")]
     /// Shows a list of known addresses
     List {
-
         #[structopt(long = "hide-spendable")]
         /// Hides the spendable addresses
         hide_spendable: bool,
@@ -110,48 +100,36 @@ pub enum WalletCmd {
         /// Hides the unspendable addresses
         hide_unspendable: bool,
     },
-
 }
 
-
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 /// Blockchain commands
 pub enum BlockchainCmd {
-
     #[structopt(name = "dummy")]
     /// Dummy option
     Dummy,
-
 }
 
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 /// Node commands
 pub enum NodeCmd {
-
     #[structopt(name = "dummy")]
     /// Shows a list of peers
     Dummy,
-
 }
 
-
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 /// Utilities commands
 pub enum UtilCmd {
-
     #[structopt(name = "dummy")]
     /// Shows a list of peers
     Dummy,
-
 }
 
-
-#[derive(StructOpt,Debug)]
+#[derive(StructOpt, Debug)]
 /// Utilities commands
 pub enum DebugCmd {
-
     #[structopt(name = "dummy")]
     /// Shows a list of peers
     Dummy,
-
 }

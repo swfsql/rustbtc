@@ -5,10 +5,9 @@ use tokio::prelude::*;
 use std::net::SocketAddr;
 use std::thread;
 
-
 use tokio::io;
 use futures;
-use futures::sync::{mpsc,oneshot};
+use futures::sync::{mpsc, oneshot};
 use futures::future::{select_all, Either};
 
 use std::collections::HashMap;
@@ -18,8 +17,8 @@ use std::io::{Error, ErrorKind};
 use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
-#[derive(Hash,Eq,PartialEq,Debug,Clone)]
-pub struct AddrReqId (pub SocketAddr, pub RequestId);
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+pub struct AddrReqId(pub SocketAddr, pub RequestId);
 
 // peer <-> scheduler <-> worker
 pub type Tx_mpsc = mpsc::Sender<WorkerRequestContent>;
@@ -28,14 +27,10 @@ pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
 pub type Tx_one = oneshot::Sender<WorkerResponseContent>;
 pub type Rx_one = oneshot::Receiver<WorkerResponseContent>;
 
-
 #[derive(Debug)]
-pub struct WorkerRequestContent(
-  pub WorkerRequestPriority,
-  pub Tx_one,
-  pub AddrReqId);
+pub struct WorkerRequestContent(pub WorkerRequestPriority, pub Tx_one, pub AddrReqId);
 
-impl Eq for WorkerRequestContent { }
+impl Eq for WorkerRequestContent {}
 
 impl PartialOrd for WorkerRequestContent {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -56,25 +51,15 @@ impl PartialEq for WorkerRequestContent {
 }
 
 #[derive(Debug)]
-pub struct WorkerResponseContent(
-  pub WorkerResponse,
-  pub AddrReqId);
+pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
 
 #[derive(Debug)]
 pub enum WorkerRequest {
-    NewPeer {
-        addr: SocketAddr,
-    },
-    KillPeer {
-        addr: SocketAddr,
-    },
-    InfoPeer {
-        addr: SocketAddr,
-    },
+    NewPeer { addr: SocketAddr },
+    KillPeer { addr: SocketAddr },
+    InfoPeer { addr: SocketAddr },
     ListPeers,
-    SendPing {
-        addr: SocketAddr,
-    },
+    SendPing { addr: SocketAddr },
     Hello,
 }
 
@@ -89,6 +74,3 @@ pub enum WorkerResponse {
     String(String),
     Bool(bool),
 }
-
-
-
