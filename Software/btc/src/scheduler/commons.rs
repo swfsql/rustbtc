@@ -18,17 +18,15 @@ use std::io::{Error, ErrorKind};
 use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
-#[derive(Hash,Eq,PartialEq,Debug)]
+#[derive(Hash,Eq,PartialEq,Debug,Clone)]
 pub struct AddrReqId (pub SocketAddr, pub RequestId);
 
 // peer <-> scheduler <-> worker
 pub type Tx_mpsc = mpsc::Sender<WorkerRequestContent>;
 pub type Rx_mpsc = mpsc::Receiver<WorkerRequestContent>;
 pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
-pub type Tx_one = oneshot::Sender<(WorkerResponse,
-    AddrReqId)>;
-pub type Rx_one = oneshot::Receiver<(WorkerResponse,
-    AddrReqId)>;
+pub type Tx_one = oneshot::Sender<WorkerResponseContent>;
+pub type Rx_one = oneshot::Receiver<WorkerResponseContent>;
 
 
 #[derive(Debug)]
