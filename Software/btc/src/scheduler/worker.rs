@@ -35,13 +35,59 @@ use self::commons::{
     RequestId,
     AddrReqId};
 
-struct Worker {
 
+struct Inbox(Rx_mpsc, Vec<WorkerRequestContent>);
+
+
+pub struct Worker {
+  inbox: Inbox,
 }
 
+/*
+pub type Rx_mpsc = mpsc::Receiver<WorkerRequestContent>;
+
+pub struct WorkerRequestContent(
+  pub WorkerRequestPriority,
+  pub Tx_one,
+  pub AddrReqId);
+*/
+
+
 impl Worker {
-    fn new() -> Worker {
-        Worker{}
+    pub fn new(rx_mpsc: Rx_mpsc) -> Worker {
+        Worker{
+          inbox: Inbox(rx_mpsc, vec![]),
+        }
     }
 }
 
+
+impl Future for Worker {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&mut self) -> Poll<(), io::Error> {
+      let Inbox(ref mut rec, ref mut reqs) = self.inbox;
+        loop{
+          match rec.poll() {
+           Ok(Async::Ready(Some(wrk_req))) => {
+            reqs.push(wrk_req);
+           },
+           Ok(Async::NotReady) => break,
+           _ => panic!("Unexpected value for worker polling on reader channel"),
+          };
+        }
+
+        reqs.sort_unstable();
+        if let Some(req) = reqs.iter().rev().next() {
+          let resp = match req {
+            _ => {
+              println!("Request received: {:#?}", req);
+              ()
+            },
+          };
+          task::current().notify();
+        }
+        Ok(Async::NotReady)
+    }
+}

@@ -177,6 +177,8 @@ type Rx_one = oneshot::Receiver<(
 
               self.outbox.sort_unstable();
               //TODO: spawn worker if .len() == x (maximum tasks of an unique worker TODO)
+              let (tx, rx) = mpsc::channel(10);
+              worker::Worker::new(rx);
 
               let &mut Inbox(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
                 self.inbox.get_mut(&addr_req_id.0).unwrap();

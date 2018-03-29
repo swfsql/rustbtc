@@ -37,6 +37,26 @@ pub struct WorkerRequestContent(
   pub Tx_one,
   pub AddrReqId);
 
+impl Eq for WorkerRequestContent { }
+
+impl PartialOrd for WorkerRequestContent {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for WorkerRequestContent {
+    fn cmp(&self, other: &WorkerRequestContent) -> Ordering {
+        (self.0).1.cmp(&(other.0).1)
+    }
+}
+
+impl PartialEq for WorkerRequestContent {
+    fn eq(&self, other: &WorkerRequestContent) -> bool {
+        (self.0).1 == (other.0).1
+    }
+}
+
 #[derive(Debug)]
 pub struct WorkerResponseContent(
   pub WorkerResponse,
