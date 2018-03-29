@@ -1,5 +1,10 @@
 This is a graduation project being worked by *Felipe Cetrulo* and *Thiago Machado* and oriented/supervisioned by *Paulo Alvarenga*, from *Universidade Federal de Itajubá*. The goal is to use *Rust* (programming language) capabilities for a Bitcoin node implementation. The goal implies studying and learning about both Rust and Bitcoin.
 
+# TODO
+
+Arrumar tipo do a ser enviado para
+
+
 # Goal checkpoints
 ps. may change anytime, including the enumeration.
 
@@ -52,8 +57,6 @@ Since peers may be run async in various threads, all of their communication is d
 ## Admin
 
 Admin is similar to a Bitcoin peer itself, where it's communication uses message channels. But the TCP socket codec and structural machine differ. The admin uses telnet connection to the appropriate address, and then may send messages and receive responses similarly to a standard CLI. While a RPC interface is not [learned and] implemented, and for this prototyping purpose, this approach seems sufficient and extensible.
-
-
 
 
 

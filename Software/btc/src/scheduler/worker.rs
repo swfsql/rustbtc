@@ -1,29 +1,31 @@
-use errors::*;
-use tokio::net::{TcpListener, TcpStream};
+//use errors::*;
+//use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
-use std::net::SocketAddr;
-use std::thread;
+//use std::net::SocketAddr;
+//use std::thread;
 
 use tokio::io;
-use futures;
-use futures::sync::{mpsc, oneshot};
-use futures::future::{select_all, Either};
+//use futures;
+//use futures::sync::{mpsc, oneshot};
+//use futures::future::{select_all, Either};
 
-use std::collections::HashMap;
-use std::iter::FromIterator;
+//use std::collections::HashMap;
+//use std::iter::FromIterator;
 
-use std::io::{Error, ErrorKind};
-use std::collections::BinaryHeap;
-use std::cmp::Ordering;
+//use std::io::{Error, ErrorKind};
+//use std::collections::BinaryHeap;
+//use std::cmp::Ordering;
 
 use scheduler::commons;
 
-use self::commons::{AddrReqId, RequestId, RequestPriority, Rx_mpsc, Rx_mpsc_sf, Rx_one, Tx_mpsc,
-                    Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent};
+use self::commons::{Rx_mpsc, WorkerRequestContent};
 
-struct Inbox(Rx_mpsc, Vec<WorkerRequestContent>);
+/*use self::commons::{AddrReqId, RequestId, RequestPriority, Rx_mpsc, Rx_mpsc_sf, Rx_one, Tx_mpsc,
+                    Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+                    WorkerResponse, WorkerResponseContent};*/
+
+struct Inbox(Rx_mpsc, Vec<Box<WorkerRequestContent>>);
 
 pub struct Worker {
     inbox: Inbox,

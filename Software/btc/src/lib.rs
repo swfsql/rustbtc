@@ -1,4 +1,4 @@
-// TODO compilar a caralha
+#![feature(box_patterns)]
 
 #[macro_use]
 extern crate error_chain;
