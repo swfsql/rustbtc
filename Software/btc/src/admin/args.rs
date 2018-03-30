@@ -132,4 +132,10 @@ pub enum DebugCmd {
     #[structopt(name = "dummy")]
     /// Shows a list of peers
     Dummy,
+
+    #[structopt(name = "wait")]
+    Wait{
+        #[structopt(long = "delay")]
+        delay: u64,
+    },
 }

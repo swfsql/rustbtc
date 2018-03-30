@@ -1,3 +1,21 @@
+#[derive(Debug)]
+pub enum WorkerRequest {
+    NewPeer { addr: SocketAddr },
+    KillPeer { addr: SocketAddr },
+    InfoPeer { addr: SocketAddr },
+    ListPeers,
+    SendPing { addr: SocketAddr },
+    Hello,
+    Wait { delay: u64 },
+}
+
+#[derive(Debug)]
+pub enum WorkerResponse {
+    Empty,
+    String(String),
+    Bool(bool),
+}
+
 use errors::*;
 //use tokio::net::{TcpListener, TcpStream};
 //use tokio::prelude::*;
@@ -55,15 +73,7 @@ impl PartialEq for WorkerRequestContent {
 #[derive(Debug)]
 pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
 
-#[derive(Debug)]
-pub enum WorkerRequest {
-    NewPeer { addr: SocketAddr },
-    KillPeer { addr: SocketAddr },
-    InfoPeer { addr: SocketAddr },
-    ListPeers,
-    SendPing { addr: SocketAddr },
-    Hello,
-}
+
 
 pub type RequestPriority = u8;
 pub type RequestId = usize;
@@ -71,12 +81,6 @@ pub type RequestId = usize;
 #[derive(Debug)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
 
-#[derive(Debug)]
-pub enum WorkerResponse {
-    Empty,
-    String(String),
-    Bool(bool),
-}
 
 
 

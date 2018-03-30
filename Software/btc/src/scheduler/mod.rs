@@ -89,10 +89,10 @@ impl Future for Scheduler {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<(), Error> {
-        println!("Schedule poll called.");
+        println!("sched:: Schedule poll called.");
 
         loop {
-            println!("loop 0");
+            println!("sched:: loop 0");
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(Rx_peers(addr, first)))) => {
                     self.inbox.insert(addr, Inbox::new(first));
@@ -106,7 +106,7 @@ impl Future for Scheduler {
         };
 
         loop {
-            println!("loop 1");
+            println!("sched:: loop 1");
             if let Some(first_outbox) = self.outbox.iter().next() {
                 if first_outbox.1.is_empty() {
                     break;
@@ -164,9 +164,9 @@ impl Future for Scheduler {
         };
 
         loop {
-            println!("loop 2");
+            println!("sched:: loop 2");
             if self.inbox.is_empty() {
-                println!("entrou no break bugado!");
+                println!("sched:: entrou no break bugado!");
                 break;
             };
             let (first, tail_stream) = {
@@ -243,7 +243,7 @@ impl Future for Scheduler {
             // extract and replace the first future from the channel
             *prev_rx_mpsc_sf = tail_stream.into_future();
             if prev_oneshots.contains_key(&addr_req_id.1) {
-                println!("Error: colliding oneshot key");
+                println!("sched:: Error: colliding oneshot key");
                 panic!("TODO");
             }
 

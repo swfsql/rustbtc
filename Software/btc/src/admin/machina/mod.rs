@@ -44,7 +44,7 @@ impl PollMachina for Machina {
         peer.0.lines.buffer(b"WELCOME\r\n");
         let _ = peer.0.lines.poll_flush()?;
         let _ = peer.0.lines.poll_flush()?; // to make sure
-        println!("sent WELCOME");
+        println!("admin:: sent WELCOME");
 
         transition!(Standby(peer.take().0))
     }
@@ -67,7 +67,7 @@ impl PollMachina for Machina {
                     //     clap::ErrorKind::
                     //     ErrorKind::HelpDisplayed or ErrorKind::VersionDisplayed
                     // }
-                    println!("Error detected when parsing admin cmds");
+                    println!("admin:: Error detected when parsing admin cmds");
                     peer.0.lines.buffer(b"Command could not be executed\r\n");
                     peer.0
                         .lines
@@ -78,7 +78,7 @@ impl PollMachina for Machina {
                     peer.0
                         .lines
                         .buffer(format!("Aditional Info:\r\n{:?}\r\n", e.info).as_bytes());
-                    println!("{:?}", e);
+                    println!("admin:: {:?}", e);
                     let _ = peer.0.lines.poll_flush()?;
                     continue;
                 }
@@ -89,7 +89,8 @@ impl PollMachina for Machina {
                     args::AdminCmd::Node(_) => {}
                     args::AdminCmd::Util(_) => {}
                     args::AdminCmd::Debug(debug) => match debug {
-                        Dummy => {
+                        args::DebugCmd::Dummy => {
+                            println!("admin:: started dummy cmd");
                             let wr = WorkerRequest::Hello;
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -104,30 +105,22 @@ impl PollMachina for Machina {
                             let next = WaitHello(peer.0,orx);
                             return transition!(next);
 
-/*
-pub struct AddrReqId(pub SocketAddr, pub RequestId);
+                        },
+                        args::DebugCmd::Wait{delay} => {
+                            println!("admin:: started wait cmd");
+                            let wr = WorkerRequest::Wait{delay: delay};
+                            let wrp = WorkerRequestPriority(wr, 200);
+                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let skt = peer.0.lines.socket.peer_addr().unwrap();
+                            let hello_index = 0;
+                            let addr = AddrReqId(skt, hello_index);
+                            let wrc = WorkerRequestContent(wrp, otx, addr);
 
-pub struct WorkerRequestContent(
-    pub WorkerRequestPriority,
-    pub Tx_one,
-    pub AddrReqId);
+                            let peer = peer.take();
+                            peer.0.tx_req.unbounded_send(Box::new(wrc));
 
-pub struct WorkerRequestPriority(
-    pub WorkerRequest,
-    pub RequestPriority);
-
-
-pub enum WorkerRequest {
-    NewPeer { addr: SocketAddr },
-    KillPeer { addr: SocketAddr },
-    InfoPeer { addr: SocketAddr },
-    ListPeers,
-    SendPing { addr: SocketAddr },
-    Hello,
-}
-*/
-
-
+                            let next = WaitHello(peer.0,orx);
+                            return transition!(next);
                         },
                     },
                 },
@@ -136,13 +129,13 @@ pub enum WorkerRequest {
             // never reached
             match msg.as_ref() {
                 "PING?" => {
-                    println!("going to WAITING");
+                    println!("admin:: going to WAITING");
                     let peer = peer.take();
                     let next = Execution(peer.0);
                     transition!(next)
                 }
                 _ => {
-                    println!("BATATA: <{:?}>", &msg);
+                    println!("admin:: BATATA: <{:?}>", &msg);
                 }
             }
         }
@@ -153,13 +146,13 @@ pub enum WorkerRequest {
     fn poll_wait_hello<'a>(
         wait_hello: &'a mut RentToOwn<'a, WaitHello>,
     ) -> Poll<AfterWaitHello, std::io::Error> {
-        println!("admin WaitHello poll");
+        println!("admin:: WaitHello poll");
 
         let resp;
         match wait_hello.1.poll() {
             Ok(Async::Ready(fresp)) => {
                 resp = fresp;
-                println!("111111111111 admin WaitHello poll");
+                println!("admin:: 111111111111 admin WaitHello poll");
             },
             Ok(Async::NotReady) => {
                 return Ok(Async::NotReady);
@@ -196,7 +189,7 @@ pub enum WorkerRequest {
 
                     let peer = peer.take();
                     let next = End(peer.0);
-                    println!("going to END");
+                    println!("admin:: going to END");
                     transition!(next)
                 }
                 _ => {}

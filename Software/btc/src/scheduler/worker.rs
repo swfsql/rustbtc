@@ -28,6 +28,10 @@ use self::commons::{Rx_mpsc, WorkerRequestContent, WorkerRequest, WorkerResponse
                     Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
                     WorkerResponse, WorkerResponseContent};*/
 
+use tokio_timer::*;
+//use futures::*;
+use std::time::*;
+
 struct Inbox(Rx_mpsc, Vec<Box<WorkerRequestContent>>);
 
 pub struct Worker {
@@ -81,11 +85,19 @@ impl Future for Worker {
                 addr) = req;
             let resp = match wrk_req {
                 WorkerRequest::Hello => {
-                    println!("Hi! Request received: {:#?}", wrk_req);
+                    println!("worker:: Hi! Request received: {:#?}", wrk_req);
+                    WorkerResponse::Empty
+                },
+                WorkerRequest::Wait{delay} => {
+
+                    println!("worker:: Hi! Request received: {:#?}", wrk_req);
+                    let timer = Timer::default();
+                    let sleep = timer.sleep(Duration::from_secs(delay));
+                    sleep.wait();
                     WorkerResponse::Empty
                 },
                 _ => {
-                    println!("Request received: {:#?}", wrk_req);
+                    println!("worker:: Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 },
             };
@@ -99,7 +111,6 @@ impl Future for Worker {
         Ok(Async::NotReady)
     }
 }
-
 
 /*
 pub struct WorkerRequestContent(

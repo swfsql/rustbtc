@@ -21,6 +21,7 @@ extern crate log;
 extern crate state_machine_future;
 extern crate time;
 extern crate tokio;
+extern crate tokio_timer;
 
 #[macro_use]
 extern crate structopt;
