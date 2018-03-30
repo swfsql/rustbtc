@@ -153,11 +153,13 @@ pub enum WorkerRequest {
     fn poll_wait_hello<'a>(
         wait_hello: &'a mut RentToOwn<'a, WaitHello>,
     ) -> Poll<AfterWaitHello, std::io::Error> {
+        println!("admin WaitHello poll");
 
         let resp;
         match wait_hello.1.poll() {
             Ok(Async::Ready(fresp)) => {
                 resp = fresp;
+                println!("111111111111 admin WaitHello poll");
             },
             Ok(Async::NotReady) => {
                 return Ok(Async::NotReady);
@@ -172,7 +174,9 @@ pub enum WorkerRequest {
         peer
             .lines
             .buffer(format!("{:#?}", &resp).as_bytes());
-        println!("{:#?}", &resp);
+        let _ = peer.lines.poll_flush()?;
+        let _ = peer.lines.poll_flush()?; // to make sure
+        println!("admin:: {:#?}", &resp);
 
         //orx.take();
         let next = Standby(peer);

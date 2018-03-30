@@ -92,6 +92,7 @@ impl Future for Scheduler {
         println!("Schedule poll called.");
 
         loop {
+            println!("loop 0");
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(Rx_peers(addr, first)))) => {
                     self.inbox.insert(addr, Inbox::new(first));
@@ -100,13 +101,21 @@ impl Future for Scheduler {
                     break;
                 }
             }
+            task::current().notify();
+            println!("sched::loop 0 ran.");
         };
 
         loop {
-            if self.outbox.is_empty() {
+            println!("loop 1");
+            if let Some(first_outbox) = self.outbox.iter().next() {
+                if first_outbox.1.is_empty() {
+                    break;
+                }
+            } else {
                 break;
             };
             let wrk_full_resp = {
+                println!("sched:: before select_all ");
                 let poll = futures::future::select_all(
                         self.outbox
                             .iter_mut()
@@ -150,13 +159,18 @@ impl Future for Scheduler {
             //**************************************************************
             //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
             //**************************************************************
+            task::current().notify();
+            println!("sched::loop 1 ran.");
         };
 
         loop {
+            println!("loop 2");
             if self.inbox.is_empty() {
+                println!("entrou no break bugado!");
                 break;
             };
             let (first, tail_stream) = {
+                println!("sched:: before select_all ");
                 let poll = futures::future::select_all(
                         self.inbox.iter_mut().map(|(_, &mut Inbox(ref mut rx_mpsc, _))| rx_mpsc),
                     )
@@ -235,6 +249,8 @@ impl Future for Scheduler {
 
             //
             prev_oneshots.insert(addr_req_id.1, old_tx_one);
+            task::current().notify();
+            println!("sched::loop 2 ran.");
 
         };
 

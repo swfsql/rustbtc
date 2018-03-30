@@ -56,11 +56,16 @@ impl Future for Worker {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<(), io::Error> {
+
+        println!("worker:: poll");
+
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
         loop {
+            println!("worker:: loop 0");
             match rec.poll() {
                 Ok(Async::Ready(Some(wrk_req))) => {
                     reqs.push(wrk_req);
+                    println!("worker:: loop 0 ran");
                 }
                 Ok(Async::NotReady) => break,
                 _ => panic!("Unexpected value for worker polling on reader channel"),
@@ -85,9 +90,12 @@ impl Future for Worker {
                 },
             };
 
+            println!("worker:: response sending.");
             tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone()))));
+            println!("worker:: response sent.");
             task::current().notify();
         }
+        println!("worker:: returning not ready (end).");
         Ok(Async::NotReady)
     }
 }
