@@ -21,12 +21,12 @@ use std::cmp::Ordering;
 use std::mem;
 use std::borrow::BorrowMut;
 
-mod worker;
-mod commons;
+pub mod worker;
+pub mod commons;
 
 use self::commons::{AddrReqId, RequestId, Rx_mpsc_sf, Rx_one, Tx_mpsc,
                     Tx_one, WorkerRequestContent,
-                    WorkerResponseContent};
+                    WorkerResponseContent, Rx_peers};
 
 struct Inbox(Rx_mpsc_sf, HashMap<RequestId, Tx_one>);
 struct Outbox(Tx_mpsc, HashMap<AddrReqId, Rx_one>);
@@ -57,7 +57,8 @@ impl PartialEq for Outbox {
     }
 }
 
-struct Scheduler {
+pub struct Scheduler {
+    main_channel: mpsc::UnboundedReceiver<Rx_peers>,
     inbox: HashMap<SocketAddr, Inbox>,
     outbox: Vec<Outbox>,
 }
@@ -67,16 +68,48 @@ enum AorB<C, D> {
     B(D),
 }
 
+impl Scheduler {
+    pub fn new(rx: mpsc::UnboundedReceiver<Rx_peers>) -> Scheduler {
+        Scheduler {
+            main_channel: rx,
+            inbox: HashMap::new(),
+            outbox: vec![],
+        }
+    }
+}
+
+impl Inbox {
+    fn new(first: Rx_mpsc_sf) -> Inbox {
+        Inbox(first, HashMap::new())
+    }
+}
+
 impl Future for Scheduler {
     type Item = ();
     type Error = Error;
 
     fn poll(&mut self) -> Poll<(), Error> {
         loop {
+            match self.main_channel.poll() {
+                Ok(Async::Ready(Some(Rx_peers(addr, first)))) => {
+                    self.inbox.insert(addr, Inbox::new(first));
+                },
+                _ => {
+                    break;
+                }
+            }
+        }
+        loop {
             let ret = {
                 //
-                let outbox_rx_one = futures::future::select_all(self.outbox.iter_mut().flat_map(
-                    |&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm.iter_mut().map(|(_, fut)| fut),
+
+                let outbox_rx_one = futures::future::select_all(
+                    self.outbox
+                        .iter_mut()
+                        .flat_map(|&mut Outbox(_, ref mut rx_one_hm)|
+                            rx_one_hm
+                                .iter_mut()
+                                .map(|(_, fut)| fut),
                 ));
                 // select all from first futures from channel stream
                 let inbox_rx_mpsc = futures::future::select_all(
@@ -96,12 +129,7 @@ impl Future for Scheduler {
                     //
 
 
-  /*
-type Rx_one = oneshot::Receiver<(
-    WorkerResponse,
-    AddrReqId
-)>;
-
+              /*
               Either A:
               count(vetor_canais_worker(hashmap)):
                 Caso >0:

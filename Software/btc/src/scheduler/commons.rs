@@ -26,6 +26,8 @@ pub type Rx_mpsc = mpsc::Receiver<Box<WorkerRequestContent>>;
 pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
 pub type Tx_one = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
 pub type Rx_one = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;
+pub struct Rx_peers (pub SocketAddr, pub Rx_mpsc_sf);
+pub struct Tx_peers (pub SocketAddr, pub Rx_mpsc_sf);
 
 #[derive(Debug)]
 pub struct WorkerRequestContent(pub WorkerRequestPriority, pub Tx_one, pub AddrReqId);

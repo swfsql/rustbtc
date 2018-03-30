@@ -3,22 +3,28 @@ use tokio::net::TcpStream;
 use tokio::prelude::*;
 use futures::{Async, Future, Poll};
 use bytes::BufMut;
-
 use codec::lines::Lines;
+use futures::sync::{mpsc, oneshot};
+
+use scheduler::commons::{AddrReqId, RequestId, Rx_mpsc_sf, Rx_one, Tx_mpsc,
+                    Tx_one, WorkerRequestContent,
+                    WorkerResponseContent, Rx_peers};
 
 pub mod machina;
 pub mod args;
 
 pub struct Peer {
     lines: Lines,
+    tx_req: mpsc::Sender<Box<WorkerRequestContent>>,
 }
 
 impl Peer {
-    pub fn new(socket: TcpStream) -> Peer {
+    pub fn new(socket: TcpStream, tx_req: mpsc::Sender<Box<WorkerRequestContent>>) -> Peer {
         // let addr = lines.socket.peer_addr().unwrap();
 
         Peer {
             lines: Lines::new(socket),
+            tx_req: tx_req,
         }
     }
 }
