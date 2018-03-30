@@ -55,7 +55,7 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<com
 }
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::Rx_peers>>>) {
 
-    let (tx, rx) = mpsc::channel(10);
+    let (tx, rx) = mpsc::unbounded();
     let tx_sched_unlocked = tx_sched.lock().unwrap();
     tx_sched_unlocked.unbounded_send(commons::Rx_peers(socket.peer_addr().unwrap(), rx.into_future()));
 

@@ -9,13 +9,23 @@ use admin::args;
 
 use structopt::StructOpt;
 
+use scheduler::commons::{AddrReqId, RequestId, Rx_mpsc_sf, Rx_one, Tx_mpsc,
+                    Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+                    WorkerResponseContent, Rx_peers};
+use futures::sync::{mpsc, oneshot};
+use futures;
+use std::io::{Error, ErrorKind};
+
 #[derive(StateMachineFuture)]
 pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution))]
+    #[state_machine_future(transitions(Execution,WaitHello))]
     Standby(Peer),
+
+    #[state_machine_future(transitions(Standby))]
+    WaitHello(Peer,Rx_one),
 
     #[state_machine_future(transitions(End))]
     Execution(Peer),
@@ -78,7 +88,48 @@ impl PollMachina for Machina {
                     args::AdminCmd::Blockchain(_) => {}
                     args::AdminCmd::Node(_) => {}
                     args::AdminCmd::Util(_) => {}
-                    args::AdminCmd::Debug(_) => {}
+                    args::AdminCmd::Debug(debug) => match debug {
+                        Dummy => {
+                            let wr = WorkerRequest::Hello;
+                            let wrp = WorkerRequestPriority(wr, 200);
+                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let skt = peer.0.lines.socket.peer_addr().unwrap();
+                            let hello_index = 0;
+                            let addr = AddrReqId(skt, hello_index);
+                            let wrc = WorkerRequestContent(wrp, otx, addr);
+
+                            let peer = peer.take();
+                            peer.0.tx_req.unbounded_send(Box::new(wrc));
+
+                            let next = WaitHello(peer.0,orx);
+                            return transition!(next);
+
+/*
+pub struct AddrReqId(pub SocketAddr, pub RequestId);
+
+pub struct WorkerRequestContent(
+    pub WorkerRequestPriority,
+    pub Tx_one,
+    pub AddrReqId);
+
+pub struct WorkerRequestPriority(
+    pub WorkerRequest,
+    pub RequestPriority);
+
+
+pub enum WorkerRequest {
+    NewPeer { addr: SocketAddr },
+    KillPeer { addr: SocketAddr },
+    InfoPeer { addr: SocketAddr },
+    ListPeers,
+    SendPing { addr: SocketAddr },
+    Hello,
+}
+*/
+
+
+                        },
+                    },
                 },
             }
 
@@ -97,6 +148,35 @@ impl PollMachina for Machina {
         }
         // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
         panic!("Peer connection aborted.");
+    }
+
+    fn poll_wait_hello<'a>(
+        wait_hello: &'a mut RentToOwn<'a, WaitHello>,
+    ) -> Poll<AfterWaitHello, std::io::Error> {
+
+        let resp;
+        match wait_hello.1.poll() {
+            Ok(Async::Ready(fresp)) => {
+                resp = fresp;
+            },
+            Ok(Async::NotReady) => {
+                return Ok(Async::NotReady);
+            }
+            Err(_) => panic!("Canceled scheduler response"),
+        };
+
+        let wait_hello = wait_hello.take();
+        let mut peer = wait_hello.0;
+        let mut orx = wait_hello.1;
+
+        peer
+            .lines
+            .buffer(format!("{:#?}", &resp).as_bytes());
+        println!("{:#?}", &resp);
+
+        //orx.take();
+        let next = Standby(peer);
+        transition!(next)
     }
 
     fn poll_execution<'a>(

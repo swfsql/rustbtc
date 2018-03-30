@@ -197,7 +197,7 @@ impl Future for Scheduler {
             };
 
             if new_box_flag {
-                let (tx, rx) = mpsc::channel(10); // sched => worker mpsc
+                let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
                 let worker = worker::Worker::new(rx).map(|item| ()).map_err(|err| ());
                 // spawn the worke's future
@@ -217,7 +217,7 @@ impl Future for Scheduler {
 
                 // unwrap is safe because there is a sufficient control over
                 // channel usage; and receptor won't be dropped before transmissor
-                tx.try_send(first).unwrap();
+                tx.unbounded_send(first).unwrap();
 
                 //Adding one_shot to outbox.
                 hm.insert(addr_req_id.clone(), orx);

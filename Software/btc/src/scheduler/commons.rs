@@ -21,8 +21,8 @@ use std::cmp::Ordering;
 pub struct AddrReqId(pub SocketAddr, pub RequestId);
 
 // peer <-> scheduler <-> worker
-pub type Tx_mpsc = mpsc::Sender<Box<WorkerRequestContent>>;
-pub type Rx_mpsc = mpsc::Receiver<Box<WorkerRequestContent>>;
+pub type Tx_mpsc = mpsc::UnboundedSender<Box<WorkerRequestContent>>;
+pub type Rx_mpsc = mpsc::UnboundedReceiver<Box<WorkerRequestContent>>;
 pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
 pub type Tx_one = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
 pub type Rx_one = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;

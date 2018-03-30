@@ -15,11 +15,11 @@ pub mod args;
 
 pub struct Peer {
     lines: Lines,
-    tx_req: mpsc::Sender<Box<WorkerRequestContent>>,
+    tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
 }
 
 impl Peer {
-    pub fn new(socket: TcpStream, tx_req: mpsc::Sender<Box<WorkerRequestContent>>) -> Peer {
+    pub fn new(socket: TcpStream, tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>) -> Peer {
         // let addr = lines.socket.peer_addr().unwrap();
 
         Peer {
