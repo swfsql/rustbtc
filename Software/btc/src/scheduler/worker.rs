@@ -1,13 +1,14 @@
 //use errors::*;
-//use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
 //use std::net::SocketAddr;
 //use std::thread;
 
 use tokio::io;
+use tokio;
 //use futures;
-//use futures::sync::{mpsc, oneshot};
+use futures::sync::{mpsc, oneshot};
 //use futures::future::{select_all, Either};
 
 //use std::collections::HashMap;
@@ -21,6 +22,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 use scheduler::commons;
+use admin;
 
 use self::commons::{Rx_mpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent};
 
@@ -95,6 +97,25 @@ impl Future for Worker {
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait();
                     WorkerResponse::Empty
+                },
+                WorkerRequest::PeerAdd{addr, wait_handhsake, tx_sched} => {
+
+                    //println!("worker:: Hi! Request received: {:#?}", &wrk_req);
+                    match TcpStream::connect(&addr).wait() {
+                        Ok(socket) => {
+                            let (tx, rx) = mpsc::unbounded();
+                            {
+                                let tx_sched_unlocked = tx_sched.lock().unwrap();
+                                tx_sched_unlocked.unbounded_send(commons::Rx_peers(socket.peer_addr().unwrap(), rx.into_future()));
+                            }
+                            let peer = admin::Peer::new(socket, tx, tx_sched);
+                            let peer_machina = admin::machina::Machina::start(peer).map(|_| ()).map_err(|_| ());
+                            tokio::spawn(peer_machina);
+                            WorkerResponse::PeerAdd(Some(addr))
+                        },
+                        Err(_) => {WorkerResponse::PeerAdd(None)},
+                    }
+
                 },
                 _ => {
                     println!("worker:: Request received: {:#?}", wrk_req);

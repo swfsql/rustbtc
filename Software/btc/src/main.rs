@@ -19,6 +19,7 @@ extern crate btc;
 
 use futures::sync::{mpsc, oneshot};
 use btc::scheduler::commons;
+use structopt::StructOpt;
 
 // use btc::commons::new_from_hex::NewFromHex;
 // use btc::commons::into_bytes::IntoBytes;
@@ -41,6 +42,18 @@ use std::net::SocketAddr;
 use std::thread;
 use std::sync::{Arc, Mutex};
 
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "")]
+/// Node general settings
+pub struct EnvVar {
+  #[structopt(long = "node-socket-addr", default_value = "127.0.0.1:8080")]
+  node_addr: SocketAddr,
+
+  #[structopt(long = "admin-socket-addr", default_value = "127.0.0.1:8081")]
+  admin_addr: SocketAddr,
+}
+
 fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::Rx_peers>>>) {
     let peer = btc::peer::Peer::new(socket);
 
@@ -56,10 +69,12 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<com
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::Rx_peers>>>) {
 
     let (tx, rx) = mpsc::unbounded();
-    let tx_sched_unlocked = tx_sched.lock().unwrap();
-    tx_sched_unlocked.unbounded_send(commons::Rx_peers(socket.peer_addr().unwrap(), rx.into_future()));
+    {
+        let tx_sched_unlocked = tx_sched.lock().unwrap();
+        tx_sched_unlocked.unbounded_send(commons::Rx_peers(socket.peer_addr().unwrap(), rx.into_future()));
+    }
 
-    let peer = btc::admin::Peer::new(socket, tx);
+    let peer = btc::admin::Peer::new(socket, tx, tx_sched);
 
     //        .map_err(|_| ());
 
@@ -73,6 +88,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<co
 
 fn run() -> Result<()> {
     env_logger::init().unwrap();
+    let args = EnvVar::from_args();
 
     info!(
         "\n\
@@ -83,17 +99,17 @@ fn run() -> Result<()> {
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
-    let scheduler = btc::scheduler::Scheduler::new(rx)
+    let scheduler = btc::scheduler::Scheduler::new(rx, 3)
         .map_err(|_| ());
     thread::spawn(move || {
         tokio::run(scheduler);
     });
 
-    let addr_peer = "127.0.0.1:8080".parse().unwrap();
-    let addr_admin = "127.0.0.1:8081".parse().unwrap();
+    //let addr_peer = "127.0.0.1:8080".parse().unwrap();
+    //let addr_admin = "127.0.0.1:8081".parse().unwrap();
 
-    let listener_peer = TcpListener::bind(&addr_peer).unwrap();
-    let listener_admin = TcpListener::bind(&addr_admin).unwrap();
+    let listener_peer = TcpListener::bind(&args.node_addr).unwrap();
+    let listener_admin = TcpListener::bind(&args.admin_addr).unwrap();
 
     let server_listeners = listener_admin
         .incoming()
@@ -135,8 +151,8 @@ fn run() -> Result<()> {
         */
 
 
-    println!("server_peer running on localhost:8080");
-    println!("server_admin running on localhost:8081");
+    println!("server_peer running on {:#?}", args.node_addr);
+    println!("server_admin running on {:#?}", args.admin_addr);
 
     /*
     thread::spawn(move || {

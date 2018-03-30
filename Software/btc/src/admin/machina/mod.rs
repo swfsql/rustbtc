@@ -21,11 +21,14 @@ pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution,WaitHello))]
+    #[state_machine_future(transitions(Execution,WaitHello,WaitPeerAdd))]
     Standby(Peer),
 
     #[state_machine_future(transitions(Standby))]
     WaitHello(Peer,Rx_one),
+
+    #[state_machine_future(transitions(Standby))]
+    WaitPeerAdd(Peer,Rx_one),
 
     #[state_machine_future(transitions(End))]
     Execution(Peer),
@@ -83,7 +86,28 @@ impl PollMachina for Machina {
                     continue;
                 }
                 Ok(matches) => match args::AdminCmd::from_clap(&matches) {
-                    args::AdminCmd::Peer(_) => {}
+                    args::AdminCmd::Peer(peercmd) => match peercmd {
+                        args::PeerCmd::Add{addr, wait_handhsake} => {
+
+                            let peer = peer.take();
+
+                            println!("admin:: started dummy cmd");
+                            let wr = WorkerRequest::PeerAdd{addr: addr, wait_handhsake:wait_handhsake, tx_sched: peer.0.tx_sched.clone()};
+                            let wrp = WorkerRequestPriority(wr, 200);
+                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let skt = peer.0.lines.socket.peer_addr().unwrap();
+                            let hello_index = 0;
+                            let addr = AddrReqId(skt, hello_index);
+                            let wrc = WorkerRequestContent(wrp, otx, addr);
+
+                            peer.0.tx_req.unbounded_send(Box::new(wrc));
+
+                            let next = WaitHello(peer.0,orx);
+                            return transition!(next);
+
+                        },
+                        _ => {},
+                    }
                     args::AdminCmd::Wallet(_) => {}
                     args::AdminCmd::Blockchain(_) => {}
                     args::AdminCmd::Node(_) => {}
@@ -163,6 +187,39 @@ impl PollMachina for Machina {
         let wait_hello = wait_hello.take();
         let mut peer = wait_hello.0;
         let mut orx = wait_hello.1;
+
+        peer
+            .lines
+            .buffer(format!("{:#?}", &resp).as_bytes());
+        let _ = peer.lines.poll_flush()?;
+        let _ = peer.lines.poll_flush()?; // to make sure
+        println!("admin:: {:#?}", &resp);
+
+        //orx.take();
+        let next = Standby(peer);
+        transition!(next)
+    }
+
+    fn poll_wait_peer_add<'a>(
+        wait_peer_add: &'a mut RentToOwn<'a, WaitPeerAdd>,
+    ) -> Poll<AfterWaitPeerAdd, std::io::Error> {
+        println!("admin:: WaitPeerAdd poll");
+
+        let resp;
+        match wait_peer_add.1.poll() {
+            Ok(Async::Ready(fresp)) => {
+                resp = fresp;
+                println!("admin:: 111111111111 admin WaitHello poll");
+            },
+            Ok(Async::NotReady) => {
+                return Ok(Async::NotReady);
+            }
+            Err(_) => panic!("Canceled scheduler response"),
+        };
+
+        let wait_peer_add = wait_peer_add.take();
+        let mut peer = wait_peer_add.0;
+        let mut orx = wait_peer_add.1;
 
         peer
             .lines

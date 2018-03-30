@@ -61,6 +61,7 @@ pub struct Scheduler {
     main_channel: mpsc::UnboundedReceiver<Rx_peers>,
     inbox: HashMap<SocketAddr, Inbox>,
     outbox: Vec<Outbox>,
+    workers_max_tasks: usize,
 }
 
 enum AorB<C, D> {
@@ -69,11 +70,12 @@ enum AorB<C, D> {
 }
 
 impl Scheduler {
-    pub fn new(rx: mpsc::UnboundedReceiver<Rx_peers>) -> Scheduler {
+    pub fn new(rx: mpsc::UnboundedReceiver<Rx_peers>, workers_max_tasks: usize) -> Scheduler {
         Scheduler {
             main_channel: rx,
             inbox: HashMap::new(),
             outbox: vec![],
+            workers_max_tasks,
         }
     }
 }
@@ -200,7 +202,7 @@ impl Future for Scheduler {
 
             let new_box_flag = {
                 if let Some(ref mut outbox) = self.outbox.iter().rev().next() {
-                    if outbox.1.len() >= 10 {
+                    if outbox.1.len() >= self.workers_max_tasks {
                         true
                     } else {
                         false

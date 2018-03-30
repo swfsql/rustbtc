@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum WorkerRequest {
-    NewPeer { addr: SocketAddr },
+    PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<mpsc::UnboundedSender<Rx_peers>>>},
     KillPeer { addr: SocketAddr },
     InfoPeer { addr: SocketAddr },
     ListPeers,
@@ -14,6 +14,7 @@ pub enum WorkerResponse {
     Empty,
     String(String),
     Bool(bool),
+    PeerAdd(Option<SocketAddr>),
 }
 
 use errors::*;
@@ -34,6 +35,7 @@ use futures::sync::{mpsc, oneshot};
 //use std::io::{Error, ErrorKind};
 //use std::collections::BinaryHeap;
 use std::cmp::Ordering;
+use std::sync::{Arc, Mutex};
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub struct AddrReqId(pub SocketAddr, pub RequestId);
@@ -44,7 +46,10 @@ pub type Rx_mpsc = mpsc::UnboundedReceiver<Box<WorkerRequestContent>>;
 pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
 pub type Tx_one = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
 pub type Rx_one = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;
+
+#[derive(Debug)]
 pub struct Rx_peers (pub SocketAddr, pub Rx_mpsc_sf);
+#[derive(Debug)]
 pub struct Tx_peers (pub SocketAddr, pub Rx_mpsc_sf);
 
 #[derive(Debug)]

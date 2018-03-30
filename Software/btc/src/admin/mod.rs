@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use tokio::io;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
@@ -16,15 +17,18 @@ pub mod args;
 pub struct Peer {
     lines: Lines,
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
+    tx_sched: Arc<Mutex<mpsc::UnboundedSender<Rx_peers>>>,
 }
 
 impl Peer {
-    pub fn new(socket: TcpStream, tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>) -> Peer {
+    pub fn new(socket: TcpStream, tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
+               tx_sched: Arc<Mutex<mpsc::UnboundedSender<Rx_peers>>>) -> Peer {
         // let addr = lines.socket.peer_addr().unwrap();
 
         Peer {
             lines: Lines::new(socket),
             tx_req: tx_req,
+            tx_sched: tx_sched,
         }
     }
 }
