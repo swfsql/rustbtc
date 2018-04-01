@@ -1,5 +1,6 @@
 //use errors::*;
-use tokio::net::{TcpListener, TcpStream};
+//use tokio::net::{TcpListener, TcpStream};
+use tokio::net::{TcpStream};
 use tokio::prelude::*;
 
 //use std::net::SocketAddr;
@@ -8,7 +9,8 @@ use tokio::prelude::*;
 use tokio::io;
 use tokio;
 //use futures;
-use futures::sync::{mpsc, oneshot};
+//use futures::sync::{mpsc, oneshot};
+use futures::sync::{mpsc};
 //use futures::future::{select_all, Either};
 
 //use std::collections::HashMap;
@@ -18,39 +20,39 @@ use futures::sync::{mpsc, oneshot};
 //use std::collections::BinaryHeap;
 //use std::cmp::Ordering;
 
-use std::ops::Deref;
-use std::ops::DerefMut;
+//use std::ops::Deref;
+//use std::ops::DerefMut;
 
-use scheduler::commons;
+use exec::commons;
 use admin;
 
-use self::commons::{Rx_mpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent};
+use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent};
 
-/*use self::commons::{AddrReqId, RequestId, RequestPriority, Rx_mpsc, Rx_mpsc_sf, Rx_one, Tx_mpsc,
-                    Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+/*use self::commons::{AddrReqId, RequestId, RequestPriority, RxMpsc, RxMpscSf, RxOne, TxMpsc,
+                    TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
                     WorkerResponse, WorkerResponseContent};*/
 
 use tokio_timer::*;
 //use futures::*;
 use std::time::*;
 
-struct Inbox(Rx_mpsc, Vec<Box<WorkerRequestContent>>);
+struct Inbox(RxMpsc, Vec<Box<WorkerRequestContent>>);
 
 pub struct Worker {
     inbox: Inbox,
 }
 
 /*
-pub type Rx_mpsc = mpsc::Receiver<WorkerRequestContent>;
+pub type RxMpsc = mpsc::Receiver<WorkerRequestContent>;
 
 pub struct WorkerRequestContent(
   pub WorkerRequestPriority,
-  pub Tx_one,
+  pub TxOne,
   pub AddrReqId);
 */
 
 impl Worker {
-    pub fn new(rx_mpsc: Rx_mpsc) -> Worker {
+    pub fn new(rx_mpsc: RxMpsc) -> Worker {
         Worker {
             inbox: Inbox(rx_mpsc, vec![]),
         }
@@ -79,7 +81,7 @@ impl Future for Worker {
         }
 
         reqs.sort_unstable();
-        if let Some(mut req) = reqs.pop() {
+        if let Some(req) = reqs.pop() {
             let mut req = *req;
             let WorkerRequestContent(
                 WorkerRequestPriority(wrk_req, _req_pri),
@@ -95,10 +97,10 @@ impl Future for Worker {
                     println!("worker:: Hi! Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
-                    sleep.wait();
+                    sleep.wait().unwrap();
                     WorkerResponse::Empty
                 },
-                WorkerRequest::PeerAdd{addr, wait_handhsake, tx_sched} => {
+                WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
 
                     //println!("worker:: Hi! Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
@@ -106,7 +108,7 @@ impl Future for Worker {
                             let (tx, rx) = mpsc::unbounded();
                             {
                                 let tx_sched_unlocked = tx_sched.lock().unwrap();
-                                tx_sched_unlocked.unbounded_send(commons::Rx_peers(socket.peer_addr().unwrap(), rx.into_future()));
+                                tx_sched_unlocked.unbounded_send(commons::RxPeers(socket.peer_addr().unwrap(), rx.into_future())).unwrap();
                             }
                             let peer = admin::Peer::new(socket, tx, tx_sched);
                             let peer_machina = admin::machina::Machina::start(peer).map(|_| ()).map_err(|_| ());
@@ -124,7 +126,7 @@ impl Future for Worker {
             };
 
             println!("worker:: response sending.");
-            tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone()))));
+            tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone())))).unwrap();
             println!("worker:: response sent.");
             task::current().notify();
         }
@@ -136,7 +138,7 @@ impl Future for Worker {
 /*
 pub struct WorkerRequestContent(
     pub WorkerRequestPriority,
-    pub Tx_one,
+    pub TxOne,
     pub AddrReqId);
 pub struct WorkerRequestPriority(
     WorkerRequest,

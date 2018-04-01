@@ -5,11 +5,14 @@ use tokio::prelude::*;
 use futures::{Async, Future, Poll};
 use bytes::BufMut;
 use codec::lines::Lines;
-use futures::sync::{mpsc, oneshot};
+//use futures::sync::{mpsc, oneshot};
+use futures::sync::{mpsc};
 
-use scheduler::commons::{AddrReqId, RequestId, Rx_mpsc_sf, Rx_one, Tx_mpsc,
-                    Tx_one, WorkerRequestContent,
-                    WorkerResponseContent, Rx_peers};
+//use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
+//                    TxOne, WorkerRequestContent,
+//                    WorkerResponseContent, RxPeers};
+
+use exec::commons::{WorkerRequestContent,RxPeers};
 
 pub mod machina;
 pub mod args;
@@ -17,12 +20,12 @@ pub mod args;
 pub struct Peer {
     lines: Lines,
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
-    tx_sched: Arc<Mutex<mpsc::UnboundedSender<Rx_peers>>>,
+    tx_sched: Arc<Mutex<mpsc::UnboundedSender<RxPeers>>>,
 }
 
 impl Peer {
     pub fn new(socket: TcpStream, tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
-               tx_sched: Arc<Mutex<mpsc::UnboundedSender<Rx_peers>>>) -> Peer {
+               tx_sched: Arc<Mutex<mpsc::UnboundedSender<RxPeers>>>) -> Peer {
         // let addr = lines.socket.peer_addr().unwrap();
 
         Peer {

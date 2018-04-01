@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum WorkerRequest {
-    PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<mpsc::UnboundedSender<Rx_peers>>>},
+    PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<mpsc::UnboundedSender<RxPeers>>>},
     KillPeer { addr: SocketAddr },
     InfoPeer { addr: SocketAddr },
     ListPeers,
@@ -41,19 +41,19 @@ use std::sync::{Arc, Mutex};
 pub struct AddrReqId(pub SocketAddr, pub RequestId);
 
 // peer <-> scheduler <-> worker
-pub type Tx_mpsc = mpsc::UnboundedSender<Box<WorkerRequestContent>>;
-pub type Rx_mpsc = mpsc::UnboundedReceiver<Box<WorkerRequestContent>>;
-pub type Rx_mpsc_sf = futures::stream::StreamFuture<Rx_mpsc>;
-pub type Tx_one = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
-pub type Rx_one = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;
+pub type TxMpsc = mpsc::UnboundedSender<Box<WorkerRequestContent>>;
+pub type RxMpsc = mpsc::UnboundedReceiver<Box<WorkerRequestContent>>;
+pub type RxMpscSf = futures::stream::StreamFuture<RxMpsc>;
+pub type TxOne = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
+pub type RxOne = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;
 
 #[derive(Debug)]
-pub struct Rx_peers (pub SocketAddr, pub Rx_mpsc_sf);
+pub struct RxPeers (pub SocketAddr, pub RxMpscSf);
 #[derive(Debug)]
-pub struct Tx_peers (pub SocketAddr, pub Rx_mpsc_sf);
+pub struct TxPeers (pub SocketAddr, pub RxMpscSf);
 
 #[derive(Debug)]
-pub struct WorkerRequestContent(pub WorkerRequestPriority, pub Tx_one, pub AddrReqId);
+pub struct WorkerRequestContent(pub WorkerRequestPriority, pub TxOne, pub AddrReqId);
 
 impl Eq for WorkerRequestContent {}
 

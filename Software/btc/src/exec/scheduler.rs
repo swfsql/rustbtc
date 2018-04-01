@@ -9,7 +9,7 @@ use tokio;
 //use tokio::io;
 use futures;
 use futures::sync::{mpsc, oneshot};
-use futures::future::{select_all, Either};
+//use futures::future::{select_all, Either};
 
 use std::collections::HashMap;
 //use std::iter::FromIterator;
@@ -21,18 +21,16 @@ use std::cmp::Ordering;
 use std::mem;
 use std::borrow::BorrowMut;
 
-pub mod worker;
-pub mod commons;
+use exec;
+use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
+                    TxOne, WorkerRequestContent,
+                    WorkerResponseContent, RxPeers};
 
-use self::commons::{AddrReqId, RequestId, Rx_mpsc_sf, Rx_one, Tx_mpsc,
-                    Tx_one, WorkerRequestContent,
-                    WorkerResponseContent, Rx_peers};
-
-struct Inbox(Rx_mpsc_sf, HashMap<RequestId, Tx_one>);
-struct Outbox(Tx_mpsc, HashMap<AddrReqId, Rx_one>);
+struct Inbox(RxMpscSf, HashMap<RequestId, TxOne>);
+struct Outbox(TxMpsc, HashMap<AddrReqId, RxOne>);
 
 impl Outbox {
-    fn new(tx: Tx_mpsc) -> Outbox {
+    fn new(tx: TxMpsc) -> Outbox {
         Outbox(tx, HashMap::new())
     }
 }
@@ -58,19 +56,14 @@ impl PartialEq for Outbox {
 }
 
 pub struct Scheduler {
-    main_channel: mpsc::UnboundedReceiver<Rx_peers>,
+    main_channel: mpsc::UnboundedReceiver<RxPeers>,
     inbox: HashMap<SocketAddr, Inbox>,
     outbox: Vec<Outbox>,
     workers_max_tasks: usize,
 }
 
-enum AorB<C, D> {
-    A(C),
-    B(D),
-}
-
 impl Scheduler {
-    pub fn new(rx: mpsc::UnboundedReceiver<Rx_peers>, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(rx: mpsc::UnboundedReceiver<RxPeers>, workers_max_tasks: usize) -> Scheduler {
         Scheduler {
             main_channel: rx,
             inbox: HashMap::new(),
@@ -81,7 +74,7 @@ impl Scheduler {
 }
 
 impl Inbox {
-    fn new(first: Rx_mpsc_sf) -> Inbox {
+    fn new(first: RxMpscSf) -> Inbox {
         Inbox(first, HashMap::new())
     }
 }
@@ -96,7 +89,7 @@ impl Future for Scheduler {
         loop {
             println!("sched:: loop 0");
             match self.main_channel.poll() {
-                Ok(Async::Ready(Some(Rx_peers(addr, first)))) => {
+                Ok(Async::Ready(Some(RxPeers(addr, first)))) => {
                     self.inbox.insert(addr, Inbox::new(first));
                 },
                 _ => {
@@ -141,7 +134,7 @@ impl Future for Scheduler {
 
             //Removing oneshot from hashmap from the worker who completed the task.
             let addr_req_id = {
-                if let Ok(box WorkerResponseContent(ref wrk_response, ref addr_req_id)) = wrk_full_resp {
+                if let Ok(box WorkerResponseContent(ref _wrk_response, ref addr_req_id)) = wrk_full_resp {
                     self.outbox.iter_mut().map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
                         .find(|ref mut hm| hm.contains_key(&addr_req_id)).unwrap().remove(&addr_req_id);
                         addr_req_id.clone()
@@ -156,7 +149,7 @@ impl Future for Scheduler {
             let &mut Inbox(_, ref mut prev_oneshots) = self.inbox.get_mut(&addr_req_id.0).unwrap();
 
             // forwards the message to the peer
-            prev_oneshots.remove(&addr_req_id.1).unwrap().send(wrk_full_resp);
+            prev_oneshots.remove(&addr_req_id.1).unwrap().send(wrk_full_resp).unwrap();
 
             //**************************************************************
             //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
@@ -215,7 +208,7 @@ impl Future for Scheduler {
             if new_box_flag {
                 let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
-                let worker = worker::Worker::new(rx).map(|item| ()).map_err(|err| ());
+                let worker = exec::worker::Worker::new(rx).map(|_item| ()).map_err(|_err| ());
                 // spawn the worke's future
                 tokio::spawn(worker);
                 // create a new outbox, that is created for each new worker

@@ -9,12 +9,19 @@ use admin::args;
 
 use structopt::StructOpt;
 
-use scheduler::commons::{AddrReqId, RequestId, Rx_mpsc_sf, Rx_one, Tx_mpsc,
-                    Tx_one, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponseContent, Rx_peers};
-use futures::sync::{mpsc, oneshot};
-use futures;
-use std::io::{Error, ErrorKind};
+//use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
+//                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+//                  WorkerResponseContent, RxPeers};
+
+use exec::commons::{AddrReqId, RxOne,
+                     WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+                    WorkerResponseContent};
+
+
+//use futures::sync::{mpsc, oneshot};
+use futures::sync::{oneshot};
+//use futures;
+//use std::io::{Error, ErrorKind};
 
 #[derive(StateMachineFuture)]
 pub enum Machina {
@@ -25,10 +32,10 @@ pub enum Machina {
     Standby(Peer),
 
     #[state_machine_future(transitions(Standby))]
-    WaitHello(Peer,Rx_one),
+    WaitHello(Peer,RxOne),
 
     #[state_machine_future(transitions(Standby))]
-    WaitPeerAdd(Peer,Rx_one),
+    WaitPeerAdd(Peer,RxOne),
 
     #[state_machine_future(transitions(End))]
     Execution(Peer),
@@ -100,10 +107,10 @@ impl PollMachina for Machina {
                             let addr = AddrReqId(skt, hello_index);
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
-                            peer.0.tx_req.unbounded_send(Box::new(wrc));
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
                             let next = WaitHello(peer.0,orx);
-                            return transition!(next);
+                            transition!(next);
 
                         },
                         _ => {},
@@ -124,10 +131,10 @@ impl PollMachina for Machina {
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
                             let peer = peer.take();
-                            peer.0.tx_req.unbounded_send(Box::new(wrc));
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
                             let next = WaitHello(peer.0,orx);
-                            return transition!(next);
+                            transition!(next);
 
                         },
                         args::DebugCmd::Wait{delay} => {
@@ -141,10 +148,10 @@ impl PollMachina for Machina {
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
                             let peer = peer.take();
-                            peer.0.tx_req.unbounded_send(Box::new(wrc));
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
                             let next = WaitHello(peer.0,orx);
-                            return transition!(next);
+                            transition!(next);
                         },
                     },
                 },
@@ -186,7 +193,7 @@ impl PollMachina for Machina {
 
         let wait_hello = wait_hello.take();
         let mut peer = wait_hello.0;
-        let mut orx = wait_hello.1;
+        let _orx = wait_hello.1;
 
         peer
             .lines
@@ -219,7 +226,7 @@ impl PollMachina for Machina {
 
         let wait_peer_add = wait_peer_add.take();
         let mut peer = wait_peer_add.0;
-        let mut orx = wait_peer_add.1;
+        let _orx = wait_peer_add.1;
 
         peer
             .lines

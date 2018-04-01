@@ -17,8 +17,9 @@ extern crate time;
 
 extern crate btc;
 
-use futures::sync::{mpsc, oneshot};
-use btc::scheduler::commons;
+//use futures::sync::{mpsc, oneshot};
+use futures::sync::{mpsc};
+use btc::exec::commons;
 use structopt::StructOpt;
 
 // use btc::commons::new_from_hex::NewFromHex;
@@ -54,7 +55,7 @@ pub struct EnvVar {
   admin_addr: SocketAddr,
 }
 
-fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::Rx_peers>>>) {
+fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::RxPeers>>>) {
     let peer = btc::peer::Peer::new(socket);
 
     //        .map_err(|_| ());
@@ -66,12 +67,12 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<com
     tokio::spawn(peer_machina);
     println!("depois do spawn");
 }
-fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::Rx_peers>>>) {
+fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::RxPeers>>>) {
 
     let (tx, rx) = mpsc::unbounded();
     {
         let tx_sched_unlocked = tx_sched.lock().unwrap();
-        tx_sched_unlocked.unbounded_send(commons::Rx_peers(socket.peer_addr().unwrap(), rx.into_future()));
+        tx_sched_unlocked.unbounded_send(commons::RxPeers(socket.peer_addr().unwrap(), rx.into_future())).unwrap();
     }
 
     let peer = btc::admin::Peer::new(socket, tx, tx_sched);
@@ -99,7 +100,7 @@ fn run() -> Result<()> {
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
-    let scheduler = btc::scheduler::Scheduler::new(rx, 3)
+    let scheduler = btc::exec::scheduler::Scheduler::new(rx, 3)
         .map_err(|_| ());
     thread::spawn(move || {
         tokio::run(scheduler);
