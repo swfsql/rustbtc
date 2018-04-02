@@ -15,7 +15,7 @@ use structopt::StructOpt;
 
 use exec::commons::{AddrReqId, RxOne,
                      WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponseContent};
+                    WorkerResponseContent, WorkerToPeerRequestAndPriority, PeerRequest};
 
 
 //use futures::sync::{mpsc, oneshot};
@@ -23,13 +23,25 @@ use futures::sync::{oneshot};
 //use futures;
 //use std::io::{Error, ErrorKind};
 
+use env_logger::LogBuilder;
+#[macro_use]
+use macros;
+
+//use macros;
+/*
+use macros::*;
+*/
+
 #[derive(StateMachineFuture)]
 pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution,WaitHello,WaitPeerAdd))]
+    #[state_machine_future(transitions(Execution,WaitHello,WaitPeerAdd,WaitPeerPrint))]
     Standby(Peer),
+
+    #[state_machine_future(transitions(Standby))]
+    WaitPeerPrint(Peer,RxOne),
 
     #[state_machine_future(transitions(Standby))]
     WaitHello(Peer,RxOne),
@@ -62,6 +74,25 @@ impl PollMachina for Machina {
     fn poll_standby<'a>(
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, std::io::Error> {
+
+        e!("admin got polled!!");
+
+        loop {
+            println!("test");
+            if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
+                match peer_req {
+
+                    PeerRequest::Dummy => {
+                        println!("admin:: received dummy command, read on standby");
+                    },
+                    _ => {println!("admin:: loop de recibo inner");
+                    },
+                }
+            } else {
+                break;
+            }
+        }
+
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
             let msg = String::from_utf8(msg.to_vec()).unwrap();
 
@@ -153,6 +184,23 @@ impl PollMachina for Machina {
                             let next = WaitHello(peer.0,orx);
                             transition!(next);
                         },
+                        args::DebugCmd::PeerPrint => {
+                            println!("admin:: started peerprint cmd");
+                            let wr = WorkerRequest::PeerPrint;
+                            let wrp = WorkerRequestPriority(wr, 200);
+                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let skt = peer.0.lines.socket.peer_addr().unwrap();
+                            let hello_index = 0;
+                            let addr = AddrReqId(skt, hello_index);
+                            let wrc = WorkerRequestContent(wrp, otx, addr);
+
+                            let peer = peer.take();
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
+
+                            let next = WaitPeerPrint(peer.0,orx);
+                            transition!(next);
+
+                        },
                     },
                 },
             }
@@ -194,6 +242,39 @@ impl PollMachina for Machina {
         let wait_hello = wait_hello.take();
         let mut peer = wait_hello.0;
         let _orx = wait_hello.1;
+
+        peer
+            .lines
+            .buffer(format!("{:#?}", &resp).as_bytes());
+        let _ = peer.lines.poll_flush()?;
+        let _ = peer.lines.poll_flush()?; // to make sure
+        println!("admin:: {:#?}", &resp);
+
+        //orx.take();
+        let next = Standby(peer);
+        transition!(next)
+    }
+
+    fn poll_wait_peer_print<'a>(
+        state: &'a mut RentToOwn<'a, WaitPeerPrint>,
+    ) -> Poll<AfterWaitPeerPrint, std::io::Error> {
+        println!("admin:: WaitPeerPrint poll");
+
+        let resp;
+        match state.1.poll() {
+            Ok(Async::Ready(fresp)) => {
+                println!("admin:: received response from worker (PeerPrint)");
+                resp = fresp;
+            },
+            Ok(Async::NotReady) => {
+                return Ok(Async::NotReady);
+            }
+            Err(_) => panic!("Canceled scheduler response"),
+        };
+
+        let state = state.take();
+        let mut peer = state.0;
+        let _orx = state.1;
 
         peer
             .lines

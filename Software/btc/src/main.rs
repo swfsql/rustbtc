@@ -15,12 +15,14 @@ extern crate log;
 extern crate hex;
 extern crate time;
 
+#[macro_use]
 extern crate btc;
 
 //use futures::sync::{mpsc, oneshot};
 use futures::sync::{mpsc};
 use btc::exec::commons;
 use structopt::StructOpt;
+
 
 // use btc::commons::new_from_hex::NewFromHex;
 // use btc::commons::into_bytes::IntoBytes;
@@ -68,7 +70,7 @@ fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     println!("depois do spawn");
 }
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
-
+    e!("ahsuhsua");
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
@@ -93,16 +95,28 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     println!("depois do spawn");
 }
 
+use env_logger::LogBuilder;
+
 fn run() -> Result<()> {
-    env_logger::init().unwrap();
+
+
+    LogBuilder::new()
+        .format(|record| {
+                    format!("[{}]{}",
+                            record.level(),
+                            record.args())
+                })
+        .parse(&std::env::var("RUST_LOG").unwrap_or_default())
+        .init().unwrap();
+
+    //env_logger::init().unwrap();
     let args = EnvVar::from_args();
 
-    info!(
-        "\n\
-         {}\n\
-         -start-------------------",
-        time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap()
-    );
+    e!("Testing print aheuheau eahueuaheua uheaheuau");
+    w!("Testing printhuhuhu huhuhu huhuhu");
+    i!("Testing print llalal lalal");
+    d!("Testing print xxx");
+
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
@@ -136,26 +150,6 @@ fn run() -> Result<()> {
             println!("accept error = {:?}", err);
         });
 
-    /*
-    let server_peer = listener_peer
-        .incoming()
-        .for_each(move |socket| {
-            process_peer(socket, Arc::clone(&mtx));
-            Ok(())
-        })
-        .map_err(|err| {
-            println!("accept error = {:?}", err);
-        });
-    let server_admin = listener_admin
-        .incoming()
-        .for_each(move |socket| {
-            process_admin(socket, Arc::clone(&mtx));
-            Ok(())
-        })
-        .map_err(|err| {
-            println!("accept error = {:?}", err);
-        });
-        */
 
 
     println!("server_peer running on {:#?}", args.node_addr);

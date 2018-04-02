@@ -14,8 +14,11 @@ use futures::sync::{mpsc};
 
 use exec::commons::{WorkerRequestContent,RxPeers,WorkerToPeerRequestAndPriority,ToolBox,TxMpscMainToSched};
 
+
 pub mod machina;
 pub mod args;
+#[macro_use]
+use::macros;
 
 pub struct Peer {
     lines: Lines,
@@ -51,7 +54,7 @@ impl Future for Peer {
 
         while let Async::Ready(line) = self.lines.poll()? {
             println!("Received line : {:?}", line);
-
+            //e!("admin got polled!!");
             if let Some(message) = line {
                 let mut line = message.clone();
                 line.put("\r\n");

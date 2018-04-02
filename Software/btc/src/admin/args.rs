@@ -138,4 +138,7 @@ pub enum DebugCmd {
         #[structopt(long = "delay")]
         delay: u64,
     },
+
+    #[structopt(name = "print")]
+    PeerPrint,
 }

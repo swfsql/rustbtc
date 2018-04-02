@@ -4,6 +4,7 @@ use tokio::prelude::*;
 use futures::{Async, Poll};
 use bytes::{BufMut, BytesMut};
 
+
 #[derive(Debug)]
 pub struct Lines {
     pub socket: TcpStream,

@@ -7,6 +7,7 @@ pub enum WorkerRequest {
     SendPing { addr: SocketAddr },
     Hello,
     Wait { delay: u64 },
+    PeerPrint,
 }
 
 #[derive(Debug)]
