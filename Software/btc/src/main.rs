@@ -55,7 +55,7 @@ pub struct EnvVar {
   admin_addr: SocketAddr,
 }
 
-fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::RxPeers>>>) {
+fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscSched>>) {
     let peer = btc::peer::Peer::new(socket);
 
     //        .map_err(|_| ());
@@ -67,15 +67,21 @@ fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<mpsc::UnboundedSender<co
     tokio::spawn(peer_machina);
     println!("depois do spawn");
 }
-fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<mpsc::UnboundedSender<commons::RxPeers>>>) {
+fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscSched>>) {
 
-    let (tx, rx) = mpsc::unbounded();
+    let (tx_peer, rx_peer) = mpsc::unbounded();
+    let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
         let tx_sched_unlocked = tx_sched.lock().unwrap();
-        tx_sched_unlocked.unbounded_send(commons::RxPeers(socket.peer_addr().unwrap(), rx.into_future())).unwrap();
+        tx_sched_unlocked.unbounded_send(
+            Box::new(commons::SchedRequestContent(
+            commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+            tx_toolbox,
+            ))
+        ).unwrap();
     }
 
-    let peer = btc::admin::Peer::new(socket, tx, tx_sched);
+    let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
 
     //        .map_err(|_| ());
 

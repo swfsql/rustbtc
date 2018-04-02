@@ -12,7 +12,7 @@ use futures::sync::{mpsc};
 //                    TxOne, WorkerRequestContent,
 //                    WorkerResponseContent, RxPeers};
 
-use exec::commons::{WorkerRequestContent,RxPeers};
+use exec::commons::{WorkerRequestContent,RxPeers,PeerRequestPriority,ToolBox,TxMpscSched};
 
 pub mod machina;
 pub mod args;
@@ -20,18 +20,22 @@ pub mod args;
 pub struct Peer {
     lines: Lines,
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
-    tx_sched: Arc<Mutex<mpsc::UnboundedSender<RxPeers>>>,
+    tx_sched: Arc<Mutex<TxMpscSched>>,
+    rx_toolbox: mpsc::UnboundedReceiver<Box<PeerRequestPriority>>,
 }
 
 impl Peer {
     pub fn new(socket: TcpStream, tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
-               tx_sched: Arc<Mutex<mpsc::UnboundedSender<RxPeers>>>) -> Peer {
+               tx_sched: Arc<Mutex<TxMpscSched>>,
+               rx_toolbox: mpsc::UnboundedReceiver<Box<PeerRequestPriority>>,
+               ) -> Peer {
         // let addr = lines.socket.peer_addr().unwrap();
 
         Peer {
             lines: Lines::new(socket),
             tx_req: tx_req,
             tx_sched: tx_sched,
+            rx_toolbox: rx_toolbox,
         }
     }
 }

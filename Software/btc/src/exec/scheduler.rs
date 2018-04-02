@@ -21,10 +21,12 @@ use std::cmp::Ordering;
 use std::mem;
 use std::borrow::BorrowMut;
 
+use std::sync::{Arc};
+
 use exec;
 use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
                     TxOne, WorkerRequestContent,
-                    WorkerResponseContent, RxPeers};
+                    WorkerResponseContent, RxPeers,RxMpscSched};
 
 struct Inbox(RxMpscSf, HashMap<RequestId, TxOne>);
 struct Outbox(TxMpsc, HashMap<AddrReqId, RxOne>);
@@ -56,19 +58,21 @@ impl PartialEq for Outbox {
 }
 
 pub struct Scheduler {
-    main_channel: mpsc::UnboundedReceiver<RxPeers>,
+    main_channel: exec::commons::RxMpscSched,
     inbox: HashMap<SocketAddr, Inbox>,
     outbox: Vec<Outbox>,
     workers_max_tasks: usize,
+    toolbox: Arc<exec::commons::ToolBox>,
 }
 
 impl Scheduler {
-    pub fn new(rx: mpsc::UnboundedReceiver<RxPeers>, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(rx: exec::commons::RxMpscSched, workers_max_tasks: usize) -> Scheduler {
         Scheduler {
             main_channel: rx,
             inbox: HashMap::new(),
             outbox: vec![],
             workers_max_tasks,
+            toolbox: Arc::new(exec::commons::ToolBox::new()),
         }
     }
 }
@@ -89,8 +93,9 @@ impl Future for Scheduler {
         loop {
             println!("sched:: loop 0");
             match self.main_channel.poll() {
-                Ok(Async::Ready(Some(RxPeers(addr, first)))) => {
+                Ok(Async::Ready(Some(box exec::commons::SchedRequestContent(RxPeers(addr, first), tx_mpsc_peer)))) => {
                     self.inbox.insert(addr, Inbox::new(first));
+                    self.toolbox.peer_messenger.lock().unwrap().insert(addr, tx_mpsc_peer);
                 },
                 _ => {
                     break;
@@ -208,7 +213,7 @@ impl Future for Scheduler {
             if new_box_flag {
                 let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
-                let worker = exec::worker::Worker::new(rx).map(|_item| ()).map_err(|_err| ());
+                let worker = exec::worker::Worker::new(rx, self.toolbox.clone()).map(|_item| ()).map_err(|_err| ());
                 // spawn the worke's future
                 tokio::spawn(worker);
                 // create a new outbox, that is created for each new worker

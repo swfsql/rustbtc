@@ -19,14 +19,14 @@ use futures::sync::{mpsc};
 //use std::io::{Error, ErrorKind};
 //use std::collections::BinaryHeap;
 //use std::cmp::Ordering;
-
+use std::sync::{Arc};
 //use std::ops::Deref;
 //use std::ops::DerefMut;
 
 use exec::commons;
 use admin;
 
-use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent};
+use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, SchedRequestContent};
 
 /*use self::commons::{AddrReqId, RequestId, RequestPriority, RxMpsc, RxMpscSf, RxOne, TxMpsc,
                     TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
@@ -40,6 +40,7 @@ struct Inbox(RxMpsc, Vec<Box<WorkerRequestContent>>);
 
 pub struct Worker {
     inbox: Inbox,
+    toolbox: Arc<commons::ToolBox>,
 }
 
 /*
@@ -52,9 +53,10 @@ pub struct WorkerRequestContent(
 */
 
 impl Worker {
-    pub fn new(rx_mpsc: RxMpsc) -> Worker {
+    pub fn new(rx_mpsc: RxMpsc, toolbox: Arc<commons::ToolBox>) -> Worker {
         Worker {
             inbox: Inbox(rx_mpsc, vec![]),
+            toolbox,
         }
     }
 }
@@ -105,12 +107,26 @@ impl Future for Worker {
                     //println!("worker:: Hi! Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
-                            let (tx, rx) = mpsc::unbounded();
+                            let (tx_peer, rx_peer) = mpsc::unbounded();
+                            let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+                            let peer_addr = socket.peer_addr().unwrap();
                             {
                                 let tx_sched_unlocked = tx_sched.lock().unwrap();
-                                tx_sched_unlocked.unbounded_send(commons::RxPeers(socket.peer_addr().unwrap(), rx.into_future())).unwrap();
+
+                                let sched_req_ctt = SchedRequestContent(
+                                    commons::RxPeers(
+                                        peer_addr.clone(),
+                                        rx_peer.into_future()
+                                    ),
+                                    tx_toolbox);
+
+                                tx_sched_unlocked.unbounded_send(Box::new(sched_req_ctt)).unwrap();
                             }
-                            let peer = admin::Peer::new(socket, tx, tx_sched);
+                            let peer = admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
+                            {
+                                //let mut messenger_unlocked = self.toolbox.peer_messenger.lock().unwrap();
+                                //messenger_unlocked.insert(peer_addr, tx_toolbox);
+                            }
                             let peer_machina = admin::machina::Machina::start(peer).map(|_| ()).map_err(|_| ());
                             tokio::spawn(peer_machina);
                             WorkerResponse::PeerAdd(Some(addr))
