@@ -27,12 +27,12 @@ impl Future for Peer {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<(), io::Error> {
-        println!("poll called");
+        i!("poll called");
 
         let _ = self.lines.poll_flush()?;
 
         while let Async::Ready(line) = self.lines.poll()? {
-            println!("Received line : {:?}", line);
+            i!("Received line : {:?}", line);
 
             if let Some(message) = line {
                 let mut line = message.clone();

@@ -67,7 +67,7 @@ fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         .map(|_| ());
 
     tokio::spawn(peer_machina);
-    println!("depois do spawn");
+    i!("depois do spawn");
 }
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
     e!("ahsuhsua");
@@ -92,7 +92,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         .map(|_| ());
 
     tokio::spawn(peer_machina);
-    println!("depois do spawn");
+    i!("depois do spawn");
 }
 
 use env_logger::LogBuilder;
@@ -147,13 +147,13 @@ fn run() -> Result<()> {
             Ok(())
         })
         .map_err(|err| {
-            println!("accept error = {:?}", err);
+            i!("accept error = {:?}", err);
         });
 
 
 
-    println!("server_peer running on {:#?}", args.node_addr);
-    println!("server_admin running on {:#?}", args.admin_addr);
+    i!("server_peer running on {:#?}", args.node_addr);
+    i!("server_admin running on {:#?}", args.admin_addr);
 
     /*
     thread::spawn(move || {

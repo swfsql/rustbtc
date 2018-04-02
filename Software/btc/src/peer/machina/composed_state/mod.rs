@@ -32,7 +32,7 @@ impl PollMachina for Machina {
                     let _ = peer.0.lines.poll_flush()?;
 
                     let next = B(peer.take().0);
-                    println!("going to B");
+                    i!("going to B");
                     transition!(next)
                 }
                 _ => {
@@ -40,7 +40,7 @@ impl PollMachina for Machina {
                     let _ = peer.0.lines.poll_flush()?;
 
                     let next = End((peer.take().0, msg));
-                    println!("going to End");
+                    i!("going to End");
                     transition!(next)
                 }
             }
@@ -56,7 +56,7 @@ impl PollMachina for Machina {
 
             let peer = peer.take();
             let next = End((peer.0, msg));
-            println!("going to End");
+            i!("going to End");
             transition!(next)
         }
         // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))

@@ -67,15 +67,15 @@ impl Future for Worker {
 
     fn poll(&mut self) -> Poll<(), io::Error> {
 
-        println!("worker:: poll");
+        i!("worker:: poll");
 
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
         loop {
-            println!("worker:: loop 0");
+            i!("worker:: loop 0");
             match rec.poll() {
                 Ok(Async::Ready(Some(wrk_req))) => {
                     reqs.push(wrk_req);
-                    println!("worker:: loop 0 ran");
+                    i!("worker:: loop 0 ran");
                 }
                 Ok(Async::NotReady) => break,
                 _ => panic!("Unexpected value for worker polling on reader channel"),
@@ -91,12 +91,12 @@ impl Future for Worker {
                 addr) = req;
             let resp = match wrk_req {
                 WorkerRequest::Hello => {
-                    println!("worker:: Hi! Request received: {:#?}", wrk_req);
+                    i!("worker:: Hi! Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 },
                 WorkerRequest::Wait{delay} => {
 
-                    println!("worker:: Hi! Request received: {:#?}", wrk_req);
+                    i!("worker:: Hi! Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait().unwrap();
@@ -104,7 +104,7 @@ impl Future for Worker {
                 },
                 WorkerRequest::PeerPrint => {
 
-                    println!("worker:: Hi! Request received: {:#?}", &wrk_req);
+                    i!("worker:: Hi! Request received: {:#?}", &wrk_req);
                     for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {
                         let msg = commons::PeerRequest::Dummy;
                         tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
@@ -114,7 +114,7 @@ impl Future for Worker {
                 },
                 WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
 
-                    //println!("worker:: Hi! Request received: {:#?}", &wrk_req);
+                    //i!("worker:: Hi! Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
                             let (tx_peer, rx_peer) = mpsc::unbounded();
@@ -146,17 +146,17 @@ impl Future for Worker {
 
                 },
                 _ => {
-                    println!("worker:: Request received: {:#?}", wrk_req);
+                    i!("worker:: Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 },
             };
 
-            println!("worker:: response sending.");
+            i!("worker:: response sending.");
             tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone())))).unwrap();
-            println!("worker:: response sent.");
+            i!("worker:: response sent.");
             task::current().notify();
         }
-        println!("worker:: returning not ready (end).");
+        i!("worker:: returning not ready (end).");
         Ok(Async::NotReady)
     }
 }

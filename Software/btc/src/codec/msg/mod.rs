@@ -75,7 +75,7 @@ impl NewFromHex for Msg {
             );
         }
 
-        //println!("Só ALEDGRIA4444");
+        //i!("Só ALEDGRIA4444");
 
         let payload = match cmd_str.to_string().trim() {
             "tx\0\0\0\0\0\0\0\0\0\0" => {
@@ -99,7 +99,7 @@ impl NewFromHex for Msg {
             }
             "verack\0\0\0\0\0\0" => Some(payload::Payload::Verack),
             x => {
-                println!("payload code didnt match: {:?}", x);
+                i!("payload code didnt match: {:?}", x);
                 None
             }
         };

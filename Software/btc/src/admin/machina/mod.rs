@@ -66,7 +66,7 @@ impl PollMachina for Machina {
         peer.0.lines.buffer(b"WELCOME\r\n");
         let _ = peer.0.lines.poll_flush()?;
         let _ = peer.0.lines.poll_flush()?; // to make sure
-        println!("admin:: sent WELCOME");
+        i!("sent WELCOME");
 
         transition!(Standby(peer.take().0))
     }
@@ -75,17 +75,17 @@ impl PollMachina for Machina {
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, std::io::Error> {
 
-        e!("admin got polled!!");
+
 
         loop {
-            println!("test");
+            i!("test");
             if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
                 match peer_req {
 
                     PeerRequest::Dummy => {
-                        println!("admin:: received dummy command, read on standby");
+                        i!("received dummy command, read on standby");
                     },
-                    _ => {println!("admin:: loop de recibo inner");
+                    _ => {i!("loop de recibo inner");
                     },
                 }
             } else {
@@ -108,7 +108,7 @@ impl PollMachina for Machina {
                     //     clap::ErrorKind::
                     //     ErrorKind::HelpDisplayed or ErrorKind::VersionDisplayed
                     // }
-                    println!("admin:: Error detected when parsing admin cmds");
+                    i!("Error detected when parsing admin cmds");
                     peer.0.lines.buffer(b"Command could not be executed\r\n");
                     peer.0
                         .lines
@@ -119,7 +119,7 @@ impl PollMachina for Machina {
                     peer.0
                         .lines
                         .buffer(format!("Aditional Info:\r\n{:?}\r\n", e.info).as_bytes());
-                    println!("admin:: {:?}", e);
+                    i!("{:?}", e);
                     let _ = peer.0.lines.poll_flush()?;
                     continue;
                 }
@@ -129,7 +129,7 @@ impl PollMachina for Machina {
 
                             let peer = peer.take();
 
-                            println!("admin:: started dummy cmd");
+                            i!("started dummy cmd");
                             let wr = WorkerRequest::PeerAdd{addr: addr, wait_handhsake:wait_handhsake, tx_sched: peer.0.tx_sched.clone()};
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -152,7 +152,7 @@ impl PollMachina for Machina {
                     args::AdminCmd::Util(_) => {}
                     args::AdminCmd::Debug(debug) => match debug {
                         args::DebugCmd::Dummy => {
-                            println!("admin:: started dummy cmd");
+                            i!("started dummy cmd");
                             let wr = WorkerRequest::Hello;
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -169,7 +169,7 @@ impl PollMachina for Machina {
 
                         },
                         args::DebugCmd::Wait{delay} => {
-                            println!("admin:: started wait cmd");
+                            i!("started wait cmd");
                             let wr = WorkerRequest::Wait{delay: delay};
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -185,7 +185,7 @@ impl PollMachina for Machina {
                             transition!(next);
                         },
                         args::DebugCmd::PeerPrint => {
-                            println!("admin:: started peerprint cmd");
+                            i!("started peerprint cmd");
                             let wr = WorkerRequest::PeerPrint;
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -208,13 +208,13 @@ impl PollMachina for Machina {
             // never reached
             match msg.as_ref() {
                 "PING?" => {
-                    println!("admin:: going to WAITING");
+                    i!("going to WAITING");
                     let peer = peer.take();
                     let next = Execution(peer.0);
                     transition!(next)
                 }
                 _ => {
-                    println!("admin:: BATATA: <{:?}>", &msg);
+                    i!("BATATA: <{:?}>", &msg);
                 }
             }
         }
@@ -225,13 +225,13 @@ impl PollMachina for Machina {
     fn poll_wait_hello<'a>(
         wait_hello: &'a mut RentToOwn<'a, WaitHello>,
     ) -> Poll<AfterWaitHello, std::io::Error> {
-        println!("admin:: WaitHello poll");
+        i!("WaitHello poll");
 
         let resp;
         match wait_hello.1.poll() {
             Ok(Async::Ready(fresp)) => {
                 resp = fresp;
-                println!("admin:: 111111111111 admin WaitHello poll");
+                i!("111111111111 admin WaitHello poll");
             },
             Ok(Async::NotReady) => {
                 return Ok(Async::NotReady);
@@ -248,7 +248,7 @@ impl PollMachina for Machina {
             .buffer(format!("{:#?}", &resp).as_bytes());
         let _ = peer.lines.poll_flush()?;
         let _ = peer.lines.poll_flush()?; // to make sure
-        println!("admin:: {:#?}", &resp);
+        i!("{:#?}", &resp);
 
         //orx.take();
         let next = Standby(peer);
@@ -258,12 +258,12 @@ impl PollMachina for Machina {
     fn poll_wait_peer_print<'a>(
         state: &'a mut RentToOwn<'a, WaitPeerPrint>,
     ) -> Poll<AfterWaitPeerPrint, std::io::Error> {
-        println!("admin:: WaitPeerPrint poll");
+        i!("WaitPeerPrint poll");
 
         let resp;
         match state.1.poll() {
             Ok(Async::Ready(fresp)) => {
-                println!("admin:: received response from worker (PeerPrint)");
+                i!("received response from worker (PeerPrint)");
                 resp = fresp;
             },
             Ok(Async::NotReady) => {
@@ -281,7 +281,7 @@ impl PollMachina for Machina {
             .buffer(format!("{:#?}", &resp).as_bytes());
         let _ = peer.lines.poll_flush()?;
         let _ = peer.lines.poll_flush()?; // to make sure
-        println!("admin:: {:#?}", &resp);
+        i!("{:#?}", &resp);
 
         //orx.take();
         let next = Standby(peer);
@@ -291,13 +291,13 @@ impl PollMachina for Machina {
     fn poll_wait_peer_add<'a>(
         wait_peer_add: &'a mut RentToOwn<'a, WaitPeerAdd>,
     ) -> Poll<AfterWaitPeerAdd, std::io::Error> {
-        println!("admin:: WaitPeerAdd poll");
+        i!("WaitPeerAdd poll");
 
         let resp;
         match wait_peer_add.1.poll() {
             Ok(Async::Ready(fresp)) => {
                 resp = fresp;
-                println!("admin:: 111111111111 admin WaitHello poll");
+                i!("111111111111 admin WaitHello poll");
             },
             Ok(Async::NotReady) => {
                 return Ok(Async::NotReady);
@@ -314,7 +314,7 @@ impl PollMachina for Machina {
             .buffer(format!("{:#?}", &resp).as_bytes());
         let _ = peer.lines.poll_flush()?;
         let _ = peer.lines.poll_flush()?; // to make sure
-        println!("admin:: {:#?}", &resp);
+        i!("{:#?}", &resp);
 
         //orx.take();
         let next = Standby(peer);
@@ -334,7 +334,7 @@ impl PollMachina for Machina {
 
                     let peer = peer.take();
                     let next = End(peer.0);
-                    println!("admin:: going to END");
+                    i!("going to END");
                     transition!(next)
                 }
                 _ => {}

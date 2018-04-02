@@ -36,7 +36,7 @@ impl PollMachina for Machina {
         peer.0.lines.buffer(b"WELCOME");
         let _ = peer.0.lines.poll_flush()?;
         let _ = peer.0.lines.poll_flush()?; // to make sure
-        println!("sent WELCOME");
+        i!("sent WELCOME");
 
         transition!(Standby(peer.take().0))
     }
@@ -49,13 +49,13 @@ impl PollMachina for Machina {
 
             match msg.as_ref() {
                 "PING?" => {
-                    println!("going to WAITING");
+                    i!("going to WAITING");
                     let peer = peer.take();
                     let waiting = Waiting(peer.0);
                     transition!(waiting)
                 }
                 _ => {
-                    println!("BATATA: <{:?}>", &msg);
+                    i!("BATATA: <{:?}>", &msg);
                 }
             }
         }
@@ -77,7 +77,7 @@ impl PollMachina for Machina {
                     let peer = peer.take();
                     let mach = composed_state::Machina::start(peer.0);
                     let next = ComposedState(mach);
-                    println!("going to ComposedState");
+                    i!("going to ComposedState");
                     transition!(next)
                 }
                 "BYE" => {
@@ -86,7 +86,7 @@ impl PollMachina for Machina {
 
                     let peer = peer.take();
                     let next = End(peer.0);
-                    println!("going to END");
+                    i!("going to END");
                     transition!(next)
                 }
                 _ => {}
@@ -108,7 +108,7 @@ impl PollMachina for Machina {
                 let _ = peer.lines.poll_flush()?;
 
                 let next = Standby(peer);
-                println!("going to Standby");
+                i!("going to Standby");
                 transition!(next)
             }
             _ => {
@@ -116,7 +116,7 @@ impl PollMachina for Machina {
                 let _ = peer.lines.poll_flush()?;
 
                 let next = Waiting(peer);
-                println!("going to Waiting");
+                i!("going to Waiting");
                 transition!(next)
             }
         }
