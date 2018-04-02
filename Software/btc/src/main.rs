@@ -99,7 +99,6 @@ use env_logger::LogBuilder;
 
 fn run() -> Result<()> {
 
-
     LogBuilder::new()
         .format(|record| {
                     format!("[{}]{}",
@@ -112,12 +111,6 @@ fn run() -> Result<()> {
     //env_logger::init().unwrap();
     let args = EnvVar::from_args();
 
-    e!("Testing print aheuheau eahueuaheua uheaheuau");
-    w!("Testing printhuhuhu huhuhu huhuhu");
-    i!("Testing print llalal lalal");
-    d!("Testing print xxx");
-
-
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
     let scheduler = btc::exec::scheduler::Scheduler::new(rx, 3)
@@ -125,9 +118,6 @@ fn run() -> Result<()> {
     thread::spawn(move || {
         tokio::run(scheduler);
     });
-
-    //let addr_peer = "127.0.0.1:8080".parse().unwrap();
-    //let addr_admin = "127.0.0.1:8081".parse().unwrap();
 
     let listener_peer = TcpListener::bind(&args.node_addr).unwrap();
     let listener_admin = TcpListener::bind(&args.admin_addr).unwrap();
@@ -152,8 +142,9 @@ fn run() -> Result<()> {
 
 
 
-    i!("server_peer running on {:#?}", args.node_addr);
-    i!("server_admin running on {:#?}", args.admin_addr);
+    i!("server_peer running on {:?}", args.node_addr);
+    i!("server_admin running on {:?}", args.admin_addr);
+    print!("test");
 
     /*
     thread::spawn(move || {
@@ -164,12 +155,6 @@ fn run() -> Result<()> {
     //tokio::run(server_peer);
     tokio::run(server_listeners);
 
-    info!(
-        "\n\
-         ---------------------end-\n\
-         {}",
-        time::now().strftime("%Hh%Mm%Ss - D%d/M%m/Y%Y").unwrap()
-    );
     Ok(())
 }
 

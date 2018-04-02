@@ -88,10 +88,8 @@ impl Future for Scheduler {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<(), Error> {
-        i!("sched:: Schedule poll called.");
-
+        d!("Schedule poll called.");
         loop {
-            i!("sched:: loop 0");
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(box exec::commons::MainToSchedRequestContent(RxPeers(addr, first), tx_mpsc_peer)))) => {
                     self.inbox.insert(addr, Inbox::new(first));
@@ -102,11 +100,9 @@ impl Future for Scheduler {
                 }
             }
             task::current().notify();
-            i!("sched::loop 0 ran.");
         };
 
         loop {
-            i!("sched:: loop 1");
             if let Some(first_outbox) = self.outbox.iter().next() {
                 if first_outbox.1.is_empty() {
                     break;
@@ -115,7 +111,6 @@ impl Future for Scheduler {
                 break;
             };
             let wrk_full_resp = {
-                i!("sched:: before select_all ");
                 let poll = futures::future::select_all(
                         self.outbox
                             .iter_mut()
@@ -144,6 +139,7 @@ impl Future for Scheduler {
                         .find(|ref mut hm| hm.contains_key(&addr_req_id)).unwrap().remove(&addr_req_id);
                         addr_req_id.clone()
                 } else {
+                    e!("No channel oneshot to be removed on the scheduler's outbox");
                     panic!("error from response.");
                     // TODO: unlist oneshot receiver on error,
                     // requires: same addr_req_id inside the error structure
@@ -160,17 +156,13 @@ impl Future for Scheduler {
             //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
             //**************************************************************
             task::current().notify();
-            i!("sched::loop 1 ran.");
         };
 
         loop {
-            i!("sched:: loop 2");
             if self.inbox.is_empty() {
-                i!("sched:: entrou no break bugado!");
                 break;
             };
             let (first, tail_stream) = {
-                i!("sched:: before select_all ");
                 let poll = futures::future::select_all(
                         self.inbox.iter_mut().map(|(_, &mut Inbox(ref mut rx_mpsc, _))| rx_mpsc),
                     )
@@ -243,14 +235,13 @@ impl Future for Scheduler {
             // extract and replace the first future from the channel
             *prev_rx_mpsc_sf = tail_stream.into_future();
             if prev_oneshots.contains_key(&addr_req_id.1) {
-                i!("sched:: Error: colliding oneshot key");
+                e!("Error: colliding oneshot key on inserting inbox");
                 panic!("TODO");
             }
 
             //
             prev_oneshots.insert(addr_req_id.1, old_tx_one);
             task::current().notify();
-            i!("sched::loop 2 ran.");
 
         };
 

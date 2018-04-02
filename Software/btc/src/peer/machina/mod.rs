@@ -36,7 +36,7 @@ impl PollMachina for Machina {
         peer.0.lines.buffer(b"WELCOME");
         let _ = peer.0.lines.poll_flush()?;
         let _ = peer.0.lines.poll_flush()?; // to make sure
-        i!("sent WELCOME");
+        i!("sent WELCOME to socket");
 
         transition!(Standby(peer.take().0))
     }
@@ -49,13 +49,13 @@ impl PollMachina for Machina {
 
             match msg.as_ref() {
                 "PING?" => {
-                    i!("going to WAITING");
+                    i!("going to WAITING state");
                     let peer = peer.take();
                     let waiting = Waiting(peer.0);
                     transition!(waiting)
                 }
                 _ => {
-                    i!("BATATA: <{:?}>", &msg);
+                    i!("message: <{:?}>", &msg);
                 }
             }
         }
@@ -77,7 +77,7 @@ impl PollMachina for Machina {
                     let peer = peer.take();
                     let mach = composed_state::Machina::start(peer.0);
                     let next = ComposedState(mach);
-                    i!("going to ComposedState");
+                    i!("going to ComposedState state");
                     transition!(next)
                 }
                 "BYE" => {
@@ -86,7 +86,7 @@ impl PollMachina for Machina {
 
                     let peer = peer.take();
                     let next = End(peer.0);
-                    i!("going to END");
+                    i!("going to END state");
                     transition!(next)
                 }
                 _ => {}
@@ -108,7 +108,7 @@ impl PollMachina for Machina {
                 let _ = peer.lines.poll_flush()?;
 
                 let next = Standby(peer);
-                i!("going to Standby");
+                i!("going to Standby state");
                 transition!(next)
             }
             _ => {
@@ -116,7 +116,7 @@ impl PollMachina for Machina {
                 let _ = peer.lines.poll_flush()?;
 
                 let next = Waiting(peer);
-                i!("going to Waiting");
+                i!("going to Waiting state");
                 transition!(next)
             }
         }

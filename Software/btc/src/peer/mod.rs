@@ -27,7 +27,7 @@ impl Future for Peer {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<(), io::Error> {
-        i!("poll called");
+        d!("poll called");
 
         let _ = self.lines.poll_flush()?;
 

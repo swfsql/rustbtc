@@ -67,15 +67,15 @@ impl Future for Worker {
 
     fn poll(&mut self) -> Poll<(), io::Error> {
 
-        i!("worker:: poll");
+        d!("poll");
 
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
         loop {
-            i!("worker:: loop 0");
+            i!("loop 0");
             match rec.poll() {
                 Ok(Async::Ready(Some(wrk_req))) => {
                     reqs.push(wrk_req);
-                    i!("worker:: loop 0 ran");
+                    i!("loop 0 ran");
                 }
                 Ok(Async::NotReady) => break,
                 _ => panic!("Unexpected value for worker polling on reader channel"),
@@ -91,12 +91,12 @@ impl Future for Worker {
                 addr) = req;
             let resp = match wrk_req {
                 WorkerRequest::Hello => {
-                    i!("worker:: Hi! Request received: {:#?}", wrk_req);
+                    i!("Hi! Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 },
                 WorkerRequest::Wait{delay} => {
 
-                    i!("worker:: Hi! Request received: {:#?}", wrk_req);
+                    i!("Hi! Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait().unwrap();
@@ -104,7 +104,7 @@ impl Future for Worker {
                 },
                 WorkerRequest::PeerPrint => {
 
-                    i!("worker:: Hi! Request received: {:#?}", &wrk_req);
+                    i!("Hi! Request received: {:#?}", &wrk_req);
                     for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {
                         let msg = commons::PeerRequest::Dummy;
                         tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
@@ -146,17 +146,17 @@ impl Future for Worker {
 
                 },
                 _ => {
-                    i!("worker:: Request received: {:#?}", wrk_req);
+                    i!("Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 },
             };
 
-            i!("worker:: response sending.");
+            i!("response sending.");
             tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone())))).unwrap();
-            i!("worker:: response sent.");
+            i!("response sent.");
             task::current().notify();
         }
-        i!("worker:: returning not ready (end).");
+        i!("returning not ready (end).");
         Ok(Async::NotReady)
     }
 }

@@ -34,18 +34,3 @@ pub mod peer;
 pub mod admin;
 pub mod codec;
 pub mod exec;
-
-
-/*
-#[macro_use]
-pub mod macros;
-
-*/
-
-/*
-macro_rules! e {
-    () => (error!("{} {} {}", module_path!(), file!(), line!()));
-    ($fmt:expr) => (error!("{} {} {} \n {}", module_path!(), file!(), line!(), $fmt));
-    ($fmt:expr, $($arg:tt)*) => (error!("{} {} {} \n {}", module_path!(), file!(), line!(), $fmt, $($arg)*));
-}
-*/
