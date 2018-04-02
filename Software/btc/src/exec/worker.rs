@@ -26,7 +26,7 @@ use std::sync::{Arc};
 use exec::commons;
 use admin;
 
-use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, SchedRequestContent};
+use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, MainToSchedRequestContent};
 
 /*use self::commons::{AddrReqId, RequestId, RequestPriority, RxMpsc, RxMpscSf, RxOne, TxMpsc,
                     TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
@@ -113,7 +113,7 @@ impl Future for Worker {
                             {
                                 let tx_sched_unlocked = tx_sched.lock().unwrap();
 
-                                let sched_req_ctt = SchedRequestContent(
+                                let sched_req_ctt = MainToSchedRequestContent(
                                     commons::RxPeers(
                                         peer_addr.clone(),
                                         rx_peer.into_future()

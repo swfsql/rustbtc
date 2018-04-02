@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum WorkerRequest {
-    PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<TxMpscSched>>},
+    PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<TxMpscMainToSched>>},
     PeerKill{ addr: SocketAddr },
     PeerGetInfo { addr: SocketAddr },
     ListPeers,
@@ -23,7 +23,7 @@ pub enum PeerRequest {
 }
 
 pub struct ToolBox {
-    pub peer_messenger: Mutex<HashMap<SocketAddr, TxMpscPeer>>,
+    pub peer_messenger: Mutex<HashMap<SocketAddr, TxMpscWorkerToPeer>>,
 }
 
 impl ToolBox {
@@ -58,15 +58,27 @@ use std::sync::{Arc, Mutex};
 pub struct AddrReqId(pub SocketAddr, pub RequestId);
 
 // peer <-> scheduler <-> worker
+
+// peer/admin -> scheduler -> worker
 pub type TxMpsc = mpsc::UnboundedSender<Box<WorkerRequestContent>>;
+// worker <- scheduler <- peer/admin
 pub type RxMpsc = mpsc::UnboundedReceiver<Box<WorkerRequestContent>>;
+//
 pub type RxMpscSf = futures::stream::StreamFuture<RxMpsc>;
+// worker -> scheduler -> peer
 pub type TxOne = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
+// peer <- scheduler <- worker
 pub type RxOne = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;
-pub type TxMpscPeer = mpsc::UnboundedSender<Box<PeerRequestPriority>>;
-pub type RxMpscPeer = mpsc::UnboundedReceiver<Box<PeerRequestPriority>>;
-pub type TxMpscSched = mpsc::UnboundedSender<Box<SchedRequestContent>>;
-pub type RxMpscSched = mpsc::UnboundedReceiver<Box<SchedRequestContent>>;
+// worker [with toolbox] -> peer
+pub type TxMpscWorkerToPeer = mpsc::UnboundedSender<Box<WorkerToPeerRequestAndPriority>>;
+// peer <- worker [with toolbox]
+pub type RxMpscWorkerToPeer = mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>;
+// main/.. -> scheduler
+pub type TxMpscMainToSched = mpsc::UnboundedSender<Box<MainToSchedRequestContent>>;
+// scheduler <- main/..
+pub type RxMpscMainToSched = mpsc::UnboundedReceiver<Box<MainToSchedRequestContent>>;
+
+
 
 #[derive(Debug)]
 pub struct RxPeers (pub SocketAddr, pub RxMpscSf);
@@ -77,7 +89,7 @@ pub struct TxPeers (pub SocketAddr, pub RxMpscSf);
 pub struct WorkerRequestContent(pub WorkerRequestPriority, pub TxOne, pub AddrReqId);
 
 #[derive(Debug)]
-pub struct SchedRequestContent(pub RxPeers, pub TxMpscPeer);
+pub struct MainToSchedRequestContent(pub RxPeers, pub TxMpscWorkerToPeer);
 
 impl Eq for WorkerRequestContent {}
 
@@ -102,14 +114,13 @@ impl PartialEq for WorkerRequestContent {
 #[derive(Debug)]
 pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
 
-
 pub type RequestPriority = u8;
 pub type RequestId = usize;
 
 #[derive(Debug)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
 #[derive(Debug)]
-pub struct PeerRequestPriority(pub PeerRequest, pub RequestPriority);
+pub struct WorkerToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
 
 
 

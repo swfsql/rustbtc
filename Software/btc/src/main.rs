@@ -55,7 +55,7 @@ pub struct EnvVar {
   admin_addr: SocketAddr,
 }
 
-fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscSched>>) {
+fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
     let peer = btc::peer::Peer::new(socket);
 
     //        .map_err(|_| ());
@@ -67,14 +67,14 @@ fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscSched>>) 
     tokio::spawn(peer_machina);
     println!("depois do spawn");
 }
-fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscSched>>) {
+fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
 
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
         let tx_sched_unlocked = tx_sched.lock().unwrap();
         tx_sched_unlocked.unbounded_send(
-            Box::new(commons::SchedRequestContent(
+            Box::new(commons::MainToSchedRequestContent(
             commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
             tx_toolbox,
             ))

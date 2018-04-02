@@ -26,7 +26,7 @@ use std::sync::{Arc};
 use exec;
 use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
                     TxOne, WorkerRequestContent,
-                    WorkerResponseContent, RxPeers,RxMpscSched};
+                    WorkerResponseContent, RxPeers,RxMpscMainToSched};
 
 struct Inbox(RxMpscSf, HashMap<RequestId, TxOne>);
 struct Outbox(TxMpsc, HashMap<AddrReqId, RxOne>);
@@ -58,7 +58,7 @@ impl PartialEq for Outbox {
 }
 
 pub struct Scheduler {
-    main_channel: exec::commons::RxMpscSched,
+    main_channel: exec::commons::RxMpscMainToSched,
     inbox: HashMap<SocketAddr, Inbox>,
     outbox: Vec<Outbox>,
     workers_max_tasks: usize,
@@ -66,7 +66,7 @@ pub struct Scheduler {
 }
 
 impl Scheduler {
-    pub fn new(rx: exec::commons::RxMpscSched, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(rx: exec::commons::RxMpscMainToSched, workers_max_tasks: usize) -> Scheduler {
         Scheduler {
             main_channel: rx,
             inbox: HashMap::new(),
@@ -93,7 +93,7 @@ impl Future for Scheduler {
         loop {
             println!("sched:: loop 0");
             match self.main_channel.poll() {
-                Ok(Async::Ready(Some(box exec::commons::SchedRequestContent(RxPeers(addr, first), tx_mpsc_peer)))) => {
+                Ok(Async::Ready(Some(box exec::commons::MainToSchedRequestContent(RxPeers(addr, first), tx_mpsc_peer)))) => {
                     self.inbox.insert(addr, Inbox::new(first));
                     self.toolbox.peer_messenger.lock().unwrap().insert(addr, tx_mpsc_peer);
                 },
