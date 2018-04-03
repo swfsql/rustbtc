@@ -63,7 +63,7 @@ impl PollMachina for Machina {
         peer.0.lines.buffer(b"WELCOME\r\n");
         let _ = peer.0.lines.poll_flush()?;
         let _ = peer.0.lines.poll_flush()?; // to make sure
-        i!("sent WELCOME");
+        d!("sent WELCOME");
 
         transition!(Standby(peer.take().0))
     }

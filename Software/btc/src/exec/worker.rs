@@ -71,11 +71,11 @@ impl Future for Worker {
 
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
         loop {
-            i!("loop 0");
+            d!("loop 0");
             match rec.poll() {
                 Ok(Async::Ready(Some(wrk_req))) => {
                     reqs.push(wrk_req);
-                    i!("loop 0 ran");
+                    d!("loop 0 ran");
                 }
                 Ok(Async::NotReady) => break,
                 _ => panic!("Unexpected value for worker polling on reader channel"),
@@ -162,12 +162,12 @@ impl Future for Worker {
                 },
             };
 
-            i!("response sending.");
+            d!("response sending.");
             tx_one.send(Ok(Box::new(WorkerResponseContent(resp, addr.clone())))).unwrap();
-            i!("response sent.");
+            d!("response sent.");
             task::current().notify();
         }
-        i!("returning not ready (end).");
+        d!("returning not ready (end).");
         Ok(Async::NotReady)
     }
 }

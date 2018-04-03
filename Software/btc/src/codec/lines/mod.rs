@@ -57,7 +57,7 @@ impl Stream for Lines {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        i!("lines poll called");
+        d!("lines poll called");
 
         let sock_closed = self.fill_read_buf()?.is_ready();
 
