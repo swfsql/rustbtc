@@ -72,6 +72,15 @@ impl PollMachina for Machina {
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, std::io::Error> {
 
+        defmac!(prepare_transition mut state_peer, wr, priority => {
+            let wrp = WorkerRequestPriority(wr, priority);
+            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+            let skt = state_peer.lines.socket.peer_addr().unwrap();
+            let addr = AddrReqId(skt, state_peer.next_request_counter());
+            let wrc = WorkerRequestContent(wrp, otx, addr);
+            (state_peer, orx)
+        });
+
         peer.0.poll_ignored();
 
         loop {
@@ -134,38 +143,19 @@ impl PollMachina for Machina {
                         args::PeerCmd::Add{addr, wait_handhsake} => {
 
                             let peer = peer.take();
-
                             d!("Entered command: Adding a peer");
                             let wr = WorkerRequest::PeerAdd{addr: addr, wait_handhsake:wait_handhsake, tx_sched: peer.0.tx_sched.clone()};
-                            let wrp = WorkerRequestPriority(wr, 200);
-                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-                            let skt = peer.0.lines.socket.peer_addr().unwrap();
-                            let hello_index = 0;
-                            let addr = AddrReqId(skt, hello_index);
-                            let wrc = WorkerRequestContent(wrp, otx, addr);
-
-                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
-
-                            let next = SimpleWait(peer.0,orx); //Calling this simplewait???
+                            let (peer, orx) = prepare_transition!(peer.0, wr, 200);
+                            let next = SimpleWait(peer,orx);
                             transition!(next);
-
                         },
                         args::PeerCmd::Remove{addr} => {
 
-                            let peer = peer.take();
+                            let state = peer.take();
                             d!("Entered command: Removing a peer");
-
                             let wr = WorkerRequest::PeerRemove{addr: addr};
-                            let wrp = WorkerRequestPriority(wr, 200);
-                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-                            let skt = peer.0.lines.socket.peer_addr().unwrap();
-                            let kill_index = 0;
-                            let addr = AddrReqId(skt, kill_index);
-                            let wrc = WorkerRequestContent(wrp, otx, addr);
-
-                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
-
-                            let next = SimpleWait(peer.0,orx);
+                            let (peer, orx) = prepare_transition!(state.0, wr, 200);
+                            let next = SimpleWait(peer,orx);
                             transition!(next);
 
                         },
@@ -226,6 +216,14 @@ impl PollMachina for Machina {
                             transition!(next);
 
                         },
+                    },
+                    args::AdminCmd::Exit => {
+                        let state = peer.take();
+                        d!("Entered command: Exiting admin");
+                        let wr = WorkerRequest::PeerRemove{addr: state.0.lines.socket.peer_addr().unwrap()};
+                        let (peer, orx) = prepare_transition!(state.0, wr, 200);
+                        let next = SimpleWait(peer,orx);
+                        transition!(next);
                     },
                 },
             }

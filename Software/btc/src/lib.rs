@@ -30,6 +30,8 @@ extern crate structopt;
 #[macro_use]
 pub mod macros;
 
+#[macro_use] extern crate defmac;
+
 pub mod peer;
 pub mod admin;
 pub mod codec;

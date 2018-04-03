@@ -74,7 +74,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
-        let tx_sched_unlocked = tx_sched.lock().unwrap();
+        let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
         tx_sched_unlocked.unbounded_send(
             Box::new(
                 commons::MainToSchedRequestContent::Register(
@@ -82,7 +82,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
                     tx_toolbox,
                 )
             )
-        ).unwrap();
+        ).unwrap(); // TODO may error
     }
 
     let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);

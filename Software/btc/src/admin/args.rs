@@ -28,6 +28,10 @@ pub enum AdminCmd {
     #[structopt(name = "debug")]
     /// Utilities-related tasks
     Debug(DebugCmd),
+
+    #[structopt(name = "exit")]
+    /// Exits the CLI and disconnects the admin peer
+    Exit,
 }
 
 #[derive(StructOpt, Debug)]
@@ -138,3 +142,4 @@ pub enum DebugCmd {
     #[structopt(name = "print")]
     PeerPrint,
 }
+

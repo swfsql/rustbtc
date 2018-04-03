@@ -26,6 +26,7 @@ pub struct Peer {
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
     rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
+    request_counter: usize,
 }
 
 impl Peer {
@@ -41,6 +42,7 @@ impl Peer {
             tx_req: tx_req,
             tx_sched: tx_sched,
             rx_toolbox: rx_toolbox,
+            request_counter: 0,
         }
     }
 
@@ -59,6 +61,12 @@ impl Peer {
             }
 
     }
+
+    pub fn next_request_counter(&mut self) -> usize {
+        self.request_counter += 1;
+        self.request_counter
+    }
+
 }
 
 impl Future for Peer {
