@@ -18,6 +18,9 @@ extern crate time;
 #[macro_use]
 extern crate btc;
 
+//use chrono::prelude::*;
+//use chrono::Local;
+
 //use futures::sync::{mpsc, oneshot};
 use futures::sync::{mpsc};
 use btc::exec::commons;
@@ -74,7 +77,9 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
+        d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
+        d!("After mutex was locked.");
         tx_sched_unlocked.unbounded_send(
             Box::new(
                 commons::MainToSchedRequestContent::Register(
@@ -83,6 +88,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
                 )
             )
         ).unwrap(); // TODO may error
+        d!("After tx_sched send");
     }
 
     let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
@@ -94,7 +100,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         .map(|_| ());
 
     tokio::spawn(peer_machina);
-    i!("depois do spawn");
+    d!("depois do spawn");
 }
 
 use env_logger::LogBuilder;
@@ -105,6 +111,7 @@ fn run() -> Result<()> {
         .format(|record| {
                     format!("[{}]{}",
                             record.level(),
+                            //Local::now(),
                             record.args())
                 })
         .parse(&std::env::var("RUST_LOG").unwrap_or_default())

@@ -145,9 +145,12 @@ impl Future for Worker {
                     }
                 },
                 WorkerRequest::PeerRemove{addr} => {
+                    d!("Worker received PeerRemove command");
                     if let Some(tx) = self.toolbox.peer_messenger.lock().unwrap().remove(&addr) {
+
                         let msg = commons::PeerRequest::SelfRemove;
                         tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 255)));
+                        d!("Worker sended SelfRemove command to Peer");
                         WorkerResponse::Empty
                     } else {
                         WorkerResponse::Empty

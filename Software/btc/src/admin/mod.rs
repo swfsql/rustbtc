@@ -67,6 +67,10 @@ impl Peer {
         self.request_counter
     }
 
+    pub fn push_ignored(&mut self, rx: RxOne) {
+        self.rx_ignored.push(rx);
+    }
+
 }
 
 impl Future for Peer {

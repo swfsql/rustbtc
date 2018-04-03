@@ -97,10 +97,12 @@ impl Future for Scheduler {
                         self.toolbox.peer_messenger.lock().unwrap().insert(addr, tx_mpsc_peer);
                     },
                     exec::commons::MainToSchedRequestContent::Unregister(addr) => {
+                        d!("Unregistering Inbox for addr {:?}", &addr);
                         self.inbox.remove(&addr);
                     },
                 }
                 _ => {
+
                     break;
                 }
             }
@@ -129,6 +131,8 @@ impl Future for Scheduler {
                     .poll();
                 if let Ok(Async::Ready((resp, _index, _vec))) = poll {
                     resp
+                } else if let Err(e) = poll {
+                    panic!("Outbox Error: \n{:?}");
                 } else {
                     break;
                 }
@@ -137,7 +141,7 @@ impl Future for Scheduler {
             // replace the tail's first future (that will contain the next tail)
             // back into the channel (inbox)
 
-            //Removing oneshot from hashmap from the worker who completed the task.
+            d!("Removing oneshot from hashmap from the worker who completed the task.");
             let addr_req_id = {
                 if let Ok(box WorkerResponseContent(ref _wrk_response, ref addr_req_id)) = wrk_full_resp {
                     self.outbox.iter_mut().map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
@@ -150,6 +154,7 @@ impl Future for Scheduler {
                     // requires: same addr_req_id inside the error structure
                 }
             };
+            d!("Removed oneshot from hashmap from the worker who completed the task.");
 
             // Getting the oneshot channel to the peer
             let &mut Inbox(_, ref mut prev_oneshots) = self.inbox.get_mut(&addr_req_id.0).unwrap();
@@ -174,6 +179,7 @@ impl Future for Scheduler {
                     .map_err(|_| Error::new(ErrorKind::Other, "TODO: error in select(2) for sched!"))
                     .poll();
                 if let Ok(Async::Ready(((first, tail_stream), _index, _vec))) = poll {
+                    d!("received new request to be forwarded\n {:#?}", &first);
                     (first, tail_stream)
                 } else {
                     break;
@@ -188,6 +194,7 @@ impl Future for Scheduler {
 
             // extract the old oneshot from the box, and replaces (in the box)
             // with the new one
+            d!("Before unwrapping first");
             let mut first = first.unwrap();
             let (old_tx_one, addr_req_id) = {
                 //first.unwrap().borrow_mut()
