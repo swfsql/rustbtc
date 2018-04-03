@@ -37,17 +37,11 @@ pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution,WaitHello,WaitPeerAdd,WaitPeerPrint))]
+    #[state_machine_future(transitions(Execution,SimpleWait))]
     Standby(Peer),
 
     #[state_machine_future(transitions(Standby))]
-    WaitPeerPrint(Peer,RxOne),
-
-    #[state_machine_future(transitions(Standby))]
-    WaitHello(Peer,RxOne),
-
-    #[state_machine_future(transitions(Standby))]
-    WaitPeerAdd(Peer,RxOne),
+    SimpleWait(Peer,RxOne),
 
     #[state_machine_future(transitions(End))]
     Execution(Peer),
@@ -129,7 +123,7 @@ impl PollMachina for Machina {
 
                             let peer = peer.take();
 
-                            i!("started dummy cmd");
+                            d!("Entered command: Adding a peer");
                             let wr = WorkerRequest::PeerAdd{addr: addr, wait_handhsake:wait_handhsake, tx_sched: peer.0.tx_sched.clone()};
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -140,7 +134,26 @@ impl PollMachina for Machina {
 
                             peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
-                            let next = WaitHello(peer.0,orx);
+                            let next = SimpleWait(peer.0,orx); //Calling this simplewait???
+                            transition!(next);
+
+                        },
+                        args::PeerCmd::Remove{addr} => {
+
+                            let peer = peer.take();
+                            d!("Entered command: Removing a peer");
+
+                            let wr = WorkerRequest::PeerKill{addr: addr};
+                            let wrp = WorkerRequestPriority(wr, 200);
+                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let skt = peer.0.lines.socket.peer_addr().unwrap();
+                            let kill_index = 0;
+                            let addr = AddrReqId(skt, kill_index);
+                            let wrc = WorkerRequestContent(wrp, otx, addr);
+
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
+
+                            let next = SimpleWait(peer.0,orx);
                             transition!(next);
 
                         },
@@ -164,7 +177,7 @@ impl PollMachina for Machina {
                             let peer = peer.take();
                             peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
-                            let next = WaitHello(peer.0,orx);
+                            let next = SimpleWait(peer.0,orx);
                             transition!(next);
 
                         },
@@ -181,7 +194,7 @@ impl PollMachina for Machina {
                             let peer = peer.take();
                             peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
-                            let next = WaitHello(peer.0,orx);
+                            let next = SimpleWait(peer.0,orx);
                             transition!(next);
                         },
                         args::DebugCmd::PeerPrint => {
@@ -197,7 +210,7 @@ impl PollMachina for Machina {
                             let peer = peer.take();
                             peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
-                            let next = WaitPeerPrint(peer.0,orx);
+                            let next = SimpleWait(peer.0,orx);
                             transition!(next);
 
                         },
@@ -222,48 +235,13 @@ impl PollMachina for Machina {
         panic!("Peer connection aborted.");
     }
 
-    fn poll_wait_hello<'a>(
-        wait_hello: &'a mut RentToOwn<'a, WaitHello>,
-    ) -> Poll<AfterWaitHello, std::io::Error> {
-        i!("WaitHello poll");
-
-        let resp;
-        match wait_hello.1.poll() {
-            Ok(Async::Ready(fresp)) => {
-                resp = fresp;
-                i!("111111111111 admin WaitHello poll");
-            },
-            Ok(Async::NotReady) => {
-                return Ok(Async::NotReady);
-            }
-            Err(_) => panic!("Canceled scheduler response"),
-        };
-
-        let wait_hello = wait_hello.take();
-        let mut peer = wait_hello.0;
-        let _orx = wait_hello.1;
-
-        peer
-            .lines
-            .buffer(format!("{:#?}", &resp).as_bytes());
-        let _ = peer.lines.poll_flush()?;
-        let _ = peer.lines.poll_flush()?; // to make sure
-        i!("{:#?}", &resp);
-
-        //orx.take();
-        let next = Standby(peer);
-        transition!(next)
-    }
-
-    fn poll_wait_peer_print<'a>(
-        state: &'a mut RentToOwn<'a, WaitPeerPrint>,
-    ) -> Poll<AfterWaitPeerPrint, std::io::Error> {
-        i!("WaitPeerPrint poll");
+    fn poll_simple_wait<'a>(
+        state: &'a mut RentToOwn<'a, SimpleWait>,
+    ) -> Poll<AfterSimpleWait, std::io::Error> {
 
         let resp;
         match state.1.poll() {
             Ok(Async::Ready(fresp)) => {
-                i!("received response from worker (PeerPrint)");
                 resp = fresp;
             },
             Ok(Async::NotReady) => {
@@ -275,39 +253,6 @@ impl PollMachina for Machina {
         let state = state.take();
         let mut peer = state.0;
         let _orx = state.1;
-
-        peer
-            .lines
-            .buffer(format!("{:#?}", &resp).as_bytes());
-        let _ = peer.lines.poll_flush()?;
-        let _ = peer.lines.poll_flush()?; // to make sure
-        i!("{:#?}", &resp);
-
-        //orx.take();
-        let next = Standby(peer);
-        transition!(next)
-    }
-
-    fn poll_wait_peer_add<'a>(
-        wait_peer_add: &'a mut RentToOwn<'a, WaitPeerAdd>,
-    ) -> Poll<AfterWaitPeerAdd, std::io::Error> {
-        i!("WaitPeerAdd poll");
-
-        let resp;
-        match wait_peer_add.1.poll() {
-            Ok(Async::Ready(fresp)) => {
-                resp = fresp;
-                i!("111111111111 admin WaitHello poll");
-            },
-            Ok(Async::NotReady) => {
-                return Ok(Async::NotReady);
-            }
-            Err(_) => panic!("Canceled scheduler response"),
-        };
-
-        let wait_peer_add = wait_peer_add.take();
-        let mut peer = wait_peer_add.0;
-        let _orx = wait_peer_add.1;
 
         peer
             .lines

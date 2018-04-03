@@ -144,13 +144,6 @@ fn run() -> Result<()> {
 
     i!("server_peer running on {:?}", args.node_addr);
     i!("server_admin running on {:?}", args.admin_addr);
-    print!("test");
-
-    /*
-    thread::spawn(move || {
-        tokio::run(server_admin);
-    });
-    */
 
     //tokio::run(server_peer);
     tokio::run(server_listeners);

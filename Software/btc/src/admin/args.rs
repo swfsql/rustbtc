@@ -80,9 +80,9 @@ pub enum PeerCmd {
         /// The peer's socket address that is to be disconnected. example: <addr="127.0.0.1:8080">
         addr: SocketAddr,
 
-        #[structopt(long = "id")]
+        /*#[structopt(long = "id")]
         /// The peer's ID that is to be disconnected. example: <ID="3">
-        id: u64,
+        id: u64,*/
     },
 }
 
