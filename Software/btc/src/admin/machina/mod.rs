@@ -37,11 +37,14 @@ pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution,SimpleWait,End))]
+    #[state_machine_future(transitions(Execution,SimpleWait,SelfRemove,End))]
     Standby(Peer),
 
     #[state_machine_future(transitions(Standby))]
     SimpleWait(Peer,RxOne),
+
+    #[state_machine_future(transitions(End))]
+    SelfRemove(Peer),
 
     #[state_machine_future(transitions(End))]
     Execution(Peer),
@@ -69,6 +72,8 @@ impl PollMachina for Machina {
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, std::io::Error> {
 
+        peer.0.poll_ignored();
+
         loop {
             i!("test");
             if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
@@ -78,14 +83,13 @@ impl PollMachina for Machina {
                         i!("received dummy command, read on standby");
                     },
                     PeerRequest::SelfRemove => {
-                        i!("received selfRemove command");
+                        w!("received selfRemove command");
                         // TODO: WAIT FOR TRASH GET EMPTY
+
                         let peer = peer.take();
-                        let addr = peer.0.lines.socket.peer_addr().unwrap();
-                        let msg = MainToSchedRequestContent::Unregister(addr);
-                        peer.0.tx_sched.lock().unwrap().unbounded_send(Box::new(msg));
-                        let next = End(peer.0); //Calling this simplewait???
+                        let next = SelfRemove(peer.0); //Calling this simplewait???
                         transition!(next);
+
                     },
                     _ => {i!("loop de recibo inner");
                     },
@@ -272,6 +276,24 @@ impl PollMachina for Machina {
         //orx.take();
         let next = Standby(peer);
         transition!(next)
+    }
+
+    fn poll_self_remove<'a>(
+        state: &'a mut RentToOwn<'a, SelfRemove>,
+    ) -> Poll<AfterSelfRemove, std::io::Error> {
+
+
+        state.0.poll_ignored();
+        if state.0.rx_ignored.len() > 0 {
+            return Ok(Async::NotReady);
+        }
+
+        let state = state.take();
+        let addr = state.0.lines.socket.peer_addr().unwrap();
+        let msg = MainToSchedRequestContent::Unregister(addr);
+        state.0.tx_sched.lock().unwrap().unbounded_send(Box::new(msg));
+        let next = End(state.0); //Calling this simplewait???
+        transition!(next);
     }
 
     fn poll_execution<'a>(

@@ -10,6 +10,7 @@ pub mod machina;
 
 pub struct Peer {
     lines: Lines,
+
 }
 
 impl Peer {

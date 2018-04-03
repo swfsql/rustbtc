@@ -12,7 +12,7 @@ use futures::sync::{mpsc};
 //                    TxOne, WorkerRequestContent,
 //                    WorkerResponseContent, RxPeers};
 
-use exec::commons::{WorkerRequestContent,RxPeers,WorkerToPeerRequestAndPriority,ToolBox,TxMpscMainToSched};
+use exec::commons::{WorkerRequestContent,RxPeers,WorkerToPeerRequestAndPriority,ToolBox,TxMpscMainToSched,RxOne};
 
 
 pub mod machina;
@@ -22,6 +22,7 @@ use::macros;
 
 pub struct Peer {
     lines: Lines,
+    rx_ignored: Vec<RxOne>,
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
     rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
@@ -36,10 +37,27 @@ impl Peer {
 
         Peer {
             lines: Lines::new(socket),
+            rx_ignored: Vec::new(),
             tx_req: tx_req,
             tx_sched: tx_sched,
             rx_toolbox: rx_toolbox,
         }
+    }
+
+    pub fn poll_ignored(&mut self) {
+            let removed_indices = self.rx_ignored
+                .iter_mut()
+                .enumerate()
+                .map(|(i, rx)| (i, rx.poll()))
+                .filter(|&(i, ref fut)|
+                    fut.is_err() || (fut.is_ok() && fut.as_ref().unwrap().is_ready()))
+                .inspect(|&(_i, ref rx)| i!("Oneshot response arrived, and got ignored: \n{:#?}", rx))
+                .map(|(i, _rx)| i)
+                .collect::<Vec<_>>();
+            for i in removed_indices.iter().rev() {
+                self.rx_ignored.swap_remove(*i);
+            }
+
     }
 }
 
