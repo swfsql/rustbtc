@@ -15,7 +15,7 @@ use structopt::StructOpt;
 
 use exec::commons::{AddrReqId, RxOne,
                      WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponseContent, WorkerToPeerRequestAndPriority, PeerRequest};
+                    WorkerResponseContent, WorkerToPeerRequestAndPriority, PeerRequest,MainToSchedRequestContent};
 
 
 //use futures::sync::{mpsc, oneshot};
@@ -37,7 +37,7 @@ pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution,SimpleWait))]
+    #[state_machine_future(transitions(Execution,SimpleWait,End))]
     Standby(Peer),
 
     #[state_machine_future(transitions(Standby))]
@@ -69,8 +69,6 @@ impl PollMachina for Machina {
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, std::io::Error> {
 
-
-
         loop {
             i!("test");
             if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
@@ -78,6 +76,16 @@ impl PollMachina for Machina {
 
                     PeerRequest::Dummy => {
                         i!("received dummy command, read on standby");
+                    },
+                    PeerRequest::SelfRemove => {
+                        i!("received selfRemove command");
+                        // TODO: WAIT FOR TRASH GET EMPTY
+                        let peer = peer.take();
+                        let addr = peer.0.lines.socket.peer_addr().unwrap();
+                        let msg = MainToSchedRequestContent::Unregister(addr);
+                        peer.0.tx_sched.lock().unwrap().unbounded_send(Box::new(msg));
+                        let next = End(peer.0); //Calling this simplewait???
+                        transition!(next);
                     },
                     _ => {i!("loop de recibo inner");
                     },
@@ -143,7 +151,7 @@ impl PollMachina for Machina {
                             let peer = peer.take();
                             d!("Entered command: Removing a peer");
 
-                            let wr = WorkerRequest::PeerKill{addr: addr};
+                            let wr = WorkerRequest::PeerRemove{addr: addr};
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
                             let skt = peer.0.lines.socket.peer_addr().unwrap();

@@ -91,10 +91,15 @@ impl Future for Scheduler {
         d!("Schedule poll called.");
         loop {
             match self.main_channel.poll() {
-                Ok(Async::Ready(Some(box exec::commons::MainToSchedRequestContent(RxPeers(addr, first), tx_mpsc_peer)))) => {
-                    self.inbox.insert(addr, Inbox::new(first));
-                    self.toolbox.peer_messenger.lock().unwrap().insert(addr, tx_mpsc_peer);
-                },
+                Ok(Async::Ready(Some(box intention))) => match intention {
+                    exec::commons::MainToSchedRequestContent::Register(RxPeers(addr, first), tx_mpsc_peer) => {
+                        self.inbox.insert(addr, Inbox::new(first));
+                        self.toolbox.peer_messenger.lock().unwrap().insert(addr, tx_mpsc_peer);
+                    },
+                    exec::commons::MainToSchedRequestContent::Unregister(addr) => {
+                        self.inbox.remove(&addr);
+                    },
+                }
                 _ => {
                     break;
                 }

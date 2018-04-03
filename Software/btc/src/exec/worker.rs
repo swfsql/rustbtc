@@ -113,7 +113,6 @@ impl Future for Worker {
                     WorkerResponse::Empty
                 },
                 WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
-
                     //i!("worker:: Hi! Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
@@ -123,7 +122,8 @@ impl Future for Worker {
                             {
                                 let tx_sched_unlocked = tx_sched.lock().unwrap();
 
-                                let sched_req_ctt = MainToSchedRequestContent(
+                                let sched_req_ctt =
+                                commons::MainToSchedRequestContent::Register(
                                     commons::RxPeers(
                                         peer_addr.clone(),
                                         rx_peer.into_future()
@@ -143,7 +143,15 @@ impl Future for Worker {
                         },
                         Err(_) => {WorkerResponse::PeerAdd(None)},
                     }
-
+                },
+                WorkerRequest::PeerRemove{addr} => {
+                    if let Some(tx) = self.toolbox.peer_messenger.lock().unwrap().remove(&addr) {
+                        let msg = commons::PeerRequest::SelfRemove;
+                        tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 255)));
+                        WorkerResponse::Empty
+                    } else {
+                        WorkerResponse::Empty
+                    }
                 },
                 _ => {
                     i!("Request received: {:#?}", wrk_req);

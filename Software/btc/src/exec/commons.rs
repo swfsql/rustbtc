@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub enum WorkerRequest {
     PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<TxMpscMainToSched>>},
-    PeerKill{ addr: SocketAddr },
+    PeerRemove{ addr: SocketAddr },
     PeerGetInfo { addr: SocketAddr },
     ListPeers,
     SendPing { addr: SocketAddr },
@@ -21,6 +21,7 @@ pub enum WorkerResponse {
 #[derive(Debug)]
 pub enum PeerRequest {
     Dummy,
+    SelfRemove,
 }
 
 pub struct ToolBox {
@@ -90,7 +91,10 @@ pub struct TxPeers (pub SocketAddr, pub RxMpscSf);
 pub struct WorkerRequestContent(pub WorkerRequestPriority, pub TxOne, pub AddrReqId);
 
 #[derive(Debug)]
-pub struct MainToSchedRequestContent(pub RxPeers, pub TxMpscWorkerToPeer);
+pub enum MainToSchedRequestContent {
+    Register(RxPeers, TxMpscWorkerToPeer),
+    Unregister(SocketAddr),
+}
 
 impl Eq for WorkerRequestContent {}
 

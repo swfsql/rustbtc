@@ -70,16 +70,18 @@ fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     i!("depois do spawn");
 }
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
-    e!("ahsuhsua");
+    i!("New admin connection: {:?}", socket.peer_addr().unwrap());
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
         let tx_sched_unlocked = tx_sched.lock().unwrap();
         tx_sched_unlocked.unbounded_send(
-            Box::new(commons::MainToSchedRequestContent(
-            commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
-            tx_toolbox,
-            ))
+            Box::new(
+                commons::MainToSchedRequestContent::Register(
+                    commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+                    tx_toolbox,
+                )
+            )
         ).unwrap();
     }
 
