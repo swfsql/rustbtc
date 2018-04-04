@@ -25,6 +25,8 @@ use std::sync::{Arc};
 
 use exec::commons;
 use admin;
+use codec;
+use codec::msg::commons::new_from_hex::NewFromHex;
 
 use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, MainToSchedRequestContent};
 
@@ -91,12 +93,12 @@ impl Future for Worker {
                 addr) = req;
             let resp = match wrk_req {
                 WorkerRequest::Hello => {
-                    i!("Hi! Request received: {:#?}", wrk_req);
+                    i!("Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 },
                 WorkerRequest::Wait{delay} => {
 
-                    i!("Hi! Request received: {:#?}", wrk_req);
+                    i!("Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait().unwrap();
@@ -104,7 +106,7 @@ impl Future for Worker {
                 },
                 WorkerRequest::PeerPrint => {
 
-                    i!("Hi! Request received: {:#?}", &wrk_req);
+                    i!("Request received: {:#?}", &wrk_req);
                     for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {
                         let msg = commons::PeerRequest::Dummy;
                         tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
@@ -113,7 +115,7 @@ impl Future for Worker {
                     WorkerResponse::Empty
                 },
                 WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
-                    //i!("worker:: Hi! Request received: {:#?}", &wrk_req);
+                    //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
                             let (tx_peer, rx_peer) = mpsc::unbounded();
@@ -155,6 +157,12 @@ impl Future for Worker {
                     } else {
                         WorkerResponse::Empty
                     }
+                },
+                WorkerRequest::MsgFromHex{binary} => {
+                    //let msg = codec::msg::Msg::new_from_hex(&binary);
+                    let msg = codec::msg::Msg::new(
+                        binary.into_iter().by_ref());
+                    WorkerResponse::MsgFromHex(msg)
                 },
                 _ => {
                     i!("Request received: {:#?}", wrk_req);

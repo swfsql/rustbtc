@@ -226,6 +226,29 @@ impl PollMachina for Machina {
                             transition!(next);
 
                         },
+                        args::DebugCmd::MsgFromHex{hex} => {
+                            d!("started msgFromHex cmd");
+                            let wr = WorkerRequest::MsgFromHex{binary: hex.0};
+
+                            let state = peer.take();
+                            let (mut peer, orx) = prepare_transition!(state.0, wr, 200);
+                            d!("Request sent to worker");
+
+                            /*
+                            let wrp = WorkerRequestPriority(wr, 200);
+                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let skt = peer.0.lines.socket.peer_addr().unwrap();
+                            let hello_index = 0;
+                            let addr = AddrReqId(skt, hello_index);
+                            let wrc = WorkerRequestContent(wrp, otx, addr);
+
+                            let peer = peer.take();
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
+                            */
+
+                            let next = SimpleWait(peer,orx);
+                            transition!(next);
+                        },
                     },
                     args::AdminCmd::Exit => {
                         let state = peer.take();

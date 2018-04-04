@@ -8,6 +8,7 @@ pub enum WorkerRequest {
     Hello,
     Wait { delay: u64 },
     PeerPrint,
+    MsgFromHex{ binary: Vec<u8> },
 }
 
 #[derive(Debug)]
@@ -16,6 +17,7 @@ pub enum WorkerResponse {
     String(String),
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
+    MsgFromHex(Result<codec::msg::Msg>),
 }
 
 #[derive(Debug)]
@@ -55,6 +57,8 @@ use std::collections::HashMap;
 //use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
+
+use codec;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub struct AddrReqId(pub SocketAddr, pub RequestId);

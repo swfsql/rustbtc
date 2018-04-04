@@ -1,5 +1,8 @@
 //use codec::msg;
 use std::net::SocketAddr;
+use hex::FromHex;
+use hex;
+use std::str::FromStr;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "")]
@@ -141,5 +144,21 @@ pub enum DebugCmd {
 
     #[structopt(name = "print")]
     PeerPrint,
+
+    #[structopt(name = "msg")]
+    MsgFromHex {
+        #[structopt(long = "hex", parse(try_from_str))]
+        hex: Bytes,
+    },
+}
+
+#[derive(Debug)]
+pub struct Bytes(pub Vec<u8>);
+impl FromStr for Bytes {
+    type Err = hex::FromHexError;
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let vec = Vec::from_hex(src.trim())?;
+        Ok(Bytes(vec))
+    }
 }
 
