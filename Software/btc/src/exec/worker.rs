@@ -158,10 +158,23 @@ impl Future for Worker {
                         WorkerResponse::Empty
                     }
                 },
-                WorkerRequest::MsgFromHex{binary} => {
+                WorkerRequest::MsgFromHex{send, binary} => {
                     //let msg = codec::msg::Msg::new_from_hex(&binary);
                     let msg = codec::msg::Msg::new(
-                        binary.into_iter().by_ref());
+                        binary.clone().into_iter().by_ref());
+
+                    //i!("Request received: {:#?}", &wrk_req);
+                    if send {
+                        if let &Ok(ref okmsg) = &msg {
+                            for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {
+                                let boxed_binary =
+                                        commons::WorkerToPeerRequestAndPriority(
+                                            commons::PeerRequest::RawMsg(binary.clone()), 100);
+                                tx.unbounded_send(Box::new(boxed_binary.clone()));
+                            }
+                        }
+                    };
+
                     WorkerResponse::MsgFromHex(msg)
                 },
                 _ => {

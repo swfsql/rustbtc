@@ -12,6 +12,8 @@ use errors::*;
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
+
+#[derive(Clone)]
 pub struct NetAddr {
     pub service: u64,
     pub ip: ArrayVec<[u8; 16]>,

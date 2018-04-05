@@ -8,7 +8,7 @@ mod errors {
 use errors::*;
 
 // https://bitcoin.org/en/developer-reference#ping
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum VarUint {
     U8(u8),
     U16(u16),

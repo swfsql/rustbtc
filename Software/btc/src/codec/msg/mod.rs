@@ -21,6 +21,7 @@ pub mod header;
 pub mod payload;
 pub mod commons;
 
+#[derive(Clone)]
 pub struct Msg {
     pub header: header::Header,
     pub payload: Option<payload::Payload>,

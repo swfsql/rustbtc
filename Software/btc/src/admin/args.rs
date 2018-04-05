@@ -147,6 +147,10 @@ pub enum DebugCmd {
 
     #[structopt(name = "msg")]
     MsgFromHex {
+        #[structopt(short="s", long = "send")]
+        /// send messages to connected peers
+        send: bool,
+
         #[structopt(long = "hex", parse(try_from_str))]
         hex: Bytes,
     },

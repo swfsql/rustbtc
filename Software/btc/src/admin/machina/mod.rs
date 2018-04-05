@@ -27,6 +27,9 @@ use env_logger::LogBuilder;
 #[macro_use]
 use macros;
 
+use codec;
+use hex::ToHex;
+
 //use macros;
 /*
 use macros::*;
@@ -101,6 +104,10 @@ impl PollMachina for Machina {
                         let next = SelfRemove(peer.0); //Calling this simplewait???
                         transition!(next);
 
+                    },
+                    PeerRequest::RawMsg(raw_msg) => {
+                        let bytes = codec::msg::commons::bytes::Bytes::new(raw_msg.clone());
+                        i!("received RawMsg command:\n{}{:?}", raw_msg.to_hex(), bytes);
                     },
                     _ => {i!("loop de recibo inner");
                     },
@@ -226,9 +233,9 @@ impl PollMachina for Machina {
                             transition!(next);
 
                         },
-                        args::DebugCmd::MsgFromHex{hex} => {
+                        args::DebugCmd::MsgFromHex{send, hex} => {
                             d!("started msgFromHex cmd");
-                            let wr = WorkerRequest::MsgFromHex{binary: hex.0};
+                            let wr = WorkerRequest::MsgFromHex{send:send, binary: hex.0};
 
                             let state = peer.take();
                             let (mut peer, orx) = prepare_transition!(state.0, wr, 200);

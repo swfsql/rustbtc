@@ -10,6 +10,7 @@ mod errors {
 }
 use errors::*;
 
+#[derive(Clone)]
 pub struct Input {
     pub prev_tx: ArrayVec<[u8; 32]>,
     pub prev_tx_out_index: u32,

@@ -11,6 +11,8 @@ use errors::*;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#version
 // https://bitcoin.org/en/developer-reference#version
+
+#[derive(Clone)]
 pub struct Version {
     pub version: i32,
     pub services: u64,

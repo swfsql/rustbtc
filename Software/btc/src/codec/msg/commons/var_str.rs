@@ -8,6 +8,7 @@ mod errors {
 }
 use errors::*;
 
+#[derive(Clone)]
 pub struct VarStr {
     length: VarUint,
     string: Bytes,

@@ -8,6 +8,8 @@ mod errors {
 }
 use errors::*;
 
+
+#[derive(Clone)]
 pub struct Pong {
     pub nounce: u64,
 }

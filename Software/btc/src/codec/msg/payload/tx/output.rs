@@ -9,6 +9,7 @@ mod errors {
 }
 use errors::*;
 
+#[derive(Clone)]
 pub struct Output {
     pub value: i64,
     pub pk_script_len: u8,

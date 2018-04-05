@@ -10,6 +10,8 @@ mod errors {
 use errors::*;
 
 // https://bitcoin.org/en/developer-reference#ping
+
+#[derive(Clone)]
 pub struct Ping {
     pub nonce: u64,
 }

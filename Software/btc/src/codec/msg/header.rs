@@ -12,6 +12,7 @@ mod errors {
 use errors::*;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
+#[derive(Clone)]
 pub struct Header {
     pub network: u32,
     pub cmd: ArrayVec<[u8; 12]>,

@@ -1,8 +1,6 @@
 This is a graduation project being worked by *Felipe Cetrulo* and *Thiago Machado* and oriented/supervisioned by *Paulo Alvarenga*, from *Universidade Federal de Itajubá*. The goal is to use *Rust* (programming language) capabilities for a Bitcoin node implementation. The goal implies studying and learning about both Rust and Bitcoin.
 
-# TODO
 
-Arrumar tipo do a ser enviado para
 
 
 # Goal checkpoints

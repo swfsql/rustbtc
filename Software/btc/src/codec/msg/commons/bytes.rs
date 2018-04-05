@@ -1,9 +1,16 @@
 use std;
 use std::fmt;
+#[derive(Clone)]
 pub struct Bytes(Vec<u8>);
 // use std::ascii::AsciiExt;
 mod errors {
     error_chain!{}
+}
+
+impl Bytes {
+    pub fn new(vec: Vec<u8>) -> Bytes {
+        Bytes(vec)
+    }
 }
 
 impl std::iter::FromIterator<u8> for Bytes {

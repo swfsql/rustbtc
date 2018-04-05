@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum WorkerRequest {
     PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<TxMpscMainToSched>>},
     PeerRemove{ addr: SocketAddr },
@@ -8,7 +8,7 @@ pub enum WorkerRequest {
     Hello,
     Wait { delay: u64 },
     PeerPrint,
-    MsgFromHex{ binary: Vec<u8> },
+    MsgFromHex{ send:bool, binary: Vec<u8> },
 }
 
 #[derive(Debug)]
@@ -20,10 +20,11 @@ pub enum WorkerResponse {
     MsgFromHex(Result<codec::msg::Msg>),
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum PeerRequest {
     Dummy,
     SelfRemove,
+    RawMsg(Vec<u8>),
 }
 
 pub struct ToolBox {
@@ -126,9 +127,9 @@ pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
 pub type RequestPriority = u8;
 pub type RequestId = usize;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct WorkerToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
 
 

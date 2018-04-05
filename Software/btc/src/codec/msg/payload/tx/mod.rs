@@ -13,6 +13,8 @@ pub mod output;
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 // https://bitcoin.org/en/developer-reference#raw-transaction-format
+
+#[derive(Clone)]
 pub struct Tx {
     pub version: i32,
     pub inputs_len: u8,
