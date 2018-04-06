@@ -8,9 +8,11 @@ use errors::*;
 
 extern crate state_machine_future;
 
-extern crate env_logger;
+//extern crate env_logger;
+
 #[macro_use]
 extern crate log;
+extern crate fern;
 
 extern crate hex;
 extern crate time;
@@ -41,12 +43,16 @@ extern crate futures;
 #[macro_use]
 extern crate structopt;
 
+extern crate chrono;
+use chrono::prelude::*;
+
 use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
 use std::net::SocketAddr;
 use std::thread;
 use std::sync::{Arc, Mutex};
+//use log::LevelFilter;
 
 
 #[derive(StructOpt, Debug)]
@@ -58,6 +64,9 @@ pub struct EnvVar {
 
   #[structopt(long = "admin-socket-addr", default_value = "127.0.0.1:8081")]
   admin_addr: SocketAddr,
+
+  #[structopt(long = "log-file", default_value = "output.log")]
+  log_file: String,
 }
 
 fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
@@ -113,10 +122,34 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     tokio::spawn(peer_machina);
 }
 
-use env_logger::LogBuilder;
+//use env_logger::LogBuilder;
 
 fn run() -> Result<()> {
+    let args = EnvVar::from_args();
 
+    fern::Dispatch::new()
+        // Perform allocation-free log formatting
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] [{}",
+                chrono::Local::now().format("[%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        // Add blanket level filter -
+        .level(log::LevelFilter::Info)
+        // - and per-module overrides
+        //.level_for("hyper", log::LevelFilter::Info)
+        // Output to stdout, files, and other Dispatch configurations
+        .chain(std::io::stdout())
+        .chain(fern::log_file(args.log_file).unwrap())
+        // Apply globally
+        .apply()
+        .unwrap();
+
+    /*
     LogBuilder::new()
         .format(|record| {
                     format!("[{}]{}",
@@ -126,9 +159,9 @@ fn run() -> Result<()> {
                 })
         .parse(&std::env::var("RUST_LOG").unwrap_or_default())
         .init().unwrap();
+        */
 
     //env_logger::init().unwrap();
-    let args = EnvVar::from_args();
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
