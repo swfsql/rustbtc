@@ -141,13 +141,14 @@ fn run() -> Result<()> {
     let listener_peer = TcpListener::bind(&args.node_addr).unwrap();
     let listener_admin = TcpListener::bind(&args.admin_addr).unwrap();
 
+    struct IsAdmin(bool);
     let server_listeners = listener_admin
         .incoming()
-        .map(|socket| (socket, true))
+        .map(|socket| (socket, IsAdmin(true)))
         .select(listener_peer
             .incoming()
-            .map(|socket| (socket, false)))
-        .for_each(move |(socket, is_admin)| {
+            .map(|socket| (socket, IsAdmin(false))))
+        .for_each(move |(socket, IsAdmin(is_admin))| {
             if is_admin {
                 process_admin(socket, Arc::clone(&mtx));
             } else {

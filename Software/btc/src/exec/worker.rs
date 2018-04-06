@@ -104,15 +104,19 @@ impl Future for Worker {
                     sleep.wait().unwrap();
                     WorkerResponse::Empty
                 },
-                WorkerRequest::PeerPrint => {
+                WorkerRequest::ListPeers => {
 
                     i!("Request received: {:#?}", &wrk_req);
-                    for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {
-                        let msg = commons::PeerRequest::Dummy;
-                        tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
-                    }
+                    let keys = self.toolbox.peer_messenger
+                        .lock()
+                        .unwrap()
+                        .keys()
+                        .cloned()
+                        .collect();
+                        //let msg = commons::PeerRequest::Dummy;
+                        //tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
 
-                    WorkerResponse::Empty
+                    WorkerResponse::ListPeers(keys)
                 },
                 WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
                     //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);

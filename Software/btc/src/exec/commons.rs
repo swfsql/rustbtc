@@ -18,6 +18,7 @@ pub enum WorkerResponse {
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
     MsgFromHex(Result<codec::msg::Msg>),
+    ListPeers(Vec<SocketAddr>),
 }
 
 #[derive(Debug,Clone)]

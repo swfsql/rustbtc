@@ -42,19 +42,7 @@ pub enum AdminCmd {
 pub enum PeerCmd {
     #[structopt(name = "list")]
     /// Shows a list of peers
-    List {
-        #[structopt(long = "show-state")]
-        /// Shows the peer's state
-        show_state: bool,
-
-        #[structopt(long = "show-addr")]
-        /// Shows the peer's connection address
-        show_addr: bool,
-
-        #[structopt(long = "show-duration")]
-        /// Shows the peer's connection duration
-        show_duration: bool,
-    },
+    List,
 
     #[structopt(name = "send")]
     /// Enqueue a message to be sent to some peer

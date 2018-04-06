@@ -168,6 +168,14 @@ impl PollMachina for Machina {
                             transition!(next);
 
                         },
+                        args::PeerCmd::List => {
+                            let state = peer.take();
+                            d!("Entered command: Removing a peer");
+                            let wr = WorkerRequest::ListPeers{};
+                            let (peer, orx) = prepare_transition!(state.0, wr, 200);
+                            let next = SimpleWait(peer,orx);
+                            transition!(next);
+                        },
                         _ => {},
                     }
                     args::AdminCmd::Wallet(_) => {}
