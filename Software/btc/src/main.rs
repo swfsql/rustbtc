@@ -60,17 +60,31 @@ pub struct EnvVar {
   admin_addr: SocketAddr,
 }
 
-fn process_peer(socket: TcpStream, _tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
-    let peer = btc::peer::Peer::new(socket);
+fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
+    i!("New peer connection: {:?}", socket.peer_addr().unwrap());
+    let (tx_peer, rx_peer) = mpsc::unbounded();
+    let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+    {
+        d!("after channel mpsc created.");
+        let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
+        d!("After mutex was locked.");
+        tx_sched_unlocked.unbounded_send(
+            Box::new(
+                commons::MainToSchedRequestContent::Register(
+                    commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+                    tx_toolbox,
+                )
+            )
+        ).unwrap(); // TODO may error
+        d!("After tx_sched send");
+    }
 
-    //        .map_err(|_| ());
-
+    let peer = btc::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
     let peer_machina = btc::peer::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
 
     tokio::spawn(peer_machina);
-    i!("depois do spawn");
 }
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
     i!("New admin connection: {:?}", socket.peer_addr().unwrap());
@@ -92,15 +106,11 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     }
 
     let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
-
-    //        .map_err(|_| ());
-
     let peer_machina = btc::admin::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
 
     tokio::spawn(peer_machina);
-    d!("depois do spawn");
 }
 
 use env_logger::LogBuilder;
