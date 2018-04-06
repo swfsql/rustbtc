@@ -3,7 +3,7 @@ use std::fmt;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 
-use codec::msg::commons::{net_addr, new_from_hex, var_str};
+use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
 mod errors {
     error_chain!{}
 }

@@ -17,7 +17,7 @@ pub enum WorkerResponse {
     String(String),
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
-    MsgFromHex(Result<codec::msg::Msg>),
+    MsgFromHex(Result<codec::msgs::msg::Msg>),
     ListPeers(Vec<SocketAddr>),
 }
 

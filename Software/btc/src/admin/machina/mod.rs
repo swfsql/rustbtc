@@ -106,7 +106,7 @@ impl PollMachina for Machina {
 
                     },
                     PeerRequest::RawMsg(raw_msg) => {
-                        let bytes = codec::msg::commons::bytes::Bytes::new(raw_msg.clone());
+                        let bytes = codec::msgs::msg::commons::bytes::Bytes::new(raw_msg.clone());
                         i!("received RawMsg command:\n{}{:?}", raw_msg.to_hex(), bytes);
                     },
                     _ => {i!("loop de recibo inner");
@@ -322,7 +322,7 @@ impl PollMachina for Machina {
             .buffer(format!("{:#?}", &resp).as_bytes());
         let _ = peer.lines.poll_flush()?;
         let _ = peer.lines.poll_flush()?; // to make sure
-        i!("{:#?}", &resp);
+        //i!("{:#?}", &resp);
 
         //orx.take();
         let next = Standby(peer);

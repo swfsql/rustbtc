@@ -1,8 +1,8 @@
 use std;
 use std::fmt;
-use codec::msg::commons::bytes::Bytes;
+use codec::msgs::msg::commons::bytes::Bytes;
 use arrayvec::ArrayVec;
-use codec::msg::commons::new_from_hex::NewFromHex;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
 mod errors {

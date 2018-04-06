@@ -1,4 +1,4 @@
-//use codec::msg;
+//use codec::msgs::msg;
 use std::net::SocketAddr;
 use hex::FromHex;
 use hex;

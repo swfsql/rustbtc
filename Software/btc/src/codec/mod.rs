@@ -1,2 +1,2 @@
 pub mod lines;
-pub mod msg;
+pub mod msgs;

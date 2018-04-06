@@ -25,8 +25,9 @@ use std::sync::{Arc};
 
 use exec::commons;
 use admin;
+use peer;
 use codec;
-use codec::msg::commons::new_from_hex::NewFromHex;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 
 use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, MainToSchedRequestContent};
 
@@ -138,12 +139,12 @@ impl Future for Worker {
 
                                 tx_sched_unlocked.unbounded_send(Box::new(sched_req_ctt)).unwrap();
                             }
-                            let peer = admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
+                            let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
                             {
                                 //let mut messenger_unlocked = self.toolbox.peer_messenger.lock().unwrap();
                                 //messenger_unlocked.insert(peer_addr, tx_toolbox);
                             }
-                            let peer_machina = admin::machina::Machina::start(peer).map(|_| ()).map_err(|_| ());
+                            let peer_machina = peer::machina::Machina::start(peer).map(|_| ()).map_err(|_| ());
                             tokio::spawn(peer_machina);
                             WorkerResponse::PeerAdd(Some(addr))
                         },
@@ -163,11 +164,12 @@ impl Future for Worker {
                     }
                 },
                 WorkerRequest::MsgFromHex{send, binary} => {
-                    //let msg = codec::msg::Msg::new_from_hex(&binary);
-                    let msg = codec::msg::Msg::new(
+                    //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
+                    let msg = codec::msgs::msg::Msg::new(
                         binary.clone().into_iter().by_ref());
 
-                    //i!("Request received: {:#?}", &wrk_req);
+                    //d!("Request received: {:#?}", &wrk_req);
+                    d!("message from hex");
                     if send {
                         if let &Ok(ref okmsg) = &msg {
                             for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {

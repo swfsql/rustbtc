@@ -46,6 +46,7 @@ impl Lines {
             let n = try_ready!(self.socket.read_buf(&mut self.rd));
 
             if n == 0 {
+                // socket closed
                 return Ok(Async::Ready(()));
             }
         }

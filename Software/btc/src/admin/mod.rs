@@ -73,32 +73,3 @@ impl Peer {
 
 }
 
-impl Future for Peer {
-    type Item = ();
-    type Error = io::Error;
-
-    fn poll(&mut self) -> Poll<(), io::Error> {
-        i!("poll called");
-
-        let _ = self.lines.poll_flush()?;
-
-        while let Async::Ready(line) = self.lines.poll()? {
-            i!("Received line : {:?}", line);
-            //e!("admin got polled!!");
-            if let Some(message) = line {
-                let mut line = message.clone();
-                line.put("\r\n");
-
-                let line = line.freeze();
-                //self.msgs_to_send.push(line.clone());
-                self.lines.buffer(&line.clone());
-            } else {
-                return Ok(Async::Ready(()));
-            }
-        }
-
-        let _ = self.lines.poll_flush()?;
-
-        Ok(Async::NotReady)
-    }
-}
