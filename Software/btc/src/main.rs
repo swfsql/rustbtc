@@ -138,7 +138,7 @@ fn run() -> Result<()> {
             ))
         })
         // Add blanket level filter -
-        .level(log::LevelFilter::Info)
+        .level(log::LevelFilter::Debug)
         // - and per-module overrides
         //.level_for("hyper", log::LevelFilter::Info)
         // Output to stdout, files, and other Dispatch configurations

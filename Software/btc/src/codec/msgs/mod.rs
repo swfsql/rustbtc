@@ -8,6 +8,9 @@ pub mod msg;
 
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 
+
+use hex::ToHex;
+
 #[derive(Debug)]
 pub struct Msgs {
     pub socket: TcpStream,
@@ -61,6 +64,7 @@ impl Stream for Msgs {
 
         if self.rd.len() < 24 {
             d!("has <24");
+            d!("\n{}\n{:?}", self.rd.clone().into_iter().collect::<Vec<_>>().to_hex(), self.rd.clone());
             return Ok(Async::NotReady);
         }
         d!("has >=24");
