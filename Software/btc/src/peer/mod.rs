@@ -1,24 +1,11 @@
 use std::sync::{Arc, Mutex};
-use tokio::io;
 use tokio::net::TcpStream;
-use tokio::prelude::*;
-use futures::{Async, Future, Poll};
-use bytes::BufMut;
-use codec::lines::Lines;
-//use futures::sync::{mpsc, oneshot};
+use futures::{Future};
 use futures::sync::{mpsc};
-
-//use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
-//                    TxOne, WorkerRequestContent,
-//                    WorkerResponseContent, RxPeers};
-
-use exec::commons::{WorkerRequestContent,RxPeers,WorkerToPeerRequestAndPriority,ToolBox,TxMpscMainToSched,RxOne};
+use exec::commons::{WorkerRequestContent,WorkerToPeerRequestAndPriority,TxMpscMainToSched,RxOne};
 use codec::msgs::Msgs;
 
-
 pub mod machina;
-#[macro_use]
-use::macros;
 
 pub struct Peer {
     codec: Msgs,
@@ -34,7 +21,6 @@ impl Peer {
                tx_sched: Arc<Mutex<TxMpscMainToSched>>,
                rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
                ) -> Peer {
-        // let addr = lines.socket.peer_addr().unwrap();
 
         Peer {
             codec: Msgs::new(socket),
@@ -46,18 +32,22 @@ impl Peer {
         }
     }
 
+    pub fn push_ignored(&mut self, rx: RxOne) {
+        self.rx_ignored.push(rx);
+    }
+
     pub fn poll_ignored(&mut self) {
             let removed_indices = self.rx_ignored
                 .iter_mut()
                 .enumerate()
                 .map(|(i, rx)| (i, rx.poll()))
-                .filter(|&(i, ref fut)|
+                .filter(|&(_i, ref fut)|
                     fut.is_err() || (fut.is_ok() && fut.as_ref().unwrap().is_ready()))
                 .inspect(|&(_i, ref rx)| i!("Oneshot response arrived, and got ignored: \n{:#?}", rx))
                 .map(|(i, _rx)| i)
                 .collect::<Vec<_>>();
             for i in removed_indices.iter().rev() {
-                self.rx_ignored.swap_remove(*i);
+                let _ = self.rx_ignored.swap_remove(*i);
             }
 
     }
@@ -66,10 +56,5 @@ impl Peer {
         self.request_counter += 1;
         self.request_counter
     }
-
-    pub fn push_ignored(&mut self, rx: RxOne) {
-        self.rx_ignored.push(rx);
-    }
-
 }
 

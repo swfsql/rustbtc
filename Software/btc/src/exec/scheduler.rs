@@ -1,28 +1,14 @@
-//use errors::*;
-//use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
-
 use std::net::SocketAddr;
-//use std::thread;
-
 use tokio;
-//use tokio::io;
 use futures;
 use futures::sync::{mpsc, oneshot};
-//use futures::future::{select_all, Either};
-
 use std::collections::HashMap;
-//use std::iter::FromIterator;
-
 use std::io::{Error, ErrorKind};
-//use std::collections::BinaryHeap;
 use std::cmp::Ordering;
-
 use std::mem;
 use std::borrow::BorrowMut;
-
 use std::sync::{Arc};
-
 use exec;
 use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
                     TxOne, WorkerRequestContent,
@@ -132,7 +118,7 @@ impl Future for Scheduler {
                 if let Ok(Async::Ready((resp, _index, _vec))) = poll {
                     resp
                 } else if let Err(e) = poll {
-                    panic!("Outbox Error: \n{:?}");
+                    panic!("Outbox Error: \n{:?}", e);
                 } else {
                     break;
                 }

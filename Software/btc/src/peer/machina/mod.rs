@@ -6,25 +6,24 @@ use state_machine_future::RentToOwn;
 
 use peer::Peer;
 
-use structopt::StructOpt;
+//use structopt::StructOpt;
 
 //use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use exec::commons::{AddrReqId, RxOne,
-                     WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponseContent, WorkerToPeerRequestAndPriority, PeerRequest,MainToSchedRequestContent};
+use exec::commons::{ RxOne,
+                     WorkerToPeerRequestAndPriority, PeerRequest,MainToSchedRequestContent};
 
 
 //use futures::sync::{mpsc, oneshot};
-use futures::sync::{oneshot};
+//use futures::sync::{oneshot};
 //use futures;
 //use std::io::{Error, ErrorKind};
 
-use env_logger::LogBuilder;
-#[macro_use]
-use macros;
+//use env_logger::LogBuilder;
+//#[macro_use]
+//use macros;
 
 use codec;
 use hex::ToHex;
@@ -72,7 +71,7 @@ impl PollMachina for Machina {
     ) -> Poll<AfterStandby, std::io::Error> {
 
         d!("poll standby");
-
+        /*
         defmac!(prepare_transition mut state_peer, wr, priority => {
             let wrp = WorkerRequestPriority(wr, priority);
             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
@@ -82,11 +81,12 @@ impl PollMachina for Machina {
             state_peer.tx_req.unbounded_send(Box::new(wrc)).unwrap();
             (state_peer, orx)
         });
+        */
 
         peer.0.poll_ignored();
 
         loop {
-            if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
+            if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, _priority)))) = peer.0.rx_toolbox.poll() {
                 match peer_req {
                         PeerRequest::Dummy => {
                         i!("received dummy command, read on standby");
@@ -170,7 +170,7 @@ impl PollMachina for Machina {
         let state = state.take();
         let addr = state.0.codec.socket.peer_addr().unwrap();
         let msg = MainToSchedRequestContent::Unregister(addr);
-        state.0.tx_sched.lock().unwrap().unbounded_send(Box::new(msg));
+        state.0.tx_sched.lock().unwrap().unbounded_send(Box::new(msg)).unwrap();
         let next = End(state.0); //Calling this simplewait???
         transition!(next);
     }

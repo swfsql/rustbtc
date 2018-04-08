@@ -1,42 +1,20 @@
-//use errors::*;
-//use tokio::net::{TcpListener, TcpStream};
 use tokio::net::{TcpStream};
 use tokio::prelude::*;
-
-//use std::net::SocketAddr;
-//use std::thread;
-
 use tokio::io;
 use tokio;
-//use futures;
-//use futures::sync::{mpsc, oneshot};
 use futures::sync::{mpsc};
-//use futures::future::{select_all, Either};
-
-//use std::collections::HashMap;
-//use std::iter::FromIterator;
-
-//use std::io::{Error, ErrorKind};
-//use std::collections::BinaryHeap;
-//use std::cmp::Ordering;
 use std::sync::{Arc};
-//use std::ops::Deref;
-//use std::ops::DerefMut;
 
 use exec::commons;
-use admin;
+//use admin;
 use peer;
 use codec;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 
 use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, MainToSchedRequestContent};
 
-/*use self::commons::{AddrReqId, RequestId, RequestPriority, RxMpsc, RxMpscSf, RxOne, TxMpsc,
-                    TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent};*/
 
 use tokio_timer::*;
-//use futures::*;
 use std::time::*;
 
 struct Inbox(RxMpsc, Vec<Box<WorkerRequestContent>>);
@@ -45,15 +23,6 @@ pub struct Worker {
     inbox: Inbox,
     toolbox: Arc<commons::ToolBox>,
 }
-
-/*
-pub type RxMpsc = mpsc::Receiver<WorkerRequestContent>;
-
-pub struct WorkerRequestContent(
-  pub WorkerRequestPriority,
-  pub TxOne,
-  pub AddrReqId);
-*/
 
 impl Worker {
     pub fn new(rx_mpsc: RxMpsc, toolbox: Arc<commons::ToolBox>) -> Worker {
@@ -72,19 +41,23 @@ impl Future for Worker {
 
         d!("poll");
 
+        // gets the worker's requests receiver, and also the requests queue
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
+
         loop {
-            d!("loop 0");
+            d!("starting mpsc channel to scheduler loop");
             match rec.poll() {
                 Ok(Async::Ready(Some(wrk_req))) => {
+                    // brand new incomming requests
                     reqs.push(wrk_req);
-                    d!("loop 0 ran");
+                    d!("End of mpsc channel to scheduler loop (Ok Ready)");
                 }
                 Ok(Async::NotReady) => break,
                 _ => panic!("Unexpected value for worker polling on reader channel"),
             };
         }
 
+        // give priority to requests with highest priority (last)
         reqs.sort_unstable();
         if let Some(req) = reqs.pop() {
             let mut req = *req;
@@ -156,7 +129,7 @@ impl Future for Worker {
                     if let Some(tx) = self.toolbox.peer_messenger.lock().unwrap().remove(&addr) {
 
                         let msg = commons::PeerRequest::SelfRemove;
-                        tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 255)));
+                        tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 255))).unwrap();
                         d!("Worker sended SelfRemove command to Peer");
                         WorkerResponse::Empty
                     } else {
@@ -171,12 +144,12 @@ impl Future for Worker {
                     //d!("Request received: {:#?}", &wrk_req);
                     d!("message from hex");
                     if send {
-                        if let &Ok(ref okmsg) = &msg {
+                        if let &Ok(ref _okmsg) = &msg {
                             for (_addr, tx) in self.toolbox.peer_messenger.lock().unwrap().iter() {
                                 let boxed_binary =
                                         commons::WorkerToPeerRequestAndPriority(
                                             commons::PeerRequest::RawMsg(binary.clone()), 100);
-                                tx.unbounded_send(Box::new(boxed_binary.clone()));
+                                tx.unbounded_send(Box::new(boxed_binary.clone())).unwrap();
                             }
                         }
                     };
@@ -198,25 +171,3 @@ impl Future for Worker {
         Ok(Async::NotReady)
     }
 }
-
-/*
-pub struct WorkerRequestContent(
-    pub WorkerRequestPriority,
-    pub TxOne,
-    pub AddrReqId);
-pub struct WorkerRequestPriority(
-    WorkerRequest,
-    RequestPriority);
-*/
-/*
-
-pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
-
-#[derive(Debug)]
-pub enum WorkerResponse {
-    Empty,
-    String(String),
-    Bool(bool),
-}
-
-*/

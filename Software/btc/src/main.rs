@@ -44,8 +44,7 @@ extern crate futures;
 extern crate structopt;
 
 extern crate chrono;
-use chrono::prelude::*;
-
+//use chrono::prelude::*;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
@@ -59,7 +58,7 @@ use std::sync::{Arc, Mutex};
 #[structopt(name = "")]
 /// Node general settings
 pub struct EnvVar {
-  #[structopt(long = "node-socket-addr", default_value = "127.0.0.1:8080")]
+  #[structopt(long = "node-socket-addr", default_value = "127.0.0.1:8333")]
   node_addr: SocketAddr,
 
   #[structopt(long = "admin-socket-addr", default_value = "127.0.0.1:8081")]
@@ -148,20 +147,6 @@ fn run() -> Result<()> {
         // Apply globally
         .apply()
         .unwrap();
-
-    /*
-    LogBuilder::new()
-        .format(|record| {
-                    format!("[{}]{}",
-                            record.level(),
-                            //Local::now(),
-                            record.args())
-                })
-        .parse(&std::env::var("RUST_LOG").unwrap_or_default())
-        .init().unwrap();
-        */
-
-    //env_logger::init().unwrap();
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
