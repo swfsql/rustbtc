@@ -1,15 +1,28 @@
+
+mod errors {
+    error_chain!{}
+}
+
+use errors::*;
+
 use tokio::net::{TcpStream};
 use tokio::prelude::*;
 use tokio::io;
 use tokio;
 use futures::sync::{mpsc};
 use std::sync::{Arc};
-
+use chrono::{DateTime,Utc};
+use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
 use exec::commons;
+use rand;
+use rand::{Rng, thread_rng};
 //use admin;
 use peer;
 use codec;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use codec::msgs::msg::commons::net_addr::NetAddr;
+use codec::msgs::msg::commons::var_str::VarStr;
+use codec::msgs::msg::payload::version::Version;
 
 use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, MainToSchedRequestContent};
 
@@ -93,6 +106,36 @@ impl Future for Worker {
                     WorkerResponse::ListPeers(keys)
                 },
                 WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
+
+                    let self_addr = SocketAddr::new(
+                        IpAddr::V6(
+                            Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)
+                        ),
+                        8333
+                    ); // TODO get from toolbox
+                    let version = 70013_i32;
+                    let addr_trans = NetAddr::from_socket_addr(&addr);
+                    let addr_recv = NetAddr::from_socket_addr(&self_addr);
+                    let services = addr_trans.service;
+                    let nonce = rand::random::<u64>(); // TODO record into peer and toolbox
+                    let timestamp = Utc::now().timestamp();
+                    let start_height = 0_i32; // maybe 1
+                    let relay = Some(false);
+                    let agent_bytes = b"/Rustbtc:0.0.1/";
+                    let user_agent = VarStr::from_bytes(agent_bytes).unwrap();
+
+                    let version_msg = Version {
+                        version,
+                        services,
+                        timestamp,
+                        addr_recv,
+                        addr_trans,
+                        nonce,
+                        user_agent,
+                        start_height,
+                        relay,
+                    };
+
                     //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {

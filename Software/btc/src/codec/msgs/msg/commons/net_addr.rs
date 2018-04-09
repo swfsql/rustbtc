@@ -9,6 +9,7 @@ mod errors {
     error_chain!{}
 }
 use errors::*;
+use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
@@ -41,6 +42,23 @@ impl NewFromHex for NetAddr {
             )
         })?;
         Ok(NetAddr { service, ip, port })
+    }
+}
+
+impl NetAddr {
+    pub fn from_socket_addr(addr: &SocketAddr) -> NetAddr {
+        match *addr {
+           SocketAddr::V4(socket_addr) => NetAddr {
+                service: 0_u64,
+                ip: ArrayVec::from(socket_addr.ip().to_ipv6_mapped().octets()),
+                port: socket_addr.port(),
+            },
+            SocketAddr::V6(socket_addr) => NetAddr {
+                service: 0_u64,
+                ip: ArrayVec::from(socket_addr.ip().octets()),
+                port: socket_addr.port(),
+            },
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 #![feature(box_patterns)]
+#![feature(exclusive_range_pattern)]
 
 
 #[macro_use]
@@ -21,8 +22,10 @@ extern crate log;
 #[macro_use]
 extern crate state_machine_future;
 extern crate time;
+extern crate chrono;
 extern crate tokio;
 extern crate tokio_timer;
+extern crate rand;
 
 #[macro_use]
 extern crate structopt;
