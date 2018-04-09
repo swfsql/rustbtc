@@ -1,9 +1,11 @@
 use std;
 use std::fmt;
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt};
+
 
 use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 mod errors {
     error_chain!{}
 }
@@ -69,7 +71,7 @@ impl new_from_hex::NewFromHex for Version {
                 aux
             )
         })?;
-        let relay = if version < 70_002i32 {
+        let relay = if version < 70_002_i32 {
             None
         } else {
             let aux = it.by_ref()
@@ -104,5 +106,34 @@ impl std::fmt::Debug for Version {
         s += &format!("├ Start Height: {}\n", self.start_height);
         s += &format!("├ Relay: {:?}\n", self.relay);
         write!(f, "{}", s)
+    }
+}
+
+
+
+impl IntoBytes for Version {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        wtr.write_i32::<LittleEndian>(self.version)
+            .chain_err(|| format!("Failure to convert version ({}) into byte vec", self.version))?;
+
+        wtr.write_u64::<LittleEndian>(self.services)
+            .chain_err(|| format!("Failure to convert services ({}) into byte vec", self.services))?;
+        wtr.write_i64::<LittleEndian>(self.timestamp)
+            .chain_err(|| format!("Failure to convert timestamp ({}) into byte vec", self.timestamp))?;
+        wtr.append(&mut self.addr_recv.into_bytes()?);
+        wtr.append(&mut self.addr_trans.into_bytes()?);
+
+        wtr.write_u64::<LittleEndian>(self.nonce)
+            .chain_err(|| format!("Failure to convert nonce ({}) into byte vec", self.nonce))?;
+        wtr.append(&mut self.user_agent.into_bytes()?);
+        wtr.write_i32::<LittleEndian>(self.start_height)
+            .chain_err(|| format!("Failure to convert start_height ({}) into byte vec", self.start_height))?;
+
+        wtr.write_u8(if self.relay.unwrap_or(false) {0x1} else {0x0})
+            .chain_err(|| format!("Failure to convert relay ({}) into byte vec", self.nonce))?;
+
+        Ok(wtr)
+
     }
 }

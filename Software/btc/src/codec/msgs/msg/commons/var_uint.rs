@@ -2,11 +2,14 @@
 use std;
 use std::io::Cursor;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use byteorder::{LittleEndian, ReadBytesExt};
+
 mod errors {
     error_chain!{}
 }
 use errors::*;
+
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 // https://bitcoin.org/en/developer-reference#ping
 #[derive(Debug,Clone)]
@@ -107,5 +110,34 @@ impl VarUint {
         Ok(VarUint::U64(value_body))
     }
 
+}
 
+
+impl IntoBytes for VarUint {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        match *self {
+            VarUint::U8(n) => wtr.write_u8(n)
+                .chain_err(|| format!("Failure to convert U8 ({}) into byte vec", n))?,
+            VarUint::U16(n) => {
+                wtr.write_u8(0xFC)
+                    .chain_err(|| format!("Failure to convert U16 ({}) into byte vec", n))?;
+                wtr.write_u16::<LittleEndian>(n)
+                    .chain_err(|| format!("Failure to convert U16 ({}) into byte vec", n))?;
+            },
+            VarUint::U32(n) => {
+                wtr.write_u8(0xFD)
+                    .chain_err(|| format!("Failure to convert U32 ({}) into byte vec", n))?;
+                wtr.write_u32::<LittleEndian>(n)
+                    .chain_err(|| format!("Failure to convert U32 ({}) into byte vec", n))?;
+            }
+            VarUint::U64(n) => {
+                wtr.write_u8(0xFF)
+                    .chain_err(|| format!("Failure to convert U64 ({}) into byte vec", n))?;
+                wtr.write_u64::<LittleEndian>(n)
+                    .chain_err(|| format!("Failure to convert U64 ({}) into byte vec", n))?;
+            }
+        };
+        Ok(wtr)
+    }
 }

@@ -3,7 +3,9 @@ use std::fmt;
 use arrayvec::ArrayVec;
 use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use byteorder::{LittleEndian, ReadBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+
 use std::io::Cursor;
 mod errors {
     error_chain!{}
@@ -68,5 +70,21 @@ impl std::fmt::Debug for Input {
         s += &format!("├ Sequence: {}\n", self.sequence);
 
         write!(f, "{}", s)
+    }
+}
+
+
+impl IntoBytes for Input {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        wtr.append(&mut self.prev_tx.to_vec());
+        wtr.write_u32::<LittleEndian>(self.prev_tx_out_index)
+            .chain_err(|| format!("Failure to convert prev_tx_out_index ({}) into byte vec", self.prev_tx_out_index))?;
+        wtr.write_u8(self.script_len)
+            .chain_err(|| format!("Failure to convert script_len ({}) into byte vec", self.script_len))?;
+        wtr.append(&mut self.script_sig.into_bytes()?);
+        wtr.write_u32::<LittleEndian>(self.sequence)
+            .chain_err(|| format!("Failure to convert sequence ({}) into byte vec", self.sequence))?;
+        Ok(wtr)
     }
 }

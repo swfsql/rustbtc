@@ -143,6 +143,15 @@ impl Future for Worker {
                             let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
                             let peer_addr = socket.peer_addr().unwrap();
                             {
+                                /*
+                                let boxed_binary =
+                                        commons::WorkerToPeerRequestAndPriority(
+                                            commons::PeerRequest::RawMsg(version_msg, 100));
+                                tx.unbounded_send(Box::new(boxed_binary.clone())).unwrap();
+                                */
+                            }
+
+                            {
                                 let tx_sched_unlocked = tx_sched.lock().unwrap();
 
                                 let sched_req_ctt =

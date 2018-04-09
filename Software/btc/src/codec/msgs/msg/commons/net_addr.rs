@@ -4,12 +4,15 @@ use codec::msgs::msg::commons::bytes::Bytes;
 use arrayvec::ArrayVec;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt};
+
 mod errors {
     error_chain!{}
 }
 use errors::*;
 use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
+
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
@@ -72,5 +75,18 @@ impl std::fmt::Debug for NetAddr {
         );
         s += &format!("├ Port: {}", self.port);
         write!(f, "{}", s)
+    }
+}
+
+
+impl IntoBytes for NetAddr {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        wtr.write_u64::<LittleEndian>(self.service)
+            .chain_err(|| format!("Failure to convert service ({}) into byte vec", self.service))?;
+        wtr.append(&mut self.ip.to_vec());
+        wtr.write_u16::<LittleEndian>(self.port)
+            .chain_err(|| format!("Failure to convert port ({}) into byte vec", self.port))?;
+        Ok(wtr)
     }
 }

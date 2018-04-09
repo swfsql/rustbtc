@@ -3,8 +3,10 @@ use std::fmt;
 use arrayvec::ArrayVec;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::bytes::Bytes;
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt};
+
 
 mod errors {
     error_chain!{}
@@ -68,5 +70,23 @@ impl std::fmt::Debug for Header {
         s += &format!("├ Payload Checksum: {}\n", self.payloadchk);
 
         write!(f, "{}", s)
+    }
+}
+
+impl IntoBytes for Header {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        wtr.write_u32::<LittleEndian>(self.network)
+            .chain_err(|| format!("Failure to convert network ({}) into byte vec", self.network))?;
+
+        wtr.append(&mut self.cmd.to_vec());
+            //.chain_err(|| format!("Failure to convert cmd ({}) into byte vec", self.cmd))?;
+
+        wtr.write_i32::<LittleEndian>(self.payload_len)
+            .chain_err(|| format!("Failure to convert payload_len ({}) into byte vec", self.payload_len))?;
+        wtr.write_u32::<LittleEndian>(self.payloadchk)
+            .chain_err(|| format!("Failure to convert payloadchk ({}) into byte vec", self.payloadchk))?;
+
+        Ok(wtr)
     }
 }

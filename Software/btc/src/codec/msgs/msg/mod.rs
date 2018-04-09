@@ -1,9 +1,11 @@
 use std;
 use std::fmt;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 // use codec::msgs::msg::commons::into_bytes::into_bytes;
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt};
+
 extern crate crypto;
 
 use self::crypto::digest::Digest;
@@ -13,7 +15,6 @@ mod errors {
     error_chain!{}
 }
 use errors::*;
-
 //use ::payload::payload::Verack;
 //use codec::msgs::msg::payload::payload::Verack;
 
@@ -131,21 +132,19 @@ impl std::fmt::Debug for Msg {
         write!(f, "{}", s)
     }
 }
-/*
 impl IntoBytes for Msg {
   fn into_bytes(&self) -> Result<Vec<u8>> {
-      //self.header.into_bytes();
+      self.header.into_bytes();
       match self.clone().payload {
           Some(ref p) => match p {
-            //&Payload::payload::tx(ref tx) => tx.into_bytes(),
-            &Payload::payload::ping(ref ping) => ping.into_bytes(),
-            //&Payload::payload::pong(ref pong) => pong.into_bytes(),
-            //&Payload::payload::version(ref version) => version.into_bytes(),
-            //&Payload::payload::Verack => vec![],
+            &payload::Payload::Tx(ref tx) => tx.into_bytes()?,
+            &payload::Payload::Ping(ref ping) => ping.into_bytes()?,
+            &payload::Payload::Pong(ref pong) => pong.into_bytes()?,
+            &payload::Payload::Version(ref version) => version.into_bytes()?,
+            &payload::Payload::Verack => vec![],
           },
           None => vec![],
       };
       Ok(vec![])
   }
 }
-*/

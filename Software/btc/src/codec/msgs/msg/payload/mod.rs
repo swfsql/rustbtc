@@ -2,6 +2,8 @@ pub mod tx;
 pub mod ping;
 pub mod pong;
 pub mod version;
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 #[derive(Clone)]
 pub enum Payload {
@@ -11,3 +13,14 @@ pub enum Payload {
     Version(version::Version),
     Verack,
 }
+
+/*
+impl IntoBytes for Ping {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        wtr.write_u64::<LittleEndian>(self.nonce)
+            .chain_err(|| format!("Failure to convert nonce ({}) into byte vec", self.nonce))?;
+        Ok(wtr)
+    }
+}
+*/

@@ -8,6 +8,9 @@ mod errors {
 }
 use errors::*;
 
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+
 #[derive(Clone)]
 pub struct VarStr {
     length: VarUint,
@@ -48,5 +51,14 @@ impl std::fmt::Debug for VarStr {
         s += &format!("├ Length: {:?}\n", self.length);
         s += &format!("├ String: {:?}", self.string);
         write!(f, "{}", s)
+    }
+}
+
+impl IntoBytes for VarStr {
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wtr = vec![];
+        wtr.append(&mut self.length.into_bytes().unwrap());
+        wtr.append(&mut self.string.into_bytes().unwrap());
+        Ok(wtr)
     }
 }
