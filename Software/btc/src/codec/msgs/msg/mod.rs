@@ -134,8 +134,9 @@ impl std::fmt::Debug for Msg {
 }
 impl IntoBytes for Msg {
   fn into_bytes(&self) -> Result<Vec<u8>> {
-      self.header.into_bytes();
-      match self.clone().payload {
+      let mut wrt = vec![];
+      wrt.append(&mut self.header.into_bytes()?);
+      let mut wrt_payload = match self.clone().payload {
           Some(ref p) => match p {
             &payload::Payload::Tx(ref tx) => tx.into_bytes()?,
             &payload::Payload::Ping(ref ping) => ping.into_bytes()?,
@@ -145,6 +146,7 @@ impl IntoBytes for Msg {
           },
           None => vec![],
       };
-      Ok(vec![])
+      wrt.append(&mut wrt_payload);
+      Ok(wrt)
   }
 }

@@ -130,8 +130,10 @@ impl IntoBytes for Version {
         wtr.write_i32::<LittleEndian>(self.start_height)
             .chain_err(|| format!("Failure to convert start_height ({}) into byte vec", self.start_height))?;
 
-        wtr.write_u8(if self.relay.unwrap_or(false) {0x1} else {0x0})
-            .chain_err(|| format!("Failure to convert relay ({}) into byte vec", self.nonce))?;
+        if let Some(relay) = self.relay {
+            wtr.write_u8(relay as u8)
+                .chain_err(|| format!("Failure to convert relay ({}) into byte vec", self.nonce))?;
+        }
 
         Ok(wtr)
 

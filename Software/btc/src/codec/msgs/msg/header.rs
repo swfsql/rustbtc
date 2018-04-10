@@ -32,7 +32,7 @@ impl NewFromHex for Header {
             )
         })?;
         let cmd = it.take(12)
-            .map(|u| u.to_le())
+            //.map(|u| u.to_le())
             .collect::<ArrayVec<[u8; 12]>>();
         let aux = it.take(4).collect::<Vec<u8>>();
         let payload_len = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {

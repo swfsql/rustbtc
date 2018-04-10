@@ -10,8 +10,8 @@ use error_chain::ChainedError;
 extern crate hex;
 
 extern crate btc;
-use btc::commons::new_from_hex::NewFromHex;
-// use btc::commons::into_bytes::IntoBytes;
+use btc::codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use btc::codec::msgs::msg::commons::into_bytes::IntoBytes;
 use hex::FromHex;
 
 fn unwrap_or_display<T>(res: Result<T>) -> T {
@@ -19,6 +19,14 @@ fn unwrap_or_display<T>(res: Result<T>) -> T {
         Err(e) => panic!("\n{}", e.display_chain().to_string()),
         Ok(o) => o,
     }
+}
+
+fn original_and_coded<T: IntoBytes>(original: &str, coded: &T) {
+    assert_eq!(
+        Vec::from_hex(original.trim()).unwrap(),
+        //original.trim().as_bytes().to_vec(),
+        coded.into_bytes().unwrap()
+    );
 }
 
 // uses Ping::new()
@@ -37,7 +45,7 @@ fn ping_payload() {
     // let payload_vec: Vec<u8> = payload_vec.clone().expect(&payload_vec.unwrap_err().display_chain().to_string());
     let payload_vec: Vec<u8> = unwrap_or_display(payload_vec);
 
-    let payload = btc::msg::payload::ping::Ping::new(payload_vec.into_iter().by_ref())
+    let payload = btc::codec::msgs::msg::payload::ping::Ping::new(payload_vec.into_iter().by_ref())
         .chain_err(|| "Fail in hex -> Msg when testing Ping Payload");
     // let payload = payload.clone().expect(&payload.unwrap_err().display_chain().to_string());
     let payload = unwrap_or_display(payload);
@@ -45,6 +53,7 @@ fn ping_payload() {
 
     println!("{}", res);
     assert_eq!(expected.trim(), res.trim());
+    original_and_coded(ping_pl_hex, &payload);
 }
 
 // uses Msg::new_from_hex()
@@ -72,19 +81,20 @@ fn ping_msg() {
                     │ ├ Nonce: 5597941425041871872\n\
                     ";
 
-    let msg_ping = btc::msg::Msg::new_from_hex(&ping_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_ping = btc::codec::msgs::msg::Msg::new_from_hex(&ping_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_ping = unwrap_or_display(msg_ping);
     let res = format!("{:?}", &msg_ping);
 
     println!("{}", res);
     assert_eq!(expected.trim(), res.trim());
+    original_and_coded(ping_msg_hex, &msg_ping);
 
     // tries to extract a transaction from the payload, of a ping message (should give None)
     let expected = "\
                     None\n\
                     ";
 
-    let tx = if let Some(btc::msg::payload::Payload::Tx(tx)) = msg_ping.payload {
+    let tx = if let Some(btc::codec::msgs::msg::payload::Payload::Tx(tx)) = msg_ping.payload {
         Some(tx)
     } else {
         None
@@ -119,15 +129,17 @@ fn pong_msg() {
                     │ ├ Nounce: 5597941425041871873\n\
                     ";
 
-    let msg_pong = btc::msg::Msg::new_from_hex(&pong_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_pong = btc::codec::msgs::msg::Msg::new_from_hex(&pong_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_pong = unwrap_or_display(msg_pong);
     let res = format!("{:?}", &msg_pong);
 
     println!("{}", res);
     assert_eq!(expected.trim(), res.trim());
+    original_and_coded(pong_msg_hex, &msg_pong);
 }
 
 // uses Msg::new_from_hex()
+
 #[test]
 fn version_msg() {
     let version_msg_hex = "\
@@ -182,13 +194,96 @@ fn version_msg() {
                     ";
 
     let msg_version =
-        btc::msg::Msg::new_from_hex(&version_msg_hex).chain_err(|| "Fail in hex -> Msg");
+        btc::codec::msgs::msg::Msg::new_from_hex(&version_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_version = unwrap_or_display(msg_version);
     let res = format!("{:?}", &msg_version);
 
     println!("{}", res);
     assert_eq!(expected.trim(), res.trim());
+    original_and_coded(version_msg_hex, &msg_version);
 }
+
+
+#[test]
+fn version_msg2() {
+
+
+/*
+72110100 ........................... Protocol version: 70002
+0100000000000000 ................... Services: NODE_NETWORK
+bc8f5e5400000000 ................... Epoch time: 1415483324
+
+0100000000000000 ................... Receiving node's services
+00000000000000000000ffffc61b6409 ... Receiving node's IPv6 address
+208d ............................... Receiving node's port number
+
+0100000000000000 ................... Transmitting node's services
+00000000000000000000ffffcb0071c0 ... Transmitting node's IPv6 address
+208d ............................... Transmitting node's port number
+
+128035cbc97953f8 ................... Nonce
+
+0f ................................. Bytes in user agent string: 15
+2f5361746f7368693a302e392e332f ..... User agent: /Satoshi:0.9.3/
+
+cf050500 ........................... Start height: 329167
+01 ................................. Relay flag: true
+
+*/
+
+
+    let version_pl_hex = "\
+                           721101000100000000000000bc8f5e540000000001000000\
+                           0000000000000000000000000\
+                           000ffffc61b6409208d010000\
+                           0000000000000000000000000\
+                           00000ffffcb0071c0208d1280\
+                           35cbc97953f80f2f5361746f7\
+                           368693a302e392e332fcf0505\
+                           0001\
+                           ";
+
+    let expected = "\
+                    Version:\n\
+                    ├ Version: 70002\n\
+                    ├ Services: 1\n\
+                    ├ Timestamp: 1415483324\n\
+                    ├ Addr Receiver: Net Addr:\n\
+                    ├ Service: 1\n\
+                    ├ IP: \n\
+                    │ ├   0,   0,   0,   0,    0,   0,   0,   0,\n\
+                    │ ├   0,   0, 255, 255,  198,  27, 100,   9,\n\
+                    │ │\n\
+                    ├ Port: 8333\n\
+                    ├ Addr Transfer: Net Addr:\n\
+                    ├ Service: 1\n\
+                    ├ IP: \n\
+                    │ ├   0,   0,   0,   0,    0,   0,   0,   0,\n\
+                    │ ├   0,   0, 255, 255,  203,   0, 113, 192,\n\
+                    │ │\n\
+                    ├ Port: 8333\n\
+                    ├ Nonce: 17893779652077781010\n\
+                    ├ User Agent: Version:\n\
+                    ├ Length: U8(15)\n\
+                    ├ String: </Satoshi:0.9.3/>\n\
+                    │ ├  47,  83,  97, 116,  111, 115, 104, 105,\n\
+                    │ ├  58,  48,  46,  57,   46,  51,  47,\n\
+                    │ │\n\
+                    ├ Start Height: 329167\n\
+                    ├ Relay: Some(true)\n\
+                    ";
+
+
+    let version_pl =
+        btc::codec::msgs::msg::payload::version::Version::new_from_hex(&version_pl_hex).chain_err(|| "Fail in hex -> Msg");
+    let version_pl = unwrap_or_display(version_pl);
+    let res = format!("{:?}", &version_pl);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
+    original_and_coded(version_pl_hex, &version_pl);
+}
+
 
 // uses Msg::new_from_hex()
 #[test]
@@ -211,12 +306,13 @@ fn verack_msg() {
                     ";
 
     let msg_verack =
-        btc::msg::Msg::new_from_hex(&verack_msg_hex).chain_err(|| "Fail in hex -> Msg");
+        btc::codec::msgs::msg::Msg::new_from_hex(&verack_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_verack = unwrap_or_display(msg_verack);
     let res = format!("{:?}", &msg_verack);
 
     println!("{}", res);
     assert_eq!(expected.trim(), res.trim());
+    original_and_coded(verack_msg_hex, &msg_verack);
 }
 
 // uses Msg::new_from_hex()
@@ -321,9 +417,10 @@ fn tx_msg() {
          │ ├ Locktime: 0\n\
          ";
 
-    let msg_tx = btc::msg::Msg::new_from_hex(&tx_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_tx = btc::codec::msgs::msg::Msg::new_from_hex(&tx_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_tx = unwrap_or_display(msg_tx);
     assert_eq!(expected.trim(), format!("{:?}", &msg_tx).trim());
+    original_and_coded(tx_msg_hex, &msg_tx);
 
     // this is how to access only the tx (from the payload)
     // let tx = if let Some(btc::msg::payload::Payload::Tx(tx)) = msg_tx.payload {

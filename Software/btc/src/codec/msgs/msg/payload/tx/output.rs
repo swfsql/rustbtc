@@ -34,7 +34,7 @@ impl NewFromHex for Output {
             })?
             .to_le();
         let pk_script = it.take(pk_script_len as usize)
-            .map(|u| u.to_le())
+            //.map(|u| u.to_le())
             .collect::<Bytes>();
 
         Ok(Output {

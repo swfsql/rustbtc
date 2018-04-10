@@ -24,7 +24,7 @@ pub struct Input {
 impl NewFromHex for Input {
     fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Input> {
         let prev_tx = it.take(32)
-            .map(|u| u.to_le())
+            //.map(|u| u.to_le())
             .collect::<ArrayVec<[u8; 32]>>();
         let aux = it.take(4).collect::<Vec<u8>>();
         let prev_tx_out_index = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
@@ -37,7 +37,7 @@ impl NewFromHex for Input {
             })?
             .to_le();
         let script_sig = it.take(script_len as usize)
-            .map(|u| u.to_le())
+            //.map(|u| u.to_le())
             .collect::<Bytes>();
         let aux = it.take(4).collect::<Vec<u8>>();
         let sequence = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {

@@ -76,7 +76,7 @@ impl std::fmt::Debug for Bytes {
 
 impl IntoBytes for Bytes {
     fn into_bytes(&self) -> Result<Vec<u8>> {
-        let mut wtr = self.0.clone();
+        let wtr = self.0.clone();
         Ok(wtr)
     }
 }

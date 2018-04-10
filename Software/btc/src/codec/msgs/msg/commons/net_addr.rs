@@ -12,7 +12,7 @@ use errors::*;
 use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
 
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
@@ -35,10 +35,10 @@ impl NewFromHex for NetAddr {
         })?;
         let ip = it.by_ref()
             .take(16)
-            .map(|u| u.to_le())
+            //.map(|u| u.to_le())
             .collect::<ArrayVec<[u8; 16]>>();
         let aux = it.by_ref().take(2).collect::<Vec<u8>>();
-        let port = Cursor::new(&aux).read_u16::<LittleEndian>().chain_err(|| {
+        let port = Cursor::new(&aux).read_u16::<BigEndian>().chain_err(|| {
             format!(
                 "(Commons::net_addr) Error at u16 parse for port for value {:?}",
                 aux
@@ -85,7 +85,7 @@ impl IntoBytes for NetAddr {
         wtr.write_u64::<LittleEndian>(self.service)
             .chain_err(|| format!("Failure to convert service ({}) into byte vec", self.service))?;
         wtr.append(&mut self.ip.to_vec());
-        wtr.write_u16::<LittleEndian>(self.port)
+        wtr.write_u16::<BigEndian>(self.port)
             .chain_err(|| format!("Failure to convert port ({}) into byte vec", self.port))?;
         Ok(wtr)
     }
