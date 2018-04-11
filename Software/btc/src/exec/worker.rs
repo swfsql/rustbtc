@@ -130,7 +130,7 @@ impl Future for Worker {
                     let relay = Some(false);
                     let agent_bytes = b"/Rustbtc:0.0.1/";
                     let user_agent = VarStr::from_bytes(agent_bytes).unwrap();
-                    i!();
+
 
                     d!("version payload creating");
                     let version_pl = Version {
