@@ -28,20 +28,8 @@ pub struct Msg {
     pub payload: Option<payload::Payload>,
 }
 
-impl NewFromHex for Msg {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
-        let header = header::Header::new(it).chain_err(|| "(Msg) Error at creating Header")?;
-
-        let (last_index, payload_arrvec): (i32, Vec<u8>) = it.clone()
-      .collect::<Vec<u8>>().iter()
-      .enumerate()
-      .take(header.payload_len as usize)
-      // initiate at -1i32 exclusively for the empty payload case
-      .fold((-1i32, Vec::new()), |(_, mut acc), (i, hex)| {
-        acc.push(*hex);
-        (i as i32, acc)
-      });
-
+impl Msg {
+    pub fn chk(payload_arrvec: Vec<u8>) -> Result<u32> {
         let mut sha = [0; 32];
         let mut chk = Sha256::new();
         chk.input(payload_arrvec.as_slice());
@@ -50,20 +38,23 @@ impl NewFromHex for Msg {
         chk.input(&sha);
         chk.result(&mut sha);
 
-        let chk = Cursor::new(&sha).read_u32::<LittleEndian>().chain_err(|| {
+        Cursor::new(&sha).read_u32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::mod) Error at u32 parse for payloadchk for value {:?}",
                 &sha
             )
-        })?;
+        })
+    }
+}
 
-        if last_index + 1 != header.payload_len {
-            bail!(
-                "(Msg::mod) Error at payload length (expected: {}, found: {:?})",
-                header.payload_len,
-                last_index + 1
-            );
-        } else if chk != header.payloadchk {
+impl NewFromHex for Msg {
+    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
+        let header = header::Header::new(it).chain_err(|| "(Msg) Error at creating Header")?;
+
+        let payload_arrvec = it.clone().collect::<Vec<u8>>();
+        let chk = Msg::chk(payload_arrvec)?;
+
+        if chk != header.payloadchk {
             bail!(
                 "(Msg::mod) Error at payload checksum (expected: {}, found: {:?})",
                 header.payloadchk,

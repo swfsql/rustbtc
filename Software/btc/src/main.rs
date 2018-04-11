@@ -64,6 +64,9 @@ pub struct EnvVar {
   #[structopt(long = "admin-socket-addr", default_value = "127.0.0.1:8081")]
   admin_addr: SocketAddr,
 
+  #[structopt(long = "public-socket-addr", default_value = "127.0.0.1:8333")]
+  public_addr: SocketAddr,
+
   #[structopt(long = "log-file", default_value = "output.log")]
   log_file: String,
 }

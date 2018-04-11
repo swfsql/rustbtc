@@ -19,10 +19,16 @@ use rand::{Rng, thread_rng};
 //use admin;
 use peer;
 use codec;
+
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::net_addr::NetAddr;
 use codec::msgs::msg::commons::var_str::VarStr;
 use codec::msgs::msg::payload::version::Version;
+use codec::msgs::msg::payload::Payload;
+use codec::msgs::msg::header;
+use codec::msgs::msg::Msg;
+use codec::msgs::msg::header::Header;
 
 use exec::commons::{RxMpsc, WorkerRequestContent, WorkerRequest, WorkerResponse, WorkerRequestPriority, WorkerResponseContent, MainToSchedRequestContent};
 
@@ -124,7 +130,7 @@ impl Future for Worker {
                     let agent_bytes = b"/Rustbtc:0.0.1/";
                     let user_agent = VarStr::from_bytes(agent_bytes).unwrap();
 
-                    let version_msg = Version {
+                    let version_pl = Version {
                         version,
                         services,
                         timestamp,
@@ -136,6 +142,20 @@ impl Future for Worker {
                         relay,
                     };
 
+                    let version_pl_raw = version_pl.into_bytes().unwrap();
+
+                    let version_header = Header {
+                        network: header::Network::Main,
+                        cmd: header::Cmd::Version,
+                        payload_len: version_pl_raw.len() as i32,
+                        payloadchk: Msg::chk(version_pl_raw).unwrap(),
+                    };
+
+                    let version_msg = Msg {
+                        header: version_header,
+                        payload: Some(Payload::Version(version_pl)),
+                    };
+
                     //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
@@ -143,12 +163,10 @@ impl Future for Worker {
                             let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
                             let peer_addr = socket.peer_addr().unwrap();
                             {
-                                /*
                                 let boxed_binary =
                                         commons::WorkerToPeerRequestAndPriority(
-                                            commons::PeerRequest::RawMsg(version_msg, 100));
-                                tx.unbounded_send(Box::new(boxed_binary.clone())).unwrap();
-                                */
+                                            commons::PeerRequest::RawMsg(version_msg.into_bytes().unwrap()), 100);
+                                tx_toolbox.unbounded_send(Box::new(boxed_binary.clone())).unwrap();
                             }
 
                             {
