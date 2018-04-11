@@ -35,8 +35,8 @@ impl NewFromHex for VarStr {
 
 impl VarStr {
     pub fn from_bytes(bytes: &[u8]) -> Result<VarStr> {
-        let length = VarUint::from_bytes(&bytes)
-            .chain_err(|| "Error when getting a VarStr length")??;
+        let length = VarUint::from_bytes(&bytes);
+            //.chain_err(|| "Error when getting a VarStr length")?;
         let string = Bytes::new(bytes.to_vec());
         Ok(VarStr {
             length,

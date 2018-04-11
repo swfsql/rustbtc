@@ -112,6 +112,7 @@ impl Future for Worker {
                     WorkerResponse::ListPeers(keys)
                 },
                 WorkerRequest::PeerAdd{addr, wait_handhsake: _, tx_sched} => {
+                    i!("PeerAdd Request received");
 
                     let self_addr = SocketAddr::new(
                         IpAddr::V6(
@@ -129,7 +130,9 @@ impl Future for Worker {
                     let relay = Some(false);
                     let agent_bytes = b"/Rustbtc:0.0.1/";
                     let user_agent = VarStr::from_bytes(agent_bytes).unwrap();
+                    i!();
 
+                    d!("version payload creating");
                     let version_pl = Version {
                         version,
                         services,
@@ -141,6 +144,7 @@ impl Future for Worker {
                         start_height,
                         relay,
                     };
+                    d!("version payload created");
 
                     let version_pl_raw = version_pl.into_bytes().unwrap();
 
@@ -150,6 +154,7 @@ impl Future for Worker {
                         payload_len: version_pl_raw.len() as i32,
                         payloadchk: Msg::chk(version_pl_raw).unwrap(),
                     };
+                    d!("version header created");
 
                     let version_msg = Msg {
                         header: version_header,
@@ -163,12 +168,15 @@ impl Future for Worker {
                             let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
                             let peer_addr = socket.peer_addr().unwrap();
                             {
+                                d!("started sending rawmsg toolbox message to the new peer");
                                 let boxed_binary =
                                         commons::WorkerToPeerRequestAndPriority(
                                             commons::PeerRequest::RawMsg(version_msg.into_bytes().unwrap()), 100);
                                 tx_toolbox.unbounded_send(Box::new(boxed_binary.clone())).unwrap();
+                                d!("finished sending rawmsg toolbox message to the new peer");
                             }
 
+                            d!("registering peer");
                             {
                                 let tx_sched_unlocked = tx_sched.lock().unwrap();
 
@@ -182,13 +190,16 @@ impl Future for Worker {
 
                                 tx_sched_unlocked.unbounded_send(Box::new(sched_req_ctt)).unwrap();
                             }
+                            d!("peer registered");
                             let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
                             {
                                 //let mut messenger_unlocked = self.toolbox.peer_messenger.lock().unwrap();
                                 //messenger_unlocked.insert(peer_addr, tx_toolbox);
                             }
                             let peer_machina = peer::machina::Machina::start(peer).map(|_| ()).map_err(|_| ());
+                            d!("spawning peer machina");
                             tokio::spawn(peer_machina);
+                            d!("peer machina spawned");
                             WorkerResponse::PeerAdd(Some(addr))
                         },
                         Err(_) => {WorkerResponse::PeerAdd(None)},

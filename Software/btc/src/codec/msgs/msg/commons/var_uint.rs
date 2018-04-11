@@ -49,16 +49,15 @@ impl NewFromHex for VarUint {
 
 
 impl VarUint {
-    pub fn from_bytes(bytes: &[u8]) -> Option<Result<VarUint>> {
-        match bytes.len() {
-            0 => None,
-            1 => Some(VarUint::read_u8(&[bytes[0]])),
-            2..3 => Some(VarUint::read_u16(&bytes[1..])),
-            4..5 => Some(VarUint::read_u32(&bytes[1..])),
-            6..9 => Some(VarUint::read_u64(&bytes[1..])),
-            _len => None, // TODO: Some(error), showing the invalid len
+    pub fn from_bytes(bytes: &[u8]) -> VarUint {
+        let len = bytes.len();
+        match len {
+            0x00 .. 0xFC => VarUint::U8(len as u8), // leu 1 byte
+            0x00_FD .. 0xFF_FF => VarUint::U16(len as u16),
+            0x00_01_00_00..0xFF_FF_FF_FF => VarUint::U32(len as u32),
+            0x00_00_00_01_00_00_00_00..0xFF_FF_FF_FF_FF_FF_FF_FF => VarUint::U64(len as u64),
+            _ => panic!("too many bytes fir a single VarUint"),
         }
-
     }
 
     // overkill, but inserted for code consistency
