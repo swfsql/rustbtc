@@ -14,6 +14,11 @@ pub enum Payload {
     Verack,
 }
 
+
+
+
+
+
 /*
 impl IntoBytes for Ping {
     fn into_bytes(&self) -> Result<Vec<u8>> {

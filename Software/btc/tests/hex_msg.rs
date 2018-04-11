@@ -69,7 +69,7 @@ fn ping_msg() {
     let expected = "\
                     Message:\n\
                     ├ Message Header: Message Header:\n\
-                    ├ Message Network Identification: 3652501241\n\
+                    ├ Message Network Identification: Main <D9B4BEF9>\n\
                     ├ Message Command OP_CODE: <ping\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
                     │ ├ 112, 105, 110, 103,    0,   0,   0,   0,\n\
                     │ ├   0,   0,   0,   0,\n\
@@ -117,7 +117,7 @@ fn pong_msg() {
     let expected = "\
                     Message:\n\
                     ├ Message Header: Message Header:\n\
-                    ├ Message Network Identification: 3652501241\n\
+                    ├ Message Network Identification: Main <D9B4BEF9>\n\
                     ├ Message Command OP_CODE: <pong\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
                     │ ├ 112, 111, 110, 103,    0,   0,   0,   0,\n\
                     │ ├   0,   0,   0,   0,\n\
@@ -156,7 +156,7 @@ fn version_msg() {
     let expected = "\
                     Message:\n\
                     ├ Message Header: Message Header:\n\
-                    ├ Message Network Identification: 3652501241\n\
+                    ├ Message Network Identification: Main <D9B4BEF9>\n\
                     ├ Message Command OP_CODE: <version\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
                     │ ├ 118, 101, 114, 115,  105, 111, 110,   0,\n\
                     │ ├   0,   0,   0,   0,\n\
@@ -294,7 +294,7 @@ fn verack_msg() {
     let expected = "\
                     Message:\n\
                     ├ Message Header: Message Header:\n\
-                    ├ Message Network Identification: 3652501241\n\
+                    ├ Message Network Identification: Main <D9B4BEF9>\n\
                     ├ Message Command OP_CODE: <verack\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
                     │ ├ 118, 101, 114,  97,   99, 107,   0,   0,\n\
                     │ ├   0,   0,   0,   0,\n\
@@ -348,7 +348,7 @@ fn tx_msg() {
         "\
          Message:\n\
          ├ Message Header: Message Header:\n\
-         ├ Message Network Identification: 3652501241\n\
+         ├ Message Network Identification: Main <D9B4BEF9>\n\
          ├ Message Command OP_CODE: <tx\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}\u{0}>\n\
          │ ├ 116, 120,   0,   0,    0,   0,   0,   0,\n\
          │ ├   0,   0,   0,   0,\n\

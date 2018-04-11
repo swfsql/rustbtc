@@ -31,12 +31,6 @@ pub struct Msg {
 impl NewFromHex for Msg {
     fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
         let header = header::Header::new(it).chain_err(|| "(Msg) Error at creating Header")?;
-        let cmd_str = header
-            .cmd
-            .clone()
-            .into_iter()
-            .map(|x| x as char)
-            .collect::<String>();
 
         let (last_index, payload_arrvec): (i32, Vec<u8>) = it.clone()
       .collect::<Vec<u8>>().iter()
@@ -77,38 +71,33 @@ impl NewFromHex for Msg {
             );
         }
 
-        //i!("Só ALEDGRIA4444");
-
-        let payload = match cmd_str.to_string().trim() {
-            "tx\0\0\0\0\0\0\0\0\0\0" => {
+        let payload = match header.cmd {
+            header::Cmd::Tx => {
                 let tx = payload::tx::Tx::new(it).chain_err(|| "(Msg) Error at creating Payload")?;
                 Some(payload::Payload::Tx(tx))
-            }
-            "ping\0\0\0\0\0\0\0\0" => {
+            },
+            header::Cmd::Ping => {
                 let ping =
                     payload::ping::Ping::new(it).chain_err(|| "(Msg) Error at creating ping")?;
                 Some(payload::Payload::Ping(ping))
             }
-            "pong\0\0\0\0\0\0\0\0" => {
+            header::Cmd::Pong => {
                 let pong =
                     payload::pong::Pong::new(it).chain_err(|| "(Msg) Error at creating pong")?;
                 Some(payload::Payload::Pong(pong))
             }
-            "version\0\0\0\0\0" => {
+            header::Cmd::Version => {
                 let version = payload::version::Version::new(it)
                     .chain_err(|| "(Msg) Error at creating version")?;
                 Some(payload::Payload::Version(version))
             }
-            "verack\0\0\0\0\0\0" => Some(payload::Payload::Verack),
-            x => {
-                i!("payload code didnt match: {:?}", x);
-                None
+            header::Cmd::Verack => {
+                Some(payload::Payload::Verack)
             }
         };
-
         // header.payload_len // TODO
 
-        Ok(Msg { header, payload })
+        Ok(Msg { header, payload})
     }
 }
 
