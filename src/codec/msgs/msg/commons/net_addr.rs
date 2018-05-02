@@ -1,18 +1,19 @@
+use arrayvec::ArrayVec;
+use codec::msgs::msg::commons::bytes::Bytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::fmt;
-use codec::msgs::msg::commons::bytes::Bytes;
-use arrayvec::ArrayVec;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std::io::Cursor;
 
 mod errors {
     error_chain!{}
 }
 use errors::*;
-use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
+//use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
+use std::net::SocketAddr;
 
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
@@ -51,7 +52,7 @@ impl NewFromHex for NetAddr {
 impl NetAddr {
     pub fn from_socket_addr(addr: &SocketAddr) -> NetAddr {
         match *addr {
-           SocketAddr::V4(socket_addr) => NetAddr {
+            SocketAddr::V4(socket_addr) => NetAddr {
                 service: 0_u64,
                 ip: ArrayVec::from(socket_addr.ip().to_ipv6_mapped().octets()),
                 port: socket_addr.port(),
@@ -78,12 +79,15 @@ impl std::fmt::Debug for NetAddr {
     }
 }
 
-
 impl IntoBytes for NetAddr {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_u64::<LittleEndian>(self.service)
-            .chain_err(|| format!("Failure to convert service ({}) into byte vec", self.service))?;
+        wtr.write_u64::<LittleEndian>(self.service).chain_err(|| {
+            format!(
+                "Failure to convert service ({}) into byte vec",
+                self.service
+            )
+        })?;
         wtr.append(&mut self.ip.to_vec());
         wtr.write_u16::<BigEndian>(self.port)
             .chain_err(|| format!("Failure to convert port ({}) into byte vec", self.port))?;

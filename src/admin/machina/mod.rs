@@ -4,8 +4,8 @@ use tokio::prelude::*;
 
 use state_machine_future::RentToOwn;
 
-use admin::Peer;
 use admin::args;
+use admin::Peer;
 
 use structopt::StructOpt;
 
@@ -13,13 +13,11 @@ use structopt::StructOpt;
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use exec::commons::{AddrReqId, RxOne,
-                     WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponseContent,MainToSchedRequestContent};
-
+use exec::commons::{AddrReqId, MainToSchedRequestContent, RxOne, WorkerRequest,
+                    WorkerRequestContent, WorkerRequestPriority, WorkerResponseContent};
 
 //use futures::sync::{mpsc, oneshot};
-use futures::sync::{oneshot};
+use futures::sync::oneshot;
 //use futures;
 //use std::io::{Error, ErrorKind};
 
@@ -40,11 +38,11 @@ pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
     Welcome(Peer),
 
-    #[state_machine_future(transitions(Execution,SimpleWait,SelfRemove,End))]
+    #[state_machine_future(transitions(Execution, SimpleWait, SelfRemove, End))]
     Standby(Peer),
 
     #[state_machine_future(transitions(Standby))]
-    SimpleWait(Peer,RxOne),
+    SimpleWait(Peer, RxOne),
 
     #[state_machine_future(transitions(End))]
     SelfRemove(Peer),
@@ -74,7 +72,6 @@ impl PollMachina for Machina {
     fn poll_standby<'a>(
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, std::io::Error> {
-
         d!("poll standby");
 
         defmac!(prepare_transition mut state_peer, wr, priority => {
@@ -152,35 +149,39 @@ impl PollMachina for Machina {
                 }
                 Ok(matches) => match args::AdminCmd::from_clap(&matches) {
                     args::AdminCmd::Peer(peercmd) => match peercmd {
-                        args::PeerCmd::Add{addr, wait_handhsake} => {
-
+                        args::PeerCmd::Add {
+                            addr,
+                            wait_handhsake,
+                        } => {
                             let peer = peer.take();
                             d!("Entered command: Adding a peer");
-                            let wr = WorkerRequest::PeerAdd{addr: addr, wait_handhsake:wait_handhsake, tx_sched: peer.0.tx_sched.clone()};
+                            let wr = WorkerRequest::PeerAdd {
+                                addr: addr,
+                                wait_handhsake: wait_handhsake,
+                                tx_sched: peer.0.tx_sched.clone(),
+                            };
                             let (peer, orx) = prepare_transition!(peer.0, wr, 200);
-                            let next = SimpleWait(peer,orx);
+                            let next = SimpleWait(peer, orx);
                             transition!(next);
-                        },
-                        args::PeerCmd::Remove{addr} => {
-
+                        }
+                        args::PeerCmd::Remove { addr } => {
                             let state = peer.take();
                             d!("Entered command: Removing a peer");
-                            let wr = WorkerRequest::PeerRemove{addr: addr};
+                            let wr = WorkerRequest::PeerRemove { addr: addr };
                             let (peer, orx) = prepare_transition!(state.0, wr, 200);
-                            let next = SimpleWait(peer,orx);
+                            let next = SimpleWait(peer, orx);
                             transition!(next);
-
-                        },
+                        }
                         args::PeerCmd::List => {
                             let state = peer.take();
                             d!("Entered command: Removing a peer");
-                            let wr = WorkerRequest::ListPeers{};
+                            let wr = WorkerRequest::ListPeers {};
                             let (peer, orx) = prepare_transition!(state.0, wr, 200);
-                            let next = SimpleWait(peer,orx);
+                            let next = SimpleWait(peer, orx);
                             transition!(next);
-                        },
-                        _ => {},
-                    }
+                        }
+                        _ => {}
+                    },
                     args::AdminCmd::Wallet(_) => {}
                     args::AdminCmd::Blockchain(_) => {}
                     args::AdminCmd::Node(_) => {}
@@ -192,15 +193,15 @@ impl PollMachina for Machina {
                             let state = peer.take();
                             let (mut peer, orx) = prepare_transition!(state.0, wr, 200);
                             d!("Request sent to worker");
-                            let next = SimpleWait(peer,orx);
+                            let next = SimpleWait(peer, orx);
                             transition!(next);
-
-                        },
-                        args::DebugCmd::Wait{delay} => {
+                        }
+                        args::DebugCmd::Wait { delay } => {
                             i!("started wait cmd");
-                            let wr = WorkerRequest::Wait{delay: delay};
+                            let wr = WorkerRequest::Wait { delay: delay };
                             let wrp = WorkerRequestPriority(wr, 200);
-                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let (otx, orx) =
+                                oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
                             let skt = peer.0.codec.socket.peer_addr().unwrap();
                             let hello_index = 0;
                             let addr = AddrReqId(skt, hello_index);
@@ -209,14 +210,15 @@ impl PollMachina for Machina {
                             let peer = peer.take();
                             peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
-                            let next = SimpleWait(peer.0,orx);
+                            let next = SimpleWait(peer.0, orx);
                             transition!(next);
-                        },
+                        }
                         args::DebugCmd::PeerPrint => {
                             i!("started peerprint cmd");
                             let wr = WorkerRequest::PeerPrint;
                             let wrp = WorkerRequestPriority(wr, 200);
-                            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
+                            let (otx, orx) =
+                                oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
                             let skt = peer.0.codec.socket.peer_addr().unwrap();
                             let hello_index = 0;
                             let addr = AddrReqId(skt, hello_index);
@@ -225,32 +227,36 @@ impl PollMachina for Machina {
                             let peer = peer.take();
                             peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
 
-                            let next = SimpleWait(peer.0,orx);
+                            let next = SimpleWait(peer.0, orx);
                             transition!(next);
-
-                        },
-                        args::DebugCmd::MsgFromHex{send, hex} => {
+                        }
+                        args::DebugCmd::MsgFromHex { send, hex } => {
                             d!("started msgFromHex cmd");
-                            let wr = WorkerRequest::MsgFromHex{send:send, binary: hex.0};
+                            let wr = WorkerRequest::MsgFromHex {
+                                send: send,
+                                binary: hex.0,
+                            };
 
                             let state = peer.take();
                             let (mut peer, orx) = prepare_transition!(state.0, wr, 200);
                             d!("Request sent to worker");
 
-                            let next = SimpleWait(peer,orx);
+                            let next = SimpleWait(peer, orx);
                             transition!(next);
-                        },
+                        }
                     },
                     args::AdminCmd::Exit => {
                         let state = peer.take();
                         d!("Entered command: Exiting admin");
-                        let wr = WorkerRequest::PeerRemove{addr: state.0.codec.socket.peer_addr().unwrap()};
+                        let wr = WorkerRequest::PeerRemove {
+                            addr: state.0.codec.socket.peer_addr().unwrap(),
+                        };
                         let (mut peer, orx) = prepare_transition!(state.0, wr, 200);
                         d!("Request sent to worker");
                         peer.push_ignored(orx);
                         let next = SelfRemove(peer);
                         transition!(next);
-                    },
+                    }
                 },
             }
 
@@ -280,7 +286,7 @@ impl PollMachina for Machina {
         match state.1.poll() {
             Ok(Async::Ready(fresp)) => {
                 resp = fresp;
-            },
+            }
             Ok(Async::NotReady) => {
                 return Ok(Async::NotReady);
             }
@@ -293,12 +299,10 @@ impl PollMachina for Machina {
         let mut peer = state.0;
         let _orx = state.1;
 
-        peer
-            .codec
-            .buffer(format!("{:#?}", &resp).as_bytes());
+        peer.codec.buffer(format!("{:#?}", &resp).as_bytes());
         let _ = peer.codec.poll_flush()?;
         let _ = peer.codec.poll_flush()?; // to make sure
-        //i!("{:#?}", &resp);
+                                          //i!("{:#?}", &resp);
 
         //orx.take();
         let next = Standby(peer);
@@ -308,7 +312,6 @@ impl PollMachina for Machina {
     fn poll_self_remove<'a>(
         state: &'a mut RentToOwn<'a, SelfRemove>,
     ) -> Poll<AfterSelfRemove, std::io::Error> {
-
         d!("Entered self_remove state!");
         state.0.poll_ignored();
         if state.0.rx_ignored.len() > 0 {
@@ -318,7 +321,13 @@ impl PollMachina for Machina {
         let state = state.take();
         let addr = state.0.codec.socket.peer_addr().unwrap();
         let msg = MainToSchedRequestContent::Unregister(addr);
-        state.0.tx_sched.lock().unwrap().unbounded_send(Box::new(msg)).unwrap();
+        state
+            .0
+            .tx_sched
+            .lock()
+            .unwrap()
+            .unbounded_send(Box::new(msg))
+            .unwrap();
         let next = End(state.0); //Calling this simplewait???
         transition!(next);
     }

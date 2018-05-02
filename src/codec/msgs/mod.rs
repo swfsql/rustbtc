@@ -1,13 +1,12 @@
+use bytes::{BufMut, BytesMut};
+use futures::{Async, Poll};
 use tokio::io;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
-use futures::{Async, Poll};
-use bytes::{BufMut, BytesMut};
 
 pub mod msg;
 
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-
 
 use hex::ToHex;
 
@@ -64,35 +63,35 @@ impl Stream for Msgs {
 
         if self.rd.len() < 24 {
             d!("has <24");
-            d!("\n{}\n{:?}", self.rd.clone().into_iter().collect::<Vec<_>>().to_hex(), self.rd.clone());
+            d!(
+                "\n{}\n{:?}",
+                self.rd.clone().into_iter().collect::<Vec<_>>().to_hex(),
+                self.rd.clone()
+            );
             return Ok(Async::NotReady);
         }
         d!("has >=24");
         let rd_clone = self.rd.clone();
-        let header = msg::header::Header::new(
-            &mut rd_clone
-                .into_iter()
-                .take(24)
-                .collect::<Vec<_>>()
-                .into_iter())
+        let header = msg::header::Header::new(&mut rd_clone
+            .into_iter()
+            .take(24)
+            .collect::<Vec<_>>()
+            .into_iter())
             .unwrap();
-        d!("after header made:\n {:?}",&header);
+        d!("after header made:\n {:?}", &header);
         if self.rd.iter().len() < header.payload_len as usize + 24usize {
             d!("not enought bytes for payload");
             return Ok(Async::NotReady);
         }
         d!("has enought bytes for payload");
         //let rd_split =
-        let msg = msg::Msg::new(
-            &mut self.rd
-                .split_to(header.payload_len as usize + 24usize)
-                .into_iter()
-                .collect::<Vec<_>>()
-                .into_iter()
-        ).unwrap();
+        let msg = msg::Msg::new(&mut self.rd
+            .split_to(header.payload_len as usize + 24usize)
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_iter())
+            .unwrap();
         d!("finished building msg:\n{:?}", &msg);
-
-
 
         if sock_closed {
             Ok(Async::Ready(None))

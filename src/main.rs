@@ -24,10 +24,9 @@ extern crate btc;
 //use chrono::Local;
 
 //use futures::sync::{mpsc, oneshot};
-use futures::sync::{mpsc};
 use btc::exec::commons;
+use futures::sync::mpsc;
 use structopt::StructOpt;
-
 
 // use btc::commons::new_from_hex::NewFromHex;
 // use btc::commons::into_bytes::IntoBytes;
@@ -49,26 +48,25 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::prelude::*;
 
 use std::net::SocketAddr;
-use std::thread;
 use std::sync::{Arc, Mutex};
+use std::thread;
 //use log::LevelFilter;
-
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "")]
 /// Node general settings
 pub struct EnvVar {
-  #[structopt(long = "node-socket-addr", default_value = "127.0.0.1:8333")]
-  node_addr: SocketAddr,
+    #[structopt(long = "node-socket-addr", default_value = "127.0.0.1:8333")]
+    node_addr: SocketAddr,
 
-  #[structopt(long = "admin-socket-addr", default_value = "127.0.0.1:8081")]
-  admin_addr: SocketAddr,
+    #[structopt(long = "admin-socket-addr", default_value = "127.0.0.1:8081")]
+    admin_addr: SocketAddr,
 
-  #[structopt(long = "public-socket-addr", default_value = "127.0.0.1:8333")]
-  public_addr: SocketAddr,
+    #[structopt(long = "public-socket-addr", default_value = "127.0.0.1:8333")]
+    public_addr: SocketAddr,
 
-  #[structopt(long = "log-file", default_value = "output.log")]
-  log_file: String,
+    #[structopt(long = "log-file", default_value = "output.log")]
+    log_file: String,
 }
 
 fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
@@ -79,14 +77,12 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
         d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
         d!("After mutex was locked.");
-        tx_sched_unlocked.unbounded_send(
-            Box::new(
-                commons::MainToSchedRequestContent::Register(
-                    commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
-                    tx_toolbox,
-                )
-            )
-        ).unwrap(); // TODO may error
+        tx_sched_unlocked
+            .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
+                commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+                tx_toolbox,
+            )))
+            .unwrap(); // TODO may error
         d!("After tx_sched send");
     }
 
@@ -105,14 +101,12 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
         d!("After mutex was locked.");
-        tx_sched_unlocked.unbounded_send(
-            Box::new(
-                commons::MainToSchedRequestContent::Register(
-                    commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
-                    tx_toolbox,
-                )
-            )
-        ).unwrap(); // TODO may error
+        tx_sched_unlocked
+            .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
+                commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+                tx_toolbox,
+            )))
+            .unwrap(); // TODO may error
         d!("After tx_sched send");
     }
 
@@ -153,8 +147,7 @@ fn run() -> Result<()> {
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
-    let scheduler = btc::exec::scheduler::Scheduler::new(rx, 3)
-        .map_err(|_| ());
+    let scheduler = btc::exec::scheduler::Scheduler::new(rx, 3).map_err(|_| ());
     thread::spawn(move || {
         tokio::run(scheduler);
     });
@@ -166,9 +159,11 @@ fn run() -> Result<()> {
     let server_listeners = listener_admin
         .incoming()
         .map(|socket| (socket, IsAdmin(true)))
-        .select(listener_peer
-            .incoming()
-            .map(|socket| (socket, IsAdmin(false))))
+        .select(
+            listener_peer
+                .incoming()
+                .map(|socket| (socket, IsAdmin(false))),
+        )
         .for_each(move |(socket, IsAdmin(is_admin))| {
             if is_admin {
                 process_admin(socket, Arc::clone(&mtx));
@@ -180,8 +175,6 @@ fn run() -> Result<()> {
         .map_err(|err| {
             i!("accept error = {:?}", err);
         });
-
-
 
     i!("server_peer running on {:?}", args.node_addr);
     i!("server_admin running on {:?}", args.admin_addr);

@@ -1,9 +1,9 @@
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::fmt;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use std::io::Cursor;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 mod errors {
     error_chain!{}
 }
@@ -33,4 +33,3 @@ impl IntoBytes for GetHeaders {
         unimplemented!("TODO: implement GetHeaders payload IntoBytes")
     }
 }
-

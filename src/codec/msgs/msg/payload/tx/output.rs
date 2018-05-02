@@ -1,9 +1,9 @@
-use std;
-use std::fmt;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::bytes::Bytes;
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use std;
+use std::fmt;
 use std::io::Cursor;
 
 mod errors {
@@ -56,15 +56,18 @@ impl std::fmt::Debug for Output {
     }
 }
 
-
 impl IntoBytes for Output {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
         wtr.write_i64::<LittleEndian>(self.value)
             .chain_err(|| format!("Failure to convert value ({}) into byte vec", self.value))?;
 
-        wtr.write_u8(self.pk_script_len)
-            .chain_err(|| format!("Failure to convert pk_script_len ({}) into byte vec", self.pk_script_len))?;
+        wtr.write_u8(self.pk_script_len).chain_err(|| {
+            format!(
+                "Failure to convert pk_script_len ({}) into byte vec",
+                self.pk_script_len
+            )
+        })?;
 
         wtr.append(&mut self.pk_script.into_bytes()?);
 

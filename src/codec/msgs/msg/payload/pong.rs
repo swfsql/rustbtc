@@ -1,15 +1,14 @@
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::fmt;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Cursor;
 
 mod errors {
     error_chain!{}
 }
 use errors::*;
-
 
 #[derive(Clone)]
 pub struct Pong {
@@ -37,8 +36,6 @@ impl std::fmt::Debug for Pong {
         write!(f, "{}", s)
     }
 }
-
-
 
 impl IntoBytes for Pong {
     fn into_bytes(&self) -> Result<Vec<u8>> {

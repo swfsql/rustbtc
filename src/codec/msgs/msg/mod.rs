@@ -1,8 +1,8 @@
+use byteorder::{LittleEndian, ReadBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::fmt;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 // use codec::msgs::msg::commons::into_bytes::into_bytes;
 use std::io::Cursor;
 
@@ -18,9 +18,9 @@ use errors::*;
 //use ::payload::payload::Verack;
 //use codec::msgs::msg::payload::payload::Verack;
 
+pub mod commons;
 pub mod header;
 pub mod payload;
-pub mod commons;
 
 #[derive(Clone)]
 pub struct Msg {
@@ -66,7 +66,7 @@ impl NewFromHex for Msg {
             header::Cmd::Tx => {
                 let tx = payload::tx::Tx::new(it).chain_err(|| "(Msg) Error at creating Payload")?;
                 Some(payload::Payload::Tx(tx))
-            },
+            }
             header::Cmd::Ping => {
                 let ping =
                     payload::ping::Ping::new(it).chain_err(|| "(Msg) Error at creating ping")?;
@@ -82,18 +82,16 @@ impl NewFromHex for Msg {
                     .chain_err(|| "(Msg) Error at creating version")?;
                 Some(payload::Payload::Version(version))
             }
-            header::Cmd::Verack => {
-                Some(payload::Payload::Verack)
-            },
+            header::Cmd::Verack => Some(payload::Payload::Verack),
             header::Cmd::GetHeaders => {
                 let get_headers = payload::get_headers::GetHeaders::new(it)
                     .chain_err(|| "(Msg) Error at creating get_headers")?;
                 Some(payload::Payload::GetHeaders(get_headers))
-            },
+            }
         };
         // header.payload_len // TODO
 
-        Ok(Msg { header, payload})
+        Ok(Msg { header, payload })
     }
 }
 
@@ -119,21 +117,21 @@ impl std::fmt::Debug for Msg {
     }
 }
 impl IntoBytes for Msg {
-  fn into_bytes(&self) -> Result<Vec<u8>> {
-      let mut wrt = vec![];
-      wrt.append(&mut self.header.into_bytes()?);
-      let mut wrt_payload = match self.clone().payload {
-          Some(ref p) => match p {
-            &payload::Payload::Tx(ref tx) => tx.into_bytes()?,
-            &payload::Payload::Ping(ref ping) => ping.into_bytes()?,
-            &payload::Payload::Pong(ref pong) => pong.into_bytes()?,
-            &payload::Payload::Version(ref version) => version.into_bytes()?,
-            &payload::Payload::Verack => vec![],
-            &payload::Payload::GetHeaders(ref get_headers) => get_headers.into_bytes()?,
-          },
-          None => vec![],
-      };
-      wrt.append(&mut wrt_payload);
-      Ok(wrt)
-  }
+    fn into_bytes(&self) -> Result<Vec<u8>> {
+        let mut wrt = vec![];
+        wrt.append(&mut self.header.into_bytes()?);
+        let mut wrt_payload = match self.clone().payload {
+            Some(ref p) => match p {
+                &payload::Payload::Tx(ref tx) => tx.into_bytes()?,
+                &payload::Payload::Ping(ref ping) => ping.into_bytes()?,
+                &payload::Payload::Pong(ref pong) => pong.into_bytes()?,
+                &payload::Payload::Version(ref version) => version.into_bytes()?,
+                &payload::Payload::Verack => vec![],
+                &payload::Payload::GetHeaders(ref get_headers) => get_headers.into_bytes()?,
+            },
+            None => vec![],
+        };
+        wrt.append(&mut wrt_payload);
+        Ok(wrt)
+    }
 }

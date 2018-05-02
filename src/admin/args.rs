@@ -1,7 +1,7 @@
 //use codec::msgs::msg;
-use std::net::SocketAddr;
-use hex::FromHex;
 use hex;
+use hex::FromHex;
+use std::net::SocketAddr;
 use std::str::FromStr;
 
 #[derive(StructOpt, Debug)]
@@ -125,7 +125,7 @@ pub enum DebugCmd {
     Dummy,
 
     #[structopt(name = "wait")]
-    Wait{
+    Wait {
         #[structopt(long = "delay")]
         delay: u64,
     },
@@ -135,7 +135,7 @@ pub enum DebugCmd {
 
     #[structopt(name = "msg")]
     MsgFromHex {
-        #[structopt(short="s", long = "send")]
+        #[structopt(short = "s", long = "send")]
         /// send messages to connected peers
         send: bool,
 
@@ -153,4 +153,3 @@ impl FromStr for Bytes {
         Ok(Bytes(vec))
     }
 }
-

@@ -1,10 +1,10 @@
-pub mod tx;
+pub mod get_headers;
 pub mod ping;
 pub mod pong;
+pub mod tx;
 pub mod version;
-pub mod get_headers;
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+//use codec::msgs::msg::commons::into_bytes::IntoBytes;
+//use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 #[derive(Clone)]
 pub enum Payload {
@@ -15,8 +15,6 @@ pub enum Payload {
     Verack,
     GetHeaders(get_headers::GetHeaders),
 }
-
-
 
 /*
 impl IntoBytes for Ping {

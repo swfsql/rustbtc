@@ -4,14 +4,14 @@ extern crate error_chain;
 mod errors {
     error_chain!{}
 }
-use errors::*;
 use error_chain::ChainedError;
+use errors::*;
 
 extern crate hex;
 
 extern crate btc;
-use btc::codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use btc::codec::msgs::msg::commons::into_bytes::IntoBytes;
+use btc::codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use hex::FromHex;
 
 fn unwrap_or_display<T>(res: Result<T>) -> T {
@@ -81,7 +81,8 @@ fn ping_msg() {
                     │ ├ Nonce: 5597941425041871872\n\
                     ";
 
-    let msg_ping = btc::codec::msgs::msg::Msg::new_from_hex(&ping_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_ping =
+        btc::codec::msgs::msg::Msg::new_from_hex(&ping_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_ping = unwrap_or_display(msg_ping);
     let res = format!("{:?}", &msg_ping);
 
@@ -129,7 +130,8 @@ fn pong_msg() {
                     │ ├ Nounce: 5597941425041871873\n\
                     ";
 
-    let msg_pong = btc::codec::msgs::msg::Msg::new_from_hex(&pong_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_pong =
+        btc::codec::msgs::msg::Msg::new_from_hex(&pong_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_pong = unwrap_or_display(msg_pong);
     let res = format!("{:?}", &msg_pong);
 
@@ -193,8 +195,8 @@ fn version_msg() {
                     │ ├ Relay: None\n\
                     ";
 
-    let msg_version =
-        btc::codec::msgs::msg::Msg::new_from_hex(&version_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_version = btc::codec::msgs::msg::Msg::new_from_hex(&version_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
     let msg_version = unwrap_or_display(msg_version);
     let res = format!("{:?}", &msg_version);
 
@@ -203,12 +205,9 @@ fn version_msg() {
     original_and_coded(version_msg_hex, &msg_version);
 }
 
-
 #[test]
 fn version_msg2() {
-
-
-/*
+    /*
 72110100 ........................... Protocol version: 70002
 0100000000000000 ................... Services: NODE_NETWORK
 bc8f5e5400000000 ................... Epoch time: 1415483324
@@ -231,17 +230,16 @@ cf050500 ........................... Start height: 329167
 
 */
 
-
     let version_pl_hex = "\
-                           721101000100000000000000bc8f5e540000000001000000\
-                           0000000000000000000000000\
-                           000ffffc61b6409208d010000\
-                           0000000000000000000000000\
-                           00000ffffcb0071c0208d1280\
-                           35cbc97953f80f2f5361746f7\
-                           368693a302e392e332fcf0505\
-                           0001\
-                           ";
+                          721101000100000000000000bc8f5e540000000001000000\
+                          0000000000000000000000000\
+                          000ffffc61b6409208d010000\
+                          0000000000000000000000000\
+                          00000ffffcb0071c0208d1280\
+                          35cbc97953f80f2f5361746f7\
+                          368693a302e392e332fcf0505\
+                          0001\
+                          ";
 
     let expected = "\
                     Version:\n\
@@ -273,9 +271,9 @@ cf050500 ........................... Start height: 329167
                     ├ Relay: Some(true)\n\
                     ";
 
-
-    let version_pl =
-        btc::codec::msgs::msg::payload::version::Version::new_from_hex(&version_pl_hex).chain_err(|| "Fail in hex -> Msg");
+    let version_pl = btc::codec::msgs::msg::payload::version::Version::new_from_hex(
+        &version_pl_hex,
+    ).chain_err(|| "Fail in hex -> Msg");
     let version_pl = unwrap_or_display(version_pl);
     let res = format!("{:?}", &version_pl);
 
@@ -283,7 +281,6 @@ cf050500 ........................... Start height: 329167
     assert_eq!(expected.trim(), res.trim());
     original_and_coded(version_pl_hex, &version_pl);
 }
-
 
 // uses Msg::new_from_hex()
 #[test]
@@ -305,8 +302,8 @@ fn verack_msg() {
                     │ Verack\n\
                     ";
 
-    let msg_verack =
-        btc::codec::msgs::msg::Msg::new_from_hex(&verack_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_verack = btc::codec::msgs::msg::Msg::new_from_hex(&verack_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
     let msg_verack = unwrap_or_display(msg_verack);
     let res = format!("{:?}", &msg_verack);
 
@@ -417,7 +414,8 @@ fn tx_msg() {
          │ ├ Locktime: 0\n\
          ";
 
-    let msg_tx = btc::codec::msgs::msg::Msg::new_from_hex(&tx_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_tx =
+        btc::codec::msgs::msg::Msg::new_from_hex(&tx_msg_hex).chain_err(|| "Fail in hex -> Msg");
     let msg_tx = unwrap_or_display(msg_tx);
     assert_eq!(expected.trim(), format!("{:?}", &msg_tx).trim());
     original_and_coded(tx_msg_hex, &msg_tx);

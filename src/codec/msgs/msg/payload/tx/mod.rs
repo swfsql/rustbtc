@@ -1,8 +1,8 @@
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::fmt;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Cursor;
 
 mod errors {
@@ -154,10 +154,18 @@ impl std::fmt::Debug for Tx {
 impl IntoBytes for Tx {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_i32::<LittleEndian>(self.version)
-            .chain_err(|| format!("Failure to convert version ({}) into byte vec", self.version))?;
-        wtr.write_u8(self.inputs_len)
-            .chain_err(|| format!("Failure to convert inputs_len ({}) into byte vec", self.inputs_len))?;
+        wtr.write_i32::<LittleEndian>(self.version).chain_err(|| {
+            format!(
+                "Failure to convert version ({}) into byte vec",
+                self.version
+            )
+        })?;
+        wtr.write_u8(self.inputs_len).chain_err(|| {
+            format!(
+                "Failure to convert inputs_len ({}) into byte vec",
+                self.inputs_len
+            )
+        })?;
         let inputs = self.inputs
             .iter()
             .map(|input| input.into_bytes())
@@ -165,8 +173,12 @@ impl IntoBytes for Tx {
         for mut input in inputs {
             wtr.append(&mut input);
         }
-        wtr.write_u8(self.outputs_len)
-            .chain_err(|| format!("Failure to convert outputs_len ({}) into byte vec", self.outputs_len))?;
+        wtr.write_u8(self.outputs_len).chain_err(|| {
+            format!(
+                "Failure to convert outputs_len ({}) into byte vec",
+                self.outputs_len
+            )
+        })?;
         let outputs = self.outputs
             .iter()
             .map(|output| output.into_bytes())
@@ -174,8 +186,12 @@ impl IntoBytes for Tx {
         for mut output in outputs {
             wtr.append(&mut output);
         }
-        wtr.write_u32::<LittleEndian>(self.locktime)
-            .chain_err(|| format!("Failure to convert locktime ({}) into byte vec", self.locktime))?;
+        wtr.write_u32::<LittleEndian>(self.locktime).chain_err(|| {
+            format!(
+                "Failure to convert locktime ({}) into byte vec",
+                self.locktime
+            )
+        })?;
         Ok(wtr)
     }
 }

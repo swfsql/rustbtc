@@ -1,10 +1,10 @@
-use std;
-use std::fmt;
 use arrayvec::ArrayVec;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use std;
+use std::fmt;
 use std::io::Cursor;
 
 mod errors {
@@ -20,35 +20,41 @@ pub enum Network {
     Namecoin,
 }
 
+mod network_value {
+    pub const MAIN: u32 = 0xD9B4BEF9;
+    pub const TESTNET: u32 = 0xDAB5BFFA;
+    pub const TESTNET3: u32 = 0x0709110B;
+    pub const NAMECOIN: u32 = 0xFEB4BEF9;
+}
+
 impl Network {
     pub fn new(magic: u32) -> Option<Network> {
         match magic {
-            0xD9B4BEF9 => Some(Network::Main),
-            0xDAB5BFFA => Some(Network::Testnet),
-            0x0709110B => Some(Network::Testnet3),
-            0xFEB4BEF9 => Some(Network::Namecoin),
+            network_value::MAIN => Some(Network::Main),
+            network_value::TESTNET => Some(Network::Testnet),
+            network_value::TESTNET3 => Some(Network::Testnet3),
+            network_value::NAMECOIN => Some(Network::Namecoin),
             _ => None,
         }
     }
 
     pub fn value(&self) -> u32 {
-        match self {
-            Main => 0xD9B4BEF9,
-            Testnet => 0xDAB5BFFA,
-            Testnet3 => 0x0709110B,
-            Namecoin => 0xFEB4BEF9,
+        match *self {
+            Network::Main => network_value::MAIN,
+            Network::Testnet => network_value::TESTNET,
+            Network::Testnet3 => network_value::TESTNET3,
+            Network::Namecoin => network_value::NAMECOIN,
         }
     }
 }
 
-
 impl std::fmt::Debug for Network {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
-        let mut s = match self {
-            Main => format!("Main <{:X}>\n", self.value()),
-            Testnet => format!("Testnet <{:X}>\n", self.value()),
-            Testnet3 => format!("Testnet3 <{:X}>\n", self.value()),
-            Namecoin => format!("Namecoin <{:X}>\n", self.value()),
+        let s = match *self {
+            Network::Main => format!("Main <{:X}>\n", self.value()),
+            Network::Testnet => format!("Testnet <{:X}>\n", self.value()),
+            Network::Testnet3 => format!("Testnet3 <{:X}>\n", self.value()),
+            Network::Namecoin => format!("Namecoin <{:X}>\n", self.value()),
         };
         write!(f, "{}", s)
     }
@@ -57,8 +63,12 @@ impl std::fmt::Debug for Network {
 impl IntoBytes for Network {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_u32::<LittleEndian>(self.value())
-            .chain_err(|| format!("Failure to convert network ({}) into byte vec", self.value()))?;
+        wtr.write_u32::<LittleEndian>(self.value()).chain_err(|| {
+            format!(
+                "Failure to convert network ({}) into byte vec",
+                self.value()
+            )
+        })?;
         Ok(wtr)
     }
 }
@@ -110,7 +120,7 @@ impl Cmd {
 
 impl std::fmt::Debug for Cmd {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
-        let mut s = match *self {
+        let s = match *self {
             Cmd::Tx => format!("Cmd::Tx <{:?}>\n", self.value()),
             Cmd::Ping => format!("Cmd::Ping <{:?}>\n", self.value()),
             Cmd::Pong => format!("Cmd::Pong <{:?}>\n", self.value()),
@@ -127,8 +137,6 @@ impl IntoBytes for Cmd {
         Ok(self.value().to_vec())
     }
 }
-
-
 
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 #[derive(Clone)]
@@ -149,11 +157,9 @@ impl NewFromHex for Header {
                 aux
             )
         })?;
-        let network = Network::new(network)
-            .ok_or("Error: Network Magic Number unkown")?;
+        let network = Network::new(network).ok_or("Error: Network Magic Number unkown")?;
         let cmd = it.take(12).collect::<ArrayVec<[u8; 12]>>();
-        let cmd = Cmd::new(cmd)
-            .ok_or("(Msg::header) Error: Error when reading cmd")?;
+        let cmd = Cmd::new(cmd).ok_or("(Msg::header) Error: Error when reading cmd")?;
         let aux = it.take(4).collect::<Vec<u8>>();
         let payload_len = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
             format!(
@@ -197,15 +203,30 @@ impl IntoBytes for Header {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
         wtr.write_u32::<LittleEndian>(self.network.value())
-            .chain_err(|| format!("Failure to convert network ({:?}) into byte vec", self.network))?;
+            .chain_err(|| {
+                format!(
+                    "Failure to convert network ({:?}) into byte vec",
+                    self.network
+                )
+            })?;
 
         wtr.append(&mut self.cmd.value().to_vec());
-            //.chain_err(|| format!("Failure to convert cmd ({}) into byte vec", self.cmd))?;
+        //.chain_err(|| format!("Failure to convert cmd ({}) into byte vec", self.cmd))?;
 
         wtr.write_i32::<LittleEndian>(self.payload_len)
-            .chain_err(|| format!("Failure to convert payload_len ({}) into byte vec", self.payload_len))?;
+            .chain_err(|| {
+                format!(
+                    "Failure to convert payload_len ({}) into byte vec",
+                    self.payload_len
+                )
+            })?;
         wtr.write_u32::<LittleEndian>(self.payloadchk)
-            .chain_err(|| format!("Failure to convert payloadchk ({}) into byte vec", self.payloadchk))?;
+            .chain_err(|| {
+                format!(
+                    "Failure to convert payloadchk ({}) into byte vec",
+                    self.payloadchk
+                )
+            })?;
 
         Ok(wtr)
     }

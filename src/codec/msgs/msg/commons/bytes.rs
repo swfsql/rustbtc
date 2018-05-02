@@ -6,9 +6,9 @@ pub struct Bytes(Vec<u8>);
 mod errors {
     error_chain!{}
 }
-use errors::*;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use errors::*;
+//use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 impl Bytes {
     pub fn new(vec: Vec<u8>) -> Bytes {
@@ -72,7 +72,6 @@ impl std::fmt::Debug for Bytes {
         }
     }
 }
-
 
 impl IntoBytes for Bytes {
     fn into_bytes(&self) -> Result<Vec<u8>> {

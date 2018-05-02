@@ -1,18 +1,17 @@
-use tokio::prelude::*;
-use std::net::SocketAddr;
-use tokio;
+use exec;
+use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, RxPeers, TxMpsc, TxOne,
+                    WorkerRequestContent, WorkerResponseContent};
 use futures;
 use futures::sync::{mpsc, oneshot};
+use std::borrow::BorrowMut;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
-use std::cmp::Ordering;
 use std::mem;
-use std::borrow::BorrowMut;
-use std::sync::{Arc};
-use exec;
-use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
-                    TxOne, WorkerRequestContent,
-                    WorkerResponseContent, RxPeers,RxMpscMainToSched};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio;
+use tokio::prelude::*;
 
 struct Inbox(RxMpscSf, HashMap<RequestId, TxOne>);
 struct Outbox(TxMpsc, HashMap<AddrReqId, RxOne>);
@@ -78,22 +77,28 @@ impl Future for Scheduler {
         loop {
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(box intention))) => match intention {
-                    exec::commons::MainToSchedRequestContent::Register(RxPeers(addr, first), tx_mpsc_peer) => {
+                    exec::commons::MainToSchedRequestContent::Register(
+                        RxPeers(addr, first),
+                        tx_mpsc_peer,
+                    ) => {
                         self.inbox.insert(addr, Inbox::new(first));
-                        self.toolbox.peer_messenger.lock().unwrap().insert(addr, tx_mpsc_peer);
-                    },
+                        self.toolbox
+                            .peer_messenger
+                            .lock()
+                            .unwrap()
+                            .insert(addr, tx_mpsc_peer);
+                    }
                     exec::commons::MainToSchedRequestContent::Unregister(addr) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);
                         self.inbox.remove(&addr);
-                    },
-                }
+                    }
+                },
                 _ => {
-
                     break;
                 }
             }
             task::current().notify();
-        };
+        }
 
         loop {
             if let Some(first_outbox) = self.outbox.iter().next() {
@@ -104,16 +109,11 @@ impl Future for Scheduler {
                 break;
             };
             let wrk_full_resp = {
-                let poll = futures::future::select_all(
-                        self.outbox
-                            .iter_mut()
-                            .flat_map(|&mut Outbox(_, ref mut rx_one_hm)|
-                                rx_one_hm
-                                    .iter_mut()
-                                    .map(|(_, fut)| fut),
-                            )
-                    )
-                    .map_err(|_| Error::new(ErrorKind::Other, "TODO: error in select(1) for sched!"))
+                let poll = futures::future::select_all(self.outbox.iter_mut().flat_map(
+                    |&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm.iter_mut().map(|(_, fut)| fut),
+                )).map_err(|_| {
+                    Error::new(ErrorKind::Other, "TODO: error in select(1) for sched!")
+                })
                     .poll();
                 if let Ok(Async::Ready((resp, _index, _vec))) = poll {
                     resp
@@ -129,10 +129,16 @@ impl Future for Scheduler {
 
             d!("Removing oneshot from hashmap from the worker who completed the task.");
             let addr_req_id = {
-                if let Ok(box WorkerResponseContent(ref _wrk_response, ref addr_req_id)) = wrk_full_resp {
-                    self.outbox.iter_mut().map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
-                        .find(|ref mut hm| hm.contains_key(&addr_req_id)).unwrap().remove(&addr_req_id);
-                        addr_req_id.clone()
+                if let Ok(box WorkerResponseContent(ref _wrk_response, ref addr_req_id)) =
+                    wrk_full_resp
+                {
+                    self.outbox
+                        .iter_mut()
+                        .map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
+                        .find(|ref mut hm| hm.contains_key(&addr_req_id))
+                        .unwrap()
+                        .remove(&addr_req_id);
+                    addr_req_id.clone()
                 } else {
                     e!("No channel oneshot to be removed on the scheduler's outbox");
                     panic!("error from response.");
@@ -146,13 +152,17 @@ impl Future for Scheduler {
             let &mut Inbox(_, ref mut prev_oneshots) = self.inbox.get_mut(&addr_req_id.0).unwrap();
 
             // forwards the message to the peer
-            prev_oneshots.remove(&addr_req_id.1).unwrap().send(wrk_full_resp).unwrap();
+            prev_oneshots
+                .remove(&addr_req_id.1)
+                .unwrap()
+                .send(wrk_full_resp)
+                .unwrap();
 
             //**************************************************************
             //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
             //**************************************************************
             task::current().notify();
-        };
+        }
 
         loop {
             if self.inbox.is_empty() {
@@ -160,9 +170,12 @@ impl Future for Scheduler {
             };
             let (first, tail_stream) = {
                 let poll = futures::future::select_all(
-                        self.inbox.iter_mut().map(|(_, &mut Inbox(ref mut rx_mpsc, _))| rx_mpsc),
-                    )
-                    .map_err(|_| Error::new(ErrorKind::Other, "TODO: error in select(2) for sched!"))
+                    self.inbox
+                        .iter_mut()
+                        .map(|(_, &mut Inbox(ref mut rx_mpsc, _))| rx_mpsc),
+                ).map_err(|_| {
+                    Error::new(ErrorKind::Other, "TODO: error in select(2) for sched!")
+                })
                     .poll();
                 if let Ok(Async::Ready(((first, tail_stream), _index, _vec))) = poll {
                     d!("received new request to be forwarded\n {:#?}", &first);
@@ -184,7 +197,8 @@ impl Future for Scheduler {
             let mut first = first.unwrap();
             let (old_tx_one, addr_req_id) = {
                 //first.unwrap().borrow_mut()
-                let &mut WorkerRequestContent(ref _wrk_msg, ref mut tx_one, ref addr_req_id) = first.borrow_mut();
+                let &mut WorkerRequestContent(ref _wrk_msg, ref mut tx_one, ref addr_req_id) =
+                    first.borrow_mut();
                 (mem::replace(tx_one, otx), addr_req_id.clone())
             };
 
@@ -203,7 +217,9 @@ impl Future for Scheduler {
             if new_box_flag {
                 let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
-                let worker = exec::worker::Worker::new(rx, self.toolbox.clone()).map(|_item| ()).map_err(|_err| ());
+                let worker = exec::worker::Worker::new(rx, self.toolbox.clone())
+                    .map(|_item| ())
+                    .map_err(|_err| ());
                 // spawn the worke's future
                 tokio::spawn(worker);
                 // create a new outbox, that is created for each new worker
@@ -240,10 +256,8 @@ impl Future for Scheduler {
             //
             prev_oneshots.insert(addr_req_id.1, old_tx_one);
             task::current().notify();
-
-        };
+        }
 
         Ok(Async::NotReady)
     }
 }
-

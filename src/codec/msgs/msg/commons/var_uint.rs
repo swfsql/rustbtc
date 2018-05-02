@@ -1,18 +1,17 @@
-
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::io::Cursor;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 
 mod errors {
     error_chain!{}
 }
 use errors::*;
 
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
 
 // https://bitcoin.org/en/developer-reference#ping
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum VarUint {
     U8(u8),
     U16(u16),
@@ -27,33 +26,32 @@ impl NewFromHex for VarUint {
             .ok_or("Erro at creating value_head")?
             .to_le();
         match value_head {
-            0x00 .. 0xFC => VarUint::read_u8(&[value_head]), // leu 1 byte
+            0x00..0xFC => VarUint::read_u8(&[value_head]), // leu 1 byte
             0xFD => {
                 let aux = it.take(2).collect::<Vec<u8>>();
                 VarUint::read_u16(&aux)
-            },
+            }
             0xFE => {
                 // ler 32 bit
                 let aux = it.take(4).collect::<Vec<u8>>();
                 VarUint::read_u32(&aux)
-            },
+            }
             0xFF => {
                 // ler 64 bit
                 let aux = it.take(8).collect::<Vec<u8>>();
                 VarUint::read_u64(&aux)
-            },
+            }
             _ => panic!("Unexpected byte on VarUint"),
         }
     }
 }
 
-
 impl VarUint {
     pub fn from_bytes(bytes: &[u8]) -> VarUint {
         let len = bytes.len();
         match len {
-            0x00 .. 0xFC => VarUint::U8(len as u8), // leu 1 byte
-            0x00_FD .. 0xFF_FF => VarUint::U16(len as u16),
+            0x00..0xFC => VarUint::U8(len as u8), // leu 1 byte
+            0x00_FD..0xFF_FF => VarUint::U16(len as u16),
             0x00_01_00_00..0xFF_FF_FF_FF => VarUint::U32(len as u32),
             0x00_00_00_01_00_00_00_00..0xFF_FF_FF_FF_FF_FF_FF_FF => VarUint::U64(len as u64),
             _ => panic!("too many bytes fir a single VarUint"),
@@ -62,14 +60,12 @@ impl VarUint {
 
     // overkill, but inserted for code consistency
     fn read_u8(bytes: &[u8]) -> Result<VarUint> {
-        let value_body = Cursor::new(bytes)
-            .read_u8()
-            .chain_err(|| {
-                format!(
-                    "(Commons::var_uint) Failed when VarUint tried to read {:?} as u8",
-                    bytes
-                )
-            })?;
+        let value_body = Cursor::new(bytes).read_u8().chain_err(|| {
+            format!(
+                "(Commons::var_uint) Failed when VarUint tried to read {:?} as u8",
+                bytes
+            )
+        })?;
         Ok(VarUint::U8(value_body))
     }
 
@@ -108,9 +104,7 @@ impl VarUint {
             })?;
         Ok(VarUint::U64(value_body))
     }
-
 }
-
 
 impl IntoBytes for VarUint {
     fn into_bytes(&self) -> Result<Vec<u8>> {
@@ -123,7 +117,7 @@ impl IntoBytes for VarUint {
                     .chain_err(|| format!("Failure to convert U16 ({}) into byte vec", n))?;
                 wtr.write_u16::<LittleEndian>(n)
                     .chain_err(|| format!("Failure to convert U16 ({}) into byte vec", n))?;
-            },
+            }
             VarUint::U32(n) => {
                 wtr.write_u8(0xFD)
                     .chain_err(|| format!("Failure to convert U32 ({}) into byte vec", n))?;

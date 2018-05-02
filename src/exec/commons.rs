@@ -1,14 +1,29 @@
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum WorkerRequest {
-    PeerAdd { addr: SocketAddr, wait_handhsake: bool ,tx_sched: Arc<Mutex<TxMpscMainToSched>>},
-    PeerRemove{ addr: SocketAddr },
-    PeerGetInfo { addr: SocketAddr },
+    PeerAdd {
+        addr: SocketAddr,
+        wait_handhsake: bool,
+        tx_sched: Arc<Mutex<TxMpscMainToSched>>,
+    },
+    PeerRemove {
+        addr: SocketAddr,
+    },
+    PeerGetInfo {
+        addr: SocketAddr,
+    },
     ListPeers,
-    SendPing { addr: SocketAddr },
+    SendPing {
+        addr: SocketAddr,
+    },
     Hello,
-    Wait { delay: u64 },
+    Wait {
+        delay: u64,
+    },
     PeerPrint,
-    MsgFromHex{ send:bool, binary: Vec<u8> },
+    MsgFromHex {
+        send: bool,
+        binary: Vec<u8>,
+    },
 }
 
 #[derive(Debug)]
@@ -21,7 +36,7 @@ pub enum WorkerResponse {
     ListPeers(Vec<SocketAddr>),
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum PeerRequest {
     Dummy,
     SelfRemove,
@@ -86,12 +101,10 @@ pub type TxMpscMainToSched = mpsc::UnboundedSender<Box<MainToSchedRequestContent
 // scheduler <- main/..
 pub type RxMpscMainToSched = mpsc::UnboundedReceiver<Box<MainToSchedRequestContent>>;
 
-
-
 #[derive(Debug)]
-pub struct RxPeers (pub SocketAddr, pub RxMpscSf);
+pub struct RxPeers(pub SocketAddr, pub RxMpscSf);
 #[derive(Debug)]
-pub struct TxPeers (pub SocketAddr, pub RxMpscSf);
+pub struct TxPeers(pub SocketAddr, pub RxMpscSf);
 
 #[derive(Debug)]
 pub struct WorkerRequestContent(pub WorkerRequestPriority, pub TxOne, pub AddrReqId);
@@ -128,15 +141,10 @@ pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
 pub type RequestPriority = u8;
 pub type RequestId = usize;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct WorkerToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
-
-
-
-
-
 
 /*
 

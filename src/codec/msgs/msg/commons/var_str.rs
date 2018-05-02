@@ -1,15 +1,15 @@
-use std;
-use std::fmt;
 use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::var_uint::VarUint;
+use std;
+use std::fmt;
 mod errors {
     error_chain!{}
 }
 use errors::*;
 
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+//use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 #[derive(Clone)]
 pub struct VarStr {
@@ -19,8 +19,7 @@ pub struct VarStr {
 
 impl NewFromHex for VarStr {
     fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarStr> {
-        let length = VarUint::new(it)
-            .chain_err(|| "Error at new VarUint for length")?;
+        let length = VarUint::new(it).chain_err(|| "Error at new VarUint for length")?;
         let slen = match length {
             VarUint::U8(u) => Some(u as usize),
             VarUint::U16(u) => Some(u as usize),
@@ -36,12 +35,9 @@ impl NewFromHex for VarStr {
 impl VarStr {
     pub fn from_bytes(bytes: &[u8]) -> Result<VarStr> {
         let length = VarUint::from_bytes(&bytes);
-            //.chain_err(|| "Error when getting a VarStr length")?;
+        //.chain_err(|| "Error when getting a VarStr length")?;
         let string = Bytes::new(bytes.to_vec());
-        Ok(VarStr {
-            length,
-            string,
-        })
+        Ok(VarStr { length, string })
     }
 }
 

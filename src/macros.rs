@@ -1,11 +1,9 @@
-
 #[macro_export]
 macro_rules! e {
     () =>(error!("{}:{}] ",file!()[3..].to_string(),line!()));
     ($fmt:expr) =>(error!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!()));
     ($fmt:expr, $($arg:tt)*) =>(error!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*));
 }
-
 
 #[macro_export]
 macro_rules! w {
@@ -27,4 +25,3 @@ macro_rules! d {
     ($fmt:expr) =>(debug!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!()));
     ($fmt:expr, $($arg:tt)*) =>(debug!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*));
 }
-

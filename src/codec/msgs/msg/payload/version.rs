@@ -2,10 +2,9 @@ use std;
 use std::fmt;
 use std::io::Cursor;
 
-
-use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
 mod errors {
     error_chain!{}
 }
@@ -109,18 +108,29 @@ impl std::fmt::Debug for Version {
     }
 }
 
-
-
 impl IntoBytes for Version {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_i32::<LittleEndian>(self.version)
-            .chain_err(|| format!("Failure to convert version ({}) into byte vec", self.version))?;
+        wtr.write_i32::<LittleEndian>(self.version).chain_err(|| {
+            format!(
+                "Failure to convert version ({}) into byte vec",
+                self.version
+            )
+        })?;
 
-        wtr.write_u64::<LittleEndian>(self.services)
-            .chain_err(|| format!("Failure to convert services ({}) into byte vec", self.services))?;
+        wtr.write_u64::<LittleEndian>(self.services).chain_err(|| {
+            format!(
+                "Failure to convert services ({}) into byte vec",
+                self.services
+            )
+        })?;
         wtr.write_i64::<LittleEndian>(self.timestamp)
-            .chain_err(|| format!("Failure to convert timestamp ({}) into byte vec", self.timestamp))?;
+            .chain_err(|| {
+                format!(
+                    "Failure to convert timestamp ({}) into byte vec",
+                    self.timestamp
+                )
+            })?;
         wtr.append(&mut self.addr_recv.into_bytes()?);
         wtr.append(&mut self.addr_trans.into_bytes()?);
 
@@ -128,7 +138,12 @@ impl IntoBytes for Version {
             .chain_err(|| format!("Failure to convert nonce ({}) into byte vec", self.nonce))?;
         wtr.append(&mut self.user_agent.into_bytes()?);
         wtr.write_i32::<LittleEndian>(self.start_height)
-            .chain_err(|| format!("Failure to convert start_height ({}) into byte vec", self.start_height))?;
+            .chain_err(|| {
+                format!(
+                    "Failure to convert start_height ({}) into byte vec",
+                    self.start_height
+                )
+            })?;
 
         if let Some(relay) = self.relay {
             wtr.write_u8(relay as u8)
@@ -136,6 +151,5 @@ impl IntoBytes for Version {
         }
 
         Ok(wtr)
-
     }
 }

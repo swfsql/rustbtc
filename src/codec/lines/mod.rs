@@ -1,9 +1,8 @@
+use bytes::{BufMut, BytesMut};
+use futures::{Async, Poll};
 use tokio::io;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
-use futures::{Async, Poll};
-use bytes::{BufMut, BytesMut};
-
 
 #[derive(Debug)]
 pub struct Lines {
