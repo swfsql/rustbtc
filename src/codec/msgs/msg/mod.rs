@@ -84,7 +84,12 @@ impl NewFromHex for Msg {
             }
             header::Cmd::Verack => {
                 Some(payload::Payload::Verack)
-            }
+            },
+            header::Cmd::GetHeaders => {
+                let get_headers = payload::get_headers::GetHeaders::new(it)
+                    .chain_err(|| "(Msg) Error at creating get_headers")?;
+                Some(payload::Payload::GetHeaders(get_headers))
+            },
         };
         // header.payload_len // TODO
 
@@ -104,6 +109,7 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::Pong(ref pong) => format!("{:?}", pong),
                 payload::Payload::Version(ref version) => format!("{:?}", version),
                 payload::Payload::Verack => "Verack".into(),
+                payload::Payload::GetHeaders(ref get_headers) => format!("{:?}", get_headers),
             },
             None => "None".to_string(),
         }.lines()
@@ -123,6 +129,7 @@ impl IntoBytes for Msg {
             &payload::Payload::Pong(ref pong) => pong.into_bytes()?,
             &payload::Payload::Version(ref version) => version.into_bytes()?,
             &payload::Payload::Verack => vec![],
+            &payload::Payload::GetHeaders(ref get_headers) => get_headers.into_bytes()?,
           },
           None => vec![],
       };

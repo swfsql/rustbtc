@@ -70,33 +70,39 @@ pub enum Cmd {
     Pong,
     Version,
     Verack,
+    GetHeaders,
 }
 
-const TX: &[u8] =  b"tx\0\0\0\0\0\0\0\0\0\0";
-const PING: &[u8] = b"ping\0\0\0\0\0\0\0\0";
-const PONG: &[u8] = b"pong\0\0\0\0\0\0\0\0";
-const VERSION: &[u8] = b"version\0\0\0\0\0";
-const VERACK: &[u8] = b"verack\0\0\0\0\0\0";
+mod cmd_value {
+    pub const TX: &[u8] = b"tx\0\0\0\0\0\0\0\0\0\0";
+    pub const PING: &[u8] = b"ping\0\0\0\0\0\0\0\0";
+    pub const PONG: &[u8] = b"pong\0\0\0\0\0\0\0\0";
+    pub const VERSION: &[u8] = b"version\0\0\0\0\0";
+    pub const VERACK: &[u8] = b"verack\0\0\0\0\0\0";
+    pub const GETHEADERS: &[u8] = b"getheaders\0\0";
+}
 
 impl Cmd {
     pub fn new(arrayvec: ArrayVec<[u8; 12]>) -> Option<Cmd> {
         match arrayvec.as_slice() {
-            TX => Some(Cmd::Tx),
-            PING => Some(Cmd::Ping),
-            PONG => Some(Cmd::Pong),
-            VERSION => Some(Cmd::Version),
-            VERACK => Some(Cmd::Verack),
+            cmd_value::TX => Some(Cmd::Tx),
+            cmd_value::PING => Some(Cmd::Ping),
+            cmd_value::PONG => Some(Cmd::Pong),
+            cmd_value::VERSION => Some(Cmd::Version),
+            cmd_value::VERACK => Some(Cmd::Verack),
+            cmd_value::GETHEADERS => Some(Cmd::GetHeaders),
             _ => None,
         }
     }
 
     pub fn value(&self) -> ArrayVec<[u8; 12]> {
         let bytes = match *self {
-            Cmd::Tx => TX,
-            Cmd::Ping => PING,
-            Cmd::Pong => PONG,
-            Cmd::Version => VERSION,
-            Cmd::Verack => VERACK,
+            Cmd::Tx => cmd_value::TX,
+            Cmd::Ping => cmd_value::PING,
+            Cmd::Pong => cmd_value::PONG,
+            Cmd::Version => cmd_value::VERSION,
+            Cmd::Verack => cmd_value::VERACK,
+            Cmd::GetHeaders => cmd_value::GETHEADERS,
         };
         bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
     }
@@ -110,6 +116,7 @@ impl std::fmt::Debug for Cmd {
             Cmd::Pong => format!("Cmd::Pong <{:?}>\n", self.value()),
             Cmd::Version => format!("Cmd::Version <{:?}>\n", self.value()),
             Cmd::Verack => format!("Cmd::Verack <{:?}>\n", self.value()),
+            Cmd::GetHeaders => format!("Cmd::GetHeaders <{:?}>\n", self.value()),
         };
         write!(f, "{}", s)
     }

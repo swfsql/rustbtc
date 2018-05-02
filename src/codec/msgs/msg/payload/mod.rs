@@ -2,6 +2,7 @@ pub mod tx;
 pub mod ping;
 pub mod pong;
 pub mod version;
+pub mod get_headers;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
@@ -12,6 +13,7 @@ pub enum Payload {
     Pong(pong::Pong),
     Version(version::Version),
     Verack,
+    GetHeaders(get_headers::GetHeaders),
 }
 
 
