@@ -18,8 +18,12 @@ pub struct VarStr {
 }
 
 impl NewFromHex for VarStr {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarStr> {
-        let length = VarUint::new(it).chain_err(|| "Error at new VarUint for length")?;
+    fn new<'a, I>(it: I) -> Result<VarStr>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        let length = VarUint::new(it.by_ref()).chain_err(|| "Error at new VarUint for length")?;
         let slen = match length {
             VarUint::U8(u) => Some(u as usize),
             VarUint::U16(u) => Some(u as usize),
@@ -27,7 +31,7 @@ impl NewFromHex for VarStr {
             VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
         };
         let slen = slen.ok_or("(Commons::var_str) Error at creating VarStr length: too big")?;
-        let string = it.take(slen).map(|u| u.to_le()).collect::<Bytes>();
+        let string = it.by_ref().take(slen).map(|u| u.to_le()).collect::<Bytes>();
         Ok(VarStr { length, string })
     }
 }

@@ -147,7 +147,7 @@ impl Future for Worker {
                         network: header::Network::Main,
                         cmd: header::Cmd::Version,
                         payload_len: version_pl_raw.len() as i32,
-                        payloadchk: Msg::chk(version_pl_raw).unwrap(),
+                        payloadchk: Msg::chk(version_pl_raw.iter()).unwrap(),
                     };
                     d!("version header created");
 
@@ -219,7 +219,7 @@ impl Future for Worker {
                 }
                 WorkerRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
-                    let msg = codec::msgs::msg::Msg::new(binary.clone().into_iter().by_ref());
+                    let msg = codec::msgs::msg::Msg::new(binary.iter());
 
                     //d!("Request received: {:#?}", &wrk_req);
                     d!("message from hex");

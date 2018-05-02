@@ -1,9 +1,10 @@
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+//use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+use codec::msgs::msg::commons::var_uint::VarUint;
 use std;
 use std::fmt;
-use std::io::Cursor;
+//use std::io::Cursor;
 mod errors {
     error_chain!{}
 }
@@ -13,11 +14,17 @@ use errors::*;
 
 #[derive(Clone)]
 pub struct GetHeaders {
-    pub nonce: u64,
+    pub version: i32,
+    pub hash_count: VarUint,
+    pub block_locator_hashes: Vec<u32>,
+    pub hash_stop: u32,
 }
 
 impl NewFromHex for GetHeaders {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<GetHeaders> {
+    fn new<'a, I>(it: I) -> Result<GetHeaders>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
         unimplemented!("TODO: implement GetHeaders payload NewFromHex")
     }
 }

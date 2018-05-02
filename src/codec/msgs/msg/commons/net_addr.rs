@@ -26,19 +26,25 @@ pub struct NetAddr {
 }
 
 impl NewFromHex for NetAddr {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<NetAddr> {
-        let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+    fn new<'a, I>(it: I) -> Result<NetAddr>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let service = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Commons::net_addr) Error at u64 parse for service for value {:?}",
                 aux
             )
         })?;
-        let ip = it.by_ref()
+        let ip = it
+            .by_ref()
             .take(16)
             //.map(|u| u.to_le())
+            .cloned()
             .collect::<ArrayVec<[u8; 16]>>();
-        let aux = it.by_ref().take(2).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(2).cloned().collect::<Vec<u8>>();
         let port = Cursor::new(&aux).read_u16::<BigEndian>().chain_err(|| {
             format!(
                 "(Commons::net_addr) Error at u16 parse for port for value {:?}",

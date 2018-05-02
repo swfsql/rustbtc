@@ -71,13 +71,7 @@ impl Stream for Msgs {
             return Ok(Async::NotReady);
         }
         d!("has >=24");
-        let rd_clone = self.rd.clone();
-        let header = msg::header::Header::new(&mut rd_clone
-            .into_iter()
-            .take(24)
-            .collect::<Vec<_>>()
-            .into_iter())
-            .unwrap();
+        let header = msg::header::Header::new(self.rd.iter().take(24)).unwrap();
         d!("after header made:\n {:?}", &header);
         if self.rd.iter().len() < header.payload_len as usize + 24usize {
             d!("not enought bytes for payload");
@@ -85,12 +79,11 @@ impl Stream for Msgs {
         }
         d!("has enought bytes for payload");
         //let rd_split =
-        let msg = msg::Msg::new(&mut self.rd
-            .split_to(header.payload_len as usize + 24usize)
-            .into_iter()
-            .collect::<Vec<_>>()
-            .into_iter())
-            .unwrap();
+        let msg = msg::Msg::new(
+            self.rd
+                .split_to(header.payload_len as usize + 24usize)
+                .iter(),
+        ).unwrap();
         d!("finished building msg:\n{:?}", &msg);
 
         if sock_closed {

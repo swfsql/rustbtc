@@ -4,6 +4,7 @@ use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use std;
 use std::fmt;
 use std::io::Cursor;
+use std::iter::IntoIterator;
 
 mod errors {
     error_chain!{}
@@ -28,9 +29,13 @@ pub struct Tx {
 }
 
 impl NewFromHex for Tx {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Tx> {
-        //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>> {
-        let aux = it.by_ref().take(4).collect::<Vec<u8>>();
+    fn new<'a, I>(it: I) -> Result<Tx>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        //pub fn new<'a, I>(it: I) -> Result<Box<std::fmt::Debug>>
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let version = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::tx::Mod) Error at reading for version: read_i32 for {:?}",
@@ -38,15 +43,14 @@ impl NewFromHex for Tx {
             )
         })?;
 
-        let inputs_len = it.by_ref()
-            .next()
+        let inputs_len = it.next()
             .ok_or(
                 "(Msg::payload::tx) Input feed ended unexpectedly when reading the input len info",
             )?
             .to_le();
         let mut inputs: Vec<input::Input> = vec![];
         for i in 0..inputs_len {
-            let aux = input::Input::new(it).chain_err(|| {
+            let aux = input::Input::new(&mut it).chain_err(|| {
                 format!(
                     "(Msg::payload::tx::Mod)Error at creating a new input, at input {:?}",
                     i
@@ -63,7 +67,7 @@ impl NewFromHex for Tx {
             .to_le();
         let mut outputs: Vec<output::Output> = vec![];
         for i in 0..outputs_len {
-            let aux = output::Output::new(it).chain_err(|| {
+            let aux = output::Output::new(it.by_ref()).chain_err(|| {
                 format!(
                     "(Msg::payload::tx::Mod)Error at creating a new Output, at outputs {}",
                     i
@@ -72,7 +76,7 @@ impl NewFromHex for Tx {
             outputs.push(aux);
         }
 
-        let aux = it.take(4).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let locktime = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::tx::Mod)Error at reading for locktime: read_u32 for value {:?}",

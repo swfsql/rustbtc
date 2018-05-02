@@ -16,9 +16,13 @@ pub struct Pong {
 }
 
 impl NewFromHex for Pong {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Pong> {
-        //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
-        let aux = it.take(8).collect::<Vec<u8>>();
+    fn new<'a, I>(it: I) -> Result<Pong>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        //pub fn new<'a, I>(it: I) -> Result<Box<std::fmt::Debug>, Box<Error>>
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let nonce = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::pong) Failed when n-once tried to read {:?} as u64",

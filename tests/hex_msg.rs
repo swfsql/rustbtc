@@ -45,7 +45,7 @@ fn ping_payload() {
     // let payload_vec: Vec<u8> = payload_vec.clone().expect(&payload_vec.unwrap_err().display_chain().to_string());
     let payload_vec: Vec<u8> = unwrap_or_display(payload_vec);
 
-    let payload = btc::codec::msgs::msg::payload::ping::Ping::new(payload_vec.into_iter().by_ref())
+    let payload = btc::codec::msgs::msg::payload::ping::Ping::new(payload_vec.iter())
         .chain_err(|| "Fail in hex -> Msg when testing Ping Payload");
     // let payload = payload.clone().expect(&payload.unwrap_err().display_chain().to_string());
     let payload = unwrap_or_display(payload);
@@ -207,29 +207,6 @@ fn version_msg() {
 
 #[test]
 fn version_msg2() {
-    /*
-72110100 ........................... Protocol version: 70002
-0100000000000000 ................... Services: NODE_NETWORK
-bc8f5e5400000000 ................... Epoch time: 1415483324
-
-0100000000000000 ................... Receiving node's services
-00000000000000000000ffffc61b6409 ... Receiving node's IPv6 address
-208d ............................... Receiving node's port number
-
-0100000000000000 ................... Transmitting node's services
-00000000000000000000ffffcb0071c0 ... Transmitting node's IPv6 address
-208d ............................... Transmitting node's port number
-
-128035cbc97953f8 ................... Nonce
-
-0f ................................. Bytes in user agent string: 15
-2f5361746f7368693a302e392e332f ..... User agent: /Satoshi:0.9.3/
-
-cf050500 ........................... Start height: 329167
-01 ................................. Relay flag: true
-
-*/
-
     let version_pl_hex = "\
                           721101000100000000000000bc8f5e540000000001000000\
                           0000000000000000000000000\

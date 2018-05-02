@@ -148,9 +148,13 @@ pub struct Header {
 }
 
 impl NewFromHex for Header {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Header> {
+    fn new<'a, I>(it: I) -> Result<Header>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
         i!("new from hex for Header");
-        let aux = it.take(4).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let network = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::header) Error at u32 parse for network for value {:?}",
@@ -158,16 +162,19 @@ impl NewFromHex for Header {
             )
         })?;
         let network = Network::new(network).ok_or("Error: Network Magic Number unkown")?;
-        let cmd = it.take(12).collect::<ArrayVec<[u8; 12]>>();
+        let cmd = it.by_ref()
+            .take(12)
+            .cloned()
+            .collect::<ArrayVec<[u8; 12]>>();
         let cmd = Cmd::new(cmd).ok_or("(Msg::header) Error: Error when reading cmd")?;
-        let aux = it.take(4).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let payload_len = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::header) Error at i32 parse for payload_len for value {:?}",
                 aux
             )
         })?;
-        let aux = it.take(4).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let payloadchk = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::header) Error at u32 parse for payloadchk for value {:?}",

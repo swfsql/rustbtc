@@ -28,8 +28,12 @@ pub struct Version {
 
 // https://bitcoin.org/en/developer-reference#protocol-versions
 impl new_from_hex::NewFromHex for Version {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Version> {
-        let aux = it.by_ref().take(4).collect::<Vec<u8>>();
+    fn new<'a, I>(it: I) -> Result<Version>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let version = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::version) Error read to version as i32 for value {:?}",
@@ -39,31 +43,31 @@ impl new_from_hex::NewFromHex for Version {
         if version < 60_002i32 {
             Err(format!("Unsuported protocol version: <{}>", version))?
         }
-        let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let services = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::version) Error read to services as i64 for value {:?}",
                 aux
             )
         })?;
-        let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let timestamp = Cursor::new(&aux).read_i64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::version) Error read to timestamp as i64 for value {:?}",
                 aux
             )
         })?;
-        let addr_recv = net_addr::NetAddr::new(it)?;
-        let addr_trans = net_addr::NetAddr::new(it)?;
-        let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+        let addr_recv = net_addr::NetAddr::new(it.by_ref())?;
+        let addr_trans = net_addr::NetAddr::new(it.by_ref())?;
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let nonce = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::version) Error read to services as read_i64 for value {:?}",
                 aux
             )
         })?;
-        let user_agent = var_str::VarStr::new(it)?;
-        let aux = it.by_ref().take(4).collect::<Vec<u8>>();
+        let user_agent = var_str::VarStr::new(it.by_ref())?;
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let start_height = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::version) Error read to services as read_i64 for value {:?}",
@@ -73,8 +77,7 @@ impl new_from_hex::NewFromHex for Version {
         let relay = if version < 70_002_i32 {
             None
         } else {
-            let aux = it.by_ref()
-                .next()
+            let aux = it.next()
                 .ok_or("(Msg::payload::version) Error: input feed ended unexpectdly for relay")?;
             Some(aux.to_le() != 0u8)
         };

@@ -19,22 +19,26 @@ pub struct Output {
 }
 
 impl NewFromHex for Output {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Output> {
-        let aux = it.by_ref().take(8).collect::<Vec<u8>>();
+    fn new<'a, I>(it: I) -> Result<Output>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let value = Cursor::new(&aux).read_i64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::tx::output) Error at reading for value: read_i64 for {:?}",
                 aux
             )
         })?;
-        let pk_script_len = it.by_ref()
-            .next()
+        let pk_script_len = it.next()
             .chain_err(|| {
                 "(Msg::payload::tx::output) Input unexpectedly ended when reading pk_script_len"
             })?
             .to_le();
-        let pk_script = it.take(pk_script_len as usize)
+        let pk_script = it.by_ref().take(pk_script_len as usize)
             //.map(|u| u.to_le())
+            .cloned()
             .collect::<Bytes>();
 
         Ok(Output {

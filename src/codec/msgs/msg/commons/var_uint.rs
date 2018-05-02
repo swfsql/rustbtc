@@ -1,5 +1,4 @@
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use std;
 use std::io::Cursor;
 
 mod errors {
@@ -20,25 +19,26 @@ pub enum VarUint {
 }
 
 impl NewFromHex for VarUint {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<VarUint> {
-        let value_head = it.by_ref()
-            .next()
-            .ok_or("Erro at creating value_head")?
-            .to_le();
+    fn new<'a, I>(it: I) -> Result<VarUint>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        let value_head = it.next().ok_or("Erro at creating value_head")?.to_le();
         match value_head {
             0x00..0xFC => VarUint::read_u8(&[value_head]), // leu 1 byte
             0xFD => {
-                let aux = it.take(2).collect::<Vec<u8>>();
+                let aux = it.by_ref().take(2).cloned().collect::<Vec<u8>>();
                 VarUint::read_u16(&aux)
             }
             0xFE => {
                 // ler 32 bit
-                let aux = it.take(4).collect::<Vec<u8>>();
+                let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
                 VarUint::read_u32(&aux)
             }
             0xFF => {
                 // ler 64 bit
-                let aux = it.take(8).collect::<Vec<u8>>();
+                let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
                 VarUint::read_u64(&aux)
             }
             _ => panic!("Unexpected byte on VarUint"),

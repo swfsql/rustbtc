@@ -22,24 +22,29 @@ pub struct Input {
 }
 
 impl NewFromHex for Input {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Input> {
-        let prev_tx = it.take(32)
+    fn new<'a, I>(it: I) -> Result<Input>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
+        let prev_tx = it.by_ref().take(32)
             //.map(|u| u.to_le())
+            .cloned()
             .collect::<ArrayVec<[u8; 32]>>();
-        let aux = it.take(4).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let prev_tx_out_index = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
             format!("(Msg::payload::tx::input) Error at reading for prev_tx_out_index: read_u32 for value {:?}", aux)
         })?;
-        let script_len = it.by_ref()
-            .next()
+        let script_len = it.next()
             .chain_err(|| {
                 "Msg::payload::tx::input) Error at reading for slen: Iterator returned unexpected None"
             })?
             .to_le();
-        let script_sig = it.take(script_len as usize)
+        let script_sig = it.by_ref().take(script_len as usize)
             //.map(|u| u.to_le())
+            .cloned()
             .collect::<Bytes>();
-        let aux = it.take(4).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let sequence = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::tx::input) Error at u32 for sequence for value {:?}",

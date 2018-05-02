@@ -29,10 +29,14 @@ pub struct Msg {
 }
 
 impl Msg {
-    pub fn chk(payload_arrvec: Vec<u8>) -> Result<u32> {
+    pub fn chk<'a, I>(payload_arrvec: I) -> Result<u32>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let payload_arrvec = payload_arrvec.into_iter();
         let mut sha = [0; 32];
         let mut chk = Sha256::new();
-        chk.input(payload_arrvec.as_slice());
+        chk.input(&payload_arrvec.cloned().collect::<Vec<u8>>());
         chk.result(&mut sha);
         chk.reset();
         chk.input(&sha);
@@ -48,11 +52,19 @@ impl Msg {
 }
 
 impl NewFromHex for Msg {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Msg> {
-        let header = header::Header::new(it).chain_err(|| "(Msg) Error at creating Header")?;
+    fn new<'a, I>(it: I) -> Result<Msg>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        let mut it = it.into_iter();
 
-        let payload_arrvec = it.clone().collect::<Vec<u8>>();
-        let chk = Msg::chk(payload_arrvec)?;
+        let header =
+            header::Header::new(it.by_ref()).chain_err(|| "(Msg) Error at creating Header")?;
+
+        let payload_arrvec = it.cloned().collect::<Vec<u8>>();
+        let chk = Msg::chk(payload_arrvec.iter())?;
+
+        let mut it_pl = payload_arrvec.iter();
 
         if chk != header.payloadchk {
             bail!(
@@ -60,31 +72,32 @@ impl NewFromHex for Msg {
                 header.payloadchk,
                 &chk
             );
-        }
+        };
 
         let payload = match header.cmd {
             header::Cmd::Tx => {
-                let tx = payload::tx::Tx::new(it).chain_err(|| "(Msg) Error at creating Payload")?;
+                let tx = payload::tx::Tx::new(it_pl.by_ref())
+                    .chain_err(|| "(Msg) Error at creating Payload")?;
                 Some(payload::Payload::Tx(tx))
             }
             header::Cmd::Ping => {
                 let ping =
-                    payload::ping::Ping::new(it).chain_err(|| "(Msg) Error at creating ping")?;
+                    payload::ping::Ping::new(it_pl).chain_err(|| "(Msg) Error at creating ping")?;
                 Some(payload::Payload::Ping(ping))
             }
             header::Cmd::Pong => {
                 let pong =
-                    payload::pong::Pong::new(it).chain_err(|| "(Msg) Error at creating pong")?;
+                    payload::pong::Pong::new(it_pl).chain_err(|| "(Msg) Error at creating pong")?;
                 Some(payload::Payload::Pong(pong))
             }
             header::Cmd::Version => {
-                let version = payload::version::Version::new(it)
+                let version = payload::version::Version::new(it_pl)
                     .chain_err(|| "(Msg) Error at creating version")?;
                 Some(payload::Payload::Version(version))
             }
             header::Cmd::Verack => Some(payload::Payload::Verack),
             header::Cmd::GetHeaders => {
-                let get_headers = payload::get_headers::GetHeaders::new(it)
+                let get_headers = payload::get_headers::GetHeaders::new(it_pl)
                     .chain_err(|| "(Msg) Error at creating get_headers")?;
                 Some(payload::Payload::GetHeaders(get_headers))
             }

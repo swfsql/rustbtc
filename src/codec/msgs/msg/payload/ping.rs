@@ -17,10 +17,14 @@ pub struct Ping {
 }
 
 impl NewFromHex for Ping {
-    fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Ping> {
-        //pub fn new(it: &mut std::vec::IntoIter<u8>) -> Result<Box<std::fmt::Debug>, Box<Error>> {
+    fn new<'a, I>(it: I) -> Result<Ping>
+    where
+        I: IntoIterator<Item = &'a u8>,
+    {
+        //pub fn new<'a, I>(it: I) -> Result<Box<std::fmt::Debug>, Box<Error>>
+        let mut it = it.into_iter();
 
-        let aux = it.take(8).collect::<Vec<u8>>();
+        let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
         let nonce = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
             format!(
                 "(Msg::payload::ping) Failed when n-once tried to read {:?} as u64",
