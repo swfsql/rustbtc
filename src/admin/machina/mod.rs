@@ -77,10 +77,12 @@ impl PollMachina for Machina {
         defmac!(prepare_transition mut state_peer, wr, priority => {
             let wrp = WorkerRequestPriority(wr, priority);
             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-            let skt = state_peer.codec.socket.peer_addr().unwrap();
+            let skt = state_peer.codec.socket.peer_addr()
+                .expect(&ff!());
             let addr = AddrReqId(skt, state_peer.next_request_counter());
             let wrc = WorkerRequestContent(wrp, otx, addr);
-            state_peer.tx_req.unbounded_send(Box::new(wrc)).unwrap();
+            state_peer.tx_req.unbounded_send(Box::new(wrc))
+                .expect(&ff!());
             (state_peer, orx)
         });
 
@@ -118,7 +120,7 @@ impl PollMachina for Machina {
         */
 
         while let Some(msg) = try_ready!(peer.0.codec.poll()) {
-            let msg = String::from_utf8(msg.to_vec()).unwrap();
+            let msg = String::from_utf8(msg.to_vec()).expect(&ff!());
 
             // The first element can be empty,
             // since the arg parser will consider
@@ -202,13 +204,13 @@ impl PollMachina for Machina {
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) =
                                 oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-                            let skt = peer.0.codec.socket.peer_addr().unwrap();
+                            let skt = peer.0.codec.socket.peer_addr().expect(&ff!());
                             let hello_index = 0;
                             let addr = AddrReqId(skt, hello_index);
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
                             let peer = peer.take();
-                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).expect(&ff!());
 
                             let next = SimpleWait(peer.0, orx);
                             transition!(next);
@@ -219,13 +221,13 @@ impl PollMachina for Machina {
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) =
                                 oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-                            let skt = peer.0.codec.socket.peer_addr().unwrap();
+                            let skt = peer.0.codec.socket.peer_addr().expect(&ff!());
                             let hello_index = 0;
                             let addr = AddrReqId(skt, hello_index);
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
                             let peer = peer.take();
-                            peer.0.tx_req.unbounded_send(Box::new(wrc)).unwrap();
+                            peer.0.tx_req.unbounded_send(Box::new(wrc)).expect(&ff!());
 
                             let next = SimpleWait(peer.0, orx);
                             transition!(next);
@@ -249,7 +251,7 @@ impl PollMachina for Machina {
                         let state = peer.take();
                         d!("Entered command: Exiting admin");
                         let wr = WorkerRequest::PeerRemove {
-                            addr: state.0.codec.socket.peer_addr().unwrap(),
+                            addr: state.0.codec.socket.peer_addr().expect(&ff!()),
                         };
                         let (mut peer, orx) = prepare_transition!(state.0, wr, 200);
                         d!("Request sent to worker");
@@ -319,15 +321,15 @@ impl PollMachina for Machina {
         }
         d!("Dumped all trash responses!");
         let state = state.take();
-        let addr = state.0.codec.socket.peer_addr().unwrap();
+        let addr = state.0.codec.socket.peer_addr().expect(&ff!());
         let msg = MainToSchedRequestContent::Unregister(addr);
         state
             .0
             .tx_sched
             .lock()
-            .unwrap()
+            .expect(&ff!())
             .unbounded_send(Box::new(msg))
-            .unwrap();
+            .expect(&ff!());
         let next = End(state.0); //Calling this simplewait???
         transition!(next);
     }
@@ -336,7 +338,7 @@ impl PollMachina for Machina {
         peer: &'a mut RentToOwn<'a, Execution>,
     ) -> Poll<AfterExecution, std::io::Error> {
         while let Some(msg) = try_ready!(peer.0.codec.poll()) {
-            let msg = String::from_utf8(msg.to_vec()).unwrap();
+            let msg = String::from_utf8(msg.to_vec()).expect(&ff!());
 
             match msg.as_ref() {
                 "BYE" => {

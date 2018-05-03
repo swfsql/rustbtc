@@ -42,12 +42,10 @@ impl Msg {
         chk.input(&sha);
         chk.result(&mut sha);
 
-        Cursor::new(&sha).read_u32::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::mod) Error at u32 parse for payloadchk for value {:?}",
-                &sha
-            )
-        })
+        Cursor::new(&sha).read_u32::<LittleEndian>().chain_err(cf!(
+            "Error at u32 parse for payloadchk for value {:?}",
+            &sha
+        ))
     }
 }
 
@@ -58,8 +56,7 @@ impl NewFromHex for Msg {
     {
         let mut it = it.into_iter();
 
-        let header =
-            header::Header::new(it.by_ref()).chain_err(|| "(Msg) Error at creating Header")?;
+        let header = header::Header::new(it.by_ref()).chain_err(cf!("Error at creating Header"))?;
 
         let payload_arrvec = it.cloned().collect::<Vec<u8>>();
         let chk = Msg::chk(payload_arrvec.iter())?;
@@ -67,38 +64,38 @@ impl NewFromHex for Msg {
         let mut it_pl = payload_arrvec.iter();
 
         if chk != header.payloadchk {
-            bail!(
-                "(Msg::mod) Error at payload checksum (expected: {}, found: {:?})",
+            bail!(ff!(
+                "Error at payload checksum (expected: {}, found: {:?})",
                 header.payloadchk,
                 &chk
-            );
+            ));
         };
 
         let payload = match header.cmd {
             header::Cmd::Tx => {
                 let tx = payload::tx::Tx::new(it_pl.by_ref())
-                    .chain_err(|| "(Msg) Error at creating Payload")?;
+                    .chain_err(cf!("Error at creating Payload"))?;
                 Some(payload::Payload::Tx(tx))
             }
             header::Cmd::Ping => {
                 let ping =
-                    payload::ping::Ping::new(it_pl).chain_err(|| "(Msg) Error at creating ping")?;
+                    payload::ping::Ping::new(it_pl).chain_err(cf!("Error at creating ping"))?;
                 Some(payload::Payload::Ping(ping))
             }
             header::Cmd::Pong => {
                 let pong =
-                    payload::pong::Pong::new(it_pl).chain_err(|| "(Msg) Error at creating pong")?;
+                    payload::pong::Pong::new(it_pl).chain_err(cf!("Error at creating pong"))?;
                 Some(payload::Payload::Pong(pong))
             }
             header::Cmd::Version => {
                 let version = payload::version::Version::new(it_pl)
-                    .chain_err(|| "(Msg) Error at creating version")?;
+                    .chain_err(cf!("Error at creating version"))?;
                 Some(payload::Payload::Version(version))
             }
             header::Cmd::Verack => Some(payload::Payload::Verack),
             header::Cmd::GetHeaders => {
                 let get_headers = payload::get_headers::GetHeaders::new(it_pl)
-                    .chain_err(|| "(Msg) Error at creating get_headers")?;
+                    .chain_err(cf!("Error at creating get_headers"))?;
                 Some(payload::Payload::GetHeaders(get_headers))
             }
         };

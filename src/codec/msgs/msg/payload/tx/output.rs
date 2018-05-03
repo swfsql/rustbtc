@@ -25,16 +25,11 @@ impl NewFromHex for Output {
     {
         let mut it = it.into_iter();
         let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
-        let value = Cursor::new(&aux).read_i64::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::tx::output) Error at reading for value: read_i64 for {:?}",
-                aux
-            )
-        })?;
+        let value = Cursor::new(&aux)
+            .read_i64::<LittleEndian>()
+            .chain_err(cf!("Error at reading for value: read_i64 for {:?}", aux))?;
         let pk_script_len = it.next()
-            .chain_err(|| {
-                "(Msg::payload::tx::output) Input unexpectedly ended when reading pk_script_len"
-            })?
+            .chain_err(cf!("Input unexpectedly ended when reading pk_script_len"))?
             .to_le();
         let pk_script = it.by_ref().take(pk_script_len as usize)
             //.map(|u| u.to_le())
@@ -63,15 +58,15 @@ impl std::fmt::Debug for Output {
 impl IntoBytes for Output {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_i64::<LittleEndian>(self.value)
-            .chain_err(|| format!("Failure to convert value ({}) into byte vec", self.value))?;
+        wtr.write_i64::<LittleEndian>(self.value).chain_err(cf!(
+            "Failure to convert value ({}) into byte vec",
+            self.value
+        ))?;
 
-        wtr.write_u8(self.pk_script_len).chain_err(|| {
-            format!(
-                "Failure to convert pk_script_len ({}) into byte vec",
-                self.pk_script_len
-            )
-        })?;
+        wtr.write_u8(self.pk_script_len).chain_err(cf!(
+            "Failure to convert pk_script_len ({}) into byte vec",
+            self.pk_script_len
+        ))?;
 
         wtr.append(&mut self.pk_script.into_bytes()?);
 

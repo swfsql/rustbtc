@@ -85,7 +85,7 @@ impl Future for Scheduler {
                         self.toolbox
                             .peer_messenger
                             .lock()
-                            .unwrap()
+                            .expect(&ff!())
                             .insert(addr, tx_mpsc_peer);
                     }
                     exec::commons::MainToSchedRequestContent::Unregister(addr) => {
@@ -136,7 +136,7 @@ impl Future for Scheduler {
                         .iter_mut()
                         .map(|&mut Outbox(_, ref mut rx_one_hm)| rx_one_hm)
                         .find(|ref mut hm| hm.contains_key(&addr_req_id))
-                        .unwrap()
+                        .expect(&ff!())
                         .remove(&addr_req_id);
                     addr_req_id.clone()
                 } else {
@@ -149,14 +149,15 @@ impl Future for Scheduler {
             d!("Removed oneshot from hashmap from the worker who completed the task.");
 
             // Getting the oneshot channel to the peer
-            let &mut Inbox(_, ref mut prev_oneshots) = self.inbox.get_mut(&addr_req_id.0).unwrap();
+            let &mut Inbox(_, ref mut prev_oneshots) =
+                self.inbox.get_mut(&addr_req_id.0).expect(&ff!());
 
             // forwards the message to the peer
             prev_oneshots
                 .remove(&addr_req_id.1)
-                .unwrap()
+                .expect(&ff!())
                 .send(wrk_full_resp)
-                .unwrap();
+                .expect(&ff!());
 
             //**************************************************************
             //TODO: "delete" worker if .len() == 0 (no more taks left for the worker, so he can be killed)
@@ -194,7 +195,7 @@ impl Future for Scheduler {
             // extract the old oneshot from the box, and replaces (in the box)
             // with the new one
             d!("Before unwrapping first");
-            let mut first = first.unwrap();
+            let mut first = first.expect(&ff!());
             let (old_tx_one, addr_req_id) = {
                 //first.unwrap().borrow_mut()
                 let &mut WorkerRequestContent(ref _wrk_msg, ref mut tx_one, ref addr_req_id) =
@@ -226,7 +227,7 @@ impl Future for Scheduler {
                 self.outbox.push(Outbox::new(tx));
             };
 
-            let outbox = self.outbox.iter_mut().rev().next().unwrap();
+            let outbox = self.outbox.iter_mut().rev().next().expect(&ff!());
 
             {
                 // extract the inner variables
@@ -237,7 +238,7 @@ impl Future for Scheduler {
 
                 // unwrap is safe because there is a sufficient control over
                 // channel usage; and receptor won't be dropped before transmissor
-                tx.unbounded_send(first).unwrap();
+                tx.unbounded_send(first).expect(&ff!());
 
                 //Adding one_shot to outbox.
                 hm.insert(addr_req_id.clone(), orx);
@@ -245,7 +246,7 @@ impl Future for Scheduler {
 
             // get the Inbox related to the peer,
             let &mut Inbox(ref mut prev_rx_mpsc_sf, ref mut prev_oneshots) =
-                self.inbox.get_mut(&addr_req_id.0).unwrap();
+                self.inbox.get_mut(&addr_req_id.0).expect(&ff!());
             // extract and replace the first future from the channel
             *prev_rx_mpsc_sf = tail_stream.into_future();
             if prev_oneshots.contains_key(&addr_req_id.1) {

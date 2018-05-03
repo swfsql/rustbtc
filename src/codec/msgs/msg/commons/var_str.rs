@@ -23,14 +23,14 @@ impl NewFromHex for VarStr {
         I: IntoIterator<Item = &'a u8>,
     {
         let mut it = it.into_iter();
-        let length = VarUint::new(it.by_ref()).chain_err(|| "Error at new VarUint for length")?;
+        let length = VarUint::new(it.by_ref()).chain_err(cf!("Error at new VarUint for length"))?;
         let slen = match length {
             VarUint::U8(u) => Some(u as usize),
             VarUint::U16(u) => Some(u as usize),
             VarUint::U32(u) => Some(u as usize),
             VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
         };
-        let slen = slen.ok_or("(Commons::var_str) Error at creating VarStr length: too big")?;
+        let slen = slen.ok_or(ff!("Error at creating VarStr length: too big"))?;
         let string = it.by_ref().take(slen).map(|u| u.to_le()).collect::<Bytes>();
         Ok(VarStr { length, string })
     }
@@ -39,7 +39,7 @@ impl NewFromHex for VarStr {
 impl VarStr {
     pub fn from_bytes(bytes: &[u8]) -> Result<VarStr> {
         let length = VarUint::from_bytes(&bytes);
-        //.chain_err(|| "Error when getting a VarStr length")?;
+        //.chain_err(cf!("Error when getting a VarStr length"))?;
         let string = Bytes::new(bytes.to_vec());
         Ok(VarStr { length, string })
     }
@@ -57,8 +57,8 @@ impl std::fmt::Debug for VarStr {
 impl IntoBytes for VarStr {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.append(&mut self.length.into_bytes().unwrap());
-        wtr.append(&mut self.string.into_bytes().unwrap());
+        wtr.append(&mut self.length.into_bytes().expect(&ff!("Expected length")));
+        wtr.append(&mut self.string.into_bytes().expect(&ff!("Expected string")));
         Ok(wtr)
     }
 }

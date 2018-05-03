@@ -9,10 +9,13 @@ use errors::*;
 
 extern crate hex;
 
+#[macro_use]
 extern crate btc;
 use btc::codec::msgs::msg::commons::into_bytes::IntoBytes;
 use btc::codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use hex::FromHex;
+
+use btc::macros;
 
 fn unwrap_or_display<T>(res: Result<T>) -> T {
     match res {
@@ -41,12 +44,12 @@ fn ping_payload() {
                     ";
 
     let payload_vec: Result<Vec<u8>> =
-        Vec::from_hex(ping_pl_hex.trim()).chain_err(|| "Fail in hex -> Vec<u8>");
+        Vec::from_hex(ping_pl_hex.trim()).chain_err(cf!("Fail in hex -> Vec<u8>"));
     // let payload_vec: Vec<u8> = payload_vec.clone().expect(&payload_vec.unwrap_err().display_chain().to_string());
     let payload_vec: Vec<u8> = unwrap_or_display(payload_vec);
 
     let payload = btc::codec::msgs::msg::payload::ping::Ping::new(payload_vec.iter())
-        .chain_err(|| "Fail in hex -> Msg when testing Ping Payload");
+        .chain_err(cf!("Fail in hex -> Msg when testing Ping Payload"));
     // let payload = payload.clone().expect(&payload.unwrap_err().display_chain().to_string());
     let payload = unwrap_or_display(payload);
     let res = format!("{:?}", payload);
@@ -81,8 +84,8 @@ fn ping_msg() {
                     │ ├ Nonce: 5597941425041871872\n\
                     ";
 
-    let msg_ping =
-        btc::codec::msgs::msg::Msg::new_from_hex(&ping_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_ping = btc::codec::msgs::msg::Msg::new_from_hex(&ping_msg_hex)
+        .chain_err(cf!("Fail in hex -> Msg"));
     let msg_ping = unwrap_or_display(msg_ping);
     let res = format!("{:?}", &msg_ping);
 
@@ -130,8 +133,8 @@ fn pong_msg() {
                     │ ├ Nounce: 5597941425041871873\n\
                     ";
 
-    let msg_pong =
-        btc::codec::msgs::msg::Msg::new_from_hex(&pong_msg_hex).chain_err(|| "Fail in hex -> Msg");
+    let msg_pong = btc::codec::msgs::msg::Msg::new_from_hex(&pong_msg_hex)
+        .chain_err(cf!("Fail in hex -> Msg"));
     let msg_pong = unwrap_or_display(msg_pong);
     let res = format!("{:?}", &msg_pong);
 
@@ -196,7 +199,7 @@ fn version_msg() {
                     ";
 
     let msg_version = btc::codec::msgs::msg::Msg::new_from_hex(&version_msg_hex)
-        .chain_err(|| "Fail in hex -> Msg");
+        .chain_err(cf!("Fail in hex -> Msg"));
     let msg_version = unwrap_or_display(msg_version);
     let res = format!("{:?}", &msg_version);
 
@@ -250,7 +253,7 @@ fn version_msg2() {
 
     let version_pl = btc::codec::msgs::msg::payload::version::Version::new_from_hex(
         &version_pl_hex,
-    ).chain_err(|| "Fail in hex -> Msg");
+    ).chain_err(cf!("Fail in hex -> Msg"));
     let version_pl = unwrap_or_display(version_pl);
     let res = format!("{:?}", &version_pl);
 
@@ -280,7 +283,7 @@ fn verack_msg() {
                     ";
 
     let msg_verack = btc::codec::msgs::msg::Msg::new_from_hex(&verack_msg_hex)
-        .chain_err(|| "Fail in hex -> Msg");
+        .chain_err(cf!("Fail in hex -> Msg"));
     let msg_verack = unwrap_or_display(msg_verack);
     let res = format!("{:?}", &msg_verack);
 
@@ -392,7 +395,7 @@ fn tx_msg() {
          ";
 
     let msg_tx =
-        btc::codec::msgs::msg::Msg::new_from_hex(&tx_msg_hex).chain_err(|| "Fail in hex -> Msg");
+        btc::codec::msgs::msg::Msg::new_from_hex(&tx_msg_hex).chain_err(cf!("Fail in hex -> Msg"));
     let msg_tx = unwrap_or_display(msg_tx);
     assert_eq!(expected.trim(), format!("{:?}", &msg_tx).trim());
     original_and_coded(tx_msg_hex, &msg_tx);
@@ -404,3 +407,23 @@ fn tx_msg() {
     //     None
     // };
 }
+
+/*
+#[test]
+fn getheader_msg() {
+    let getheader_msg_hex = "\
+                           ";
+    let expected = "\
+                    ";
+
+    let msg_version = btc::codec::msgs::msg::Msg::new_from_hex(&version_msg_hex)
+        .chain_err(|| "Fail in hex -> Msg");
+    let msg_version = unwrap_or_display(msg_version);
+    let res = format!("{:?}", &msg_version);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
+    original_and_coded(version_msg_hex, &msg_version);
+}
+
+*/

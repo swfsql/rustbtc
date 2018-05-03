@@ -70,19 +70,22 @@ pub struct EnvVar {
 }
 
 fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
-    i!("New peer connection: {:?}", socket.peer_addr().unwrap());
+    i!(
+        "New peer connection: {:?}",
+        socket.peer_addr().expect(&ff!())
+    );
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
         d!("after channel mpsc created.");
-        let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
+        let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
         d!("After mutex was locked.");
         tx_sched_unlocked
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
-                commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+                commons::RxPeers(socket.peer_addr().expect(&ff!()), rx_peer.into_future()),
                 tx_toolbox,
             )))
-            .unwrap(); // TODO may error
+            .expect(&ff!()); // TODO may error
         d!("After tx_sched send");
     }
 
@@ -94,19 +97,22 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
     tokio::spawn(peer_machina);
 }
 fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSched>>) {
-    i!("New admin connection: {:?}", socket.peer_addr().unwrap());
+    i!(
+        "New admin connection: {:?}",
+        socket.peer_addr().expect(&ff!())
+    );
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
     {
         d!("after channel mpsc created.");
-        let tx_sched_unlocked = tx_sched.lock().unwrap(); // TODO may error
+        let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
         d!("After mutex was locked.");
         tx_sched_unlocked
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
-                commons::RxPeers(socket.peer_addr().unwrap(), rx_peer.into_future()),
+                commons::RxPeers(socket.peer_addr().expect(&ff!()), rx_peer.into_future()),
                 tx_toolbox,
             )))
-            .unwrap(); // TODO may error
+            .expect(&ff!()); // TODO may error
         d!("After tx_sched send");
     }
 
@@ -140,10 +146,10 @@ fn run() -> Result<()> {
         //.level_for("hyper", log::LevelFilter::Info)
         // Output to stdout, files, and other Dispatch configurations
         .chain(std::io::stdout())
-        .chain(fern::log_file(args.log_file).unwrap())
+        .chain(fern::log_file(args.log_file).expect(&ff!()))
         // Apply globally
         .apply()
-        .unwrap();
+        .expect(&ff!());
 
     let (tx, rx) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
@@ -152,8 +158,8 @@ fn run() -> Result<()> {
         tokio::run(scheduler);
     });
 
-    let listener_peer = TcpListener::bind(&args.node_addr).unwrap();
-    let listener_admin = TcpListener::bind(&args.admin_addr).unwrap();
+    let listener_peer = TcpListener::bind(&args.node_addr).expect(&ff!());
+    let listener_admin = TcpListener::bind(&args.admin_addr).expect(&ff!());
 
     struct IsAdmin(bool);
     let server_listeners = listener_admin

@@ -46,7 +46,7 @@ impl Peer {
             .enumerate()
             .map(|(i, rx)| (i, rx.poll()))
             .filter(|&(_i, ref fut)| {
-                fut.is_err() || (fut.is_ok() && fut.as_ref().unwrap().is_ready())
+                fut.is_err() || (fut.is_ok() && fut.as_ref().expect(&ff!()).is_ready())
             })
             .inspect(|&(_i, ref rx)| i!("Oneshot response arrived, and got ignored: \n{:#?}", rx))
             .map(|(i, _rx)| i)

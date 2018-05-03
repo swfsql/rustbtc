@@ -12,8 +12,7 @@ pub trait NewFromHex {
     where
         Self: std::marker::Sized,
     {
-        let vec: Vec<u8> =
-            Vec::from_hex(hex).chain_err(|| "(Commons::new_from_hex) Error at from_hex for vec")?;
+        let vec: Vec<u8> = Vec::from_hex(hex).chain_err(cf!("Error at from_hex for vec"))?;
         let mut it = vec.iter();
         Self::new(&mut it)
     }

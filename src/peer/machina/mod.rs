@@ -160,15 +160,15 @@ impl PollMachina for Machina {
         }
         d!("Dumped all trash responses!");
         let state = state.take();
-        let addr = state.0.codec.socket.peer_addr().unwrap();
+        let addr = state.0.codec.socket.peer_addr().expect(&ff!());
         let msg = MainToSchedRequestContent::Unregister(addr);
         state
             .0
             .tx_sched
             .lock()
-            .unwrap()
+            .expect(&ff!())
             .unbounded_send(Box::new(msg))
-            .unwrap();
+            .expect(&ff!());
         let next = End(state.0); //Calling this simplewait???
         transition!(next);
     }

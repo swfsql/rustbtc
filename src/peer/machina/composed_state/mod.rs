@@ -24,7 +24,8 @@ pub enum Machina {
 impl PollMachina for Machina {
     fn poll_a<'a>(peer: &'a mut RentToOwn<'a, A>) -> Poll<AfterA, std::io::Error> {
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
-            let msg = String::from_utf8(msg.to_vec()).unwrap();
+            let msg = String::from_utf8(msg.to_vec())
+                .expect(&ff!());
 
             match msg.as_ref() {
                 "B" => {
@@ -52,7 +53,8 @@ impl PollMachina for Machina {
 
     fn poll_b<'a>(peer: &'a mut RentToOwn<'a, B>) -> Poll<AfterB, std::io::Error> {
         while let Some(msg) = try_ready!(peer.0.lines.poll()) {
-            let msg = String::from_utf8(msg.to_vec()).unwrap();
+            let msg = String::from_utf8(msg.to_vec())
+                .expect(&ff!());
 
             let peer = peer.take();
             let next = End((peer.0, msg));

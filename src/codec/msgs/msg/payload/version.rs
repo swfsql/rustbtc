@@ -34,51 +34,38 @@ impl new_from_hex::NewFromHex for Version {
     {
         let mut it = it.into_iter();
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
-        let version = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::version) Error read to version as i32 for value {:?}",
-                aux
-            )
-        })?;
+        let version = Cursor::new(&aux)
+            .read_i32::<LittleEndian>()
+            .chain_err(cf!("Error read to version as i32 for value {:?}", aux))?;
         if version < 60_002i32 {
             Err(format!("Unsuported protocol version: <{}>", version))?
         }
         let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
-        let services = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::version) Error read to services as i64 for value {:?}",
-                aux
-            )
-        })?;
+        let services = Cursor::new(&aux)
+            .read_u64::<LittleEndian>()
+            .chain_err(cf!("Error read to services as i64 for value {:?}", aux))?;
         let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
-        let timestamp = Cursor::new(&aux).read_i64::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::version) Error read to timestamp as i64 for value {:?}",
-                aux
-            )
-        })?;
+        let timestamp = Cursor::new(&aux)
+            .read_i64::<LittleEndian>()
+            .chain_err(cf!("Error read to timestamp as i64 for value {:?}", aux))?;
         let addr_recv = net_addr::NetAddr::new(it.by_ref())?;
         let addr_trans = net_addr::NetAddr::new(it.by_ref())?;
         let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
-        let nonce = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::version) Error read to services as read_i64 for value {:?}",
-                aux
-            )
-        })?;
+        let nonce = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(cf!(
+            "Error read to services as read_i64 for value {:?}",
+            aux
+        ))?;
         let user_agent = var_str::VarStr::new(it.by_ref())?;
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
-        let start_height = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::version) Error read to services as read_i64 for value {:?}",
-                aux
-            )
-        })?;
+        let start_height = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(cf!(
+            "Error read to services as read_i64 for value {:?}",
+            aux
+        ))?;
         let relay = if version < 70_002_i32 {
             None
         } else {
             let aux = it.next()
-                .ok_or("(Msg::payload::version) Error: input feed ended unexpectdly for relay")?;
+                .ok_or(ff!("Error: input feed ended unexpectdly for relay"))?;
             Some(aux.to_le() != 0u8)
         };
         Ok(Version {
@@ -114,43 +101,39 @@ impl std::fmt::Debug for Version {
 impl IntoBytes for Version {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_i32::<LittleEndian>(self.version).chain_err(|| {
-            format!(
-                "Failure to convert version ({}) into byte vec",
-                self.version
-            )
-        })?;
+        wtr.write_i32::<LittleEndian>(self.version).chain_err(cf!(
+            "Failure to convert version ({}) into byte vec",
+            self.version
+        ))?;
 
-        wtr.write_u64::<LittleEndian>(self.services).chain_err(|| {
-            format!(
-                "Failure to convert services ({}) into byte vec",
-                self.services
-            )
-        })?;
+        wtr.write_u64::<LittleEndian>(self.services).chain_err(cf!(
+            "Failure to convert services ({}) into byte vec",
+            self.services
+        ))?;
         wtr.write_i64::<LittleEndian>(self.timestamp)
-            .chain_err(|| {
-                format!(
-                    "Failure to convert timestamp ({}) into byte vec",
-                    self.timestamp
-                )
-            })?;
+            .chain_err(cf!(
+                "Failure to convert timestamp ({}) into byte vec",
+                self.timestamp
+            ))?;
         wtr.append(&mut self.addr_recv.into_bytes()?);
         wtr.append(&mut self.addr_trans.into_bytes()?);
 
-        wtr.write_u64::<LittleEndian>(self.nonce)
-            .chain_err(|| format!("Failure to convert nonce ({}) into byte vec", self.nonce))?;
+        wtr.write_u64::<LittleEndian>(self.nonce).chain_err(cf!(
+            "Failure to convert nonce ({}) into byte vec",
+            self.nonce
+        ))?;
         wtr.append(&mut self.user_agent.into_bytes()?);
         wtr.write_i32::<LittleEndian>(self.start_height)
-            .chain_err(|| {
-                format!(
-                    "Failure to convert start_height ({}) into byte vec",
-                    self.start_height
-                )
-            })?;
+            .chain_err(cf!(
+                "Failure to convert start_height ({}) into byte vec",
+                self.start_height
+            ))?;
 
         if let Some(relay) = self.relay {
-            wtr.write_u8(relay as u8)
-                .chain_err(|| format!("Failure to convert relay ({}) into byte vec", self.nonce))?;
+            wtr.write_u8(relay as u8).chain_err(cf!(
+                "Failure to convert relay ({}) into byte vec",
+                self.nonce
+            ))?;
         }
 
         Ok(wtr)

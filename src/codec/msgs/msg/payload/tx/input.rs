@@ -32,25 +32,23 @@ impl NewFromHex for Input {
             .cloned()
             .collect::<ArrayVec<[u8; 32]>>();
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
-        let prev_tx_out_index = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
-            format!("(Msg::payload::tx::input) Error at reading for prev_tx_out_index: read_u32 for value {:?}", aux)
-        })?;
+        let prev_tx_out_index = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(cf!(
+            "Error at reading for prev_tx_out_index: read_u32 for value {:?}",
+            aux
+        ))?;
         let script_len = it.next()
-            .chain_err(|| {
-                "Msg::payload::tx::input) Error at reading for slen: Iterator returned unexpected None"
-            })?
+            .chain_err(cf!(
+                "Error at reading for slen: Iterator returned unexpected None"
+            ))?
             .to_le();
         let script_sig = it.by_ref().take(script_len as usize)
             //.map(|u| u.to_le())
             .cloned()
             .collect::<Bytes>();
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
-        let sequence = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::tx::input) Error at u32 for sequence for value {:?}",
-                aux
-            )
-        })?;
+        let sequence = Cursor::new(&aux)
+            .read_u32::<LittleEndian>()
+            .chain_err(cf!("Error at u32 for sequence for value {:?}", aux))?;
 
         Ok(Input {
             prev_tx,
@@ -83,25 +81,19 @@ impl IntoBytes for Input {
         let mut wtr = vec![];
         wtr.append(&mut self.prev_tx.to_vec());
         wtr.write_u32::<LittleEndian>(self.prev_tx_out_index)
-            .chain_err(|| {
-                format!(
-                    "Failure to convert prev_tx_out_index ({}) into byte vec",
-                    self.prev_tx_out_index
-                )
-            })?;
-        wtr.write_u8(self.script_len).chain_err(|| {
-            format!(
-                "Failure to convert script_len ({}) into byte vec",
-                self.script_len
-            )
-        })?;
+            .chain_err(cf!(
+                "Failure to convert prev_tx_out_index ({}) into byte vec",
+                self.prev_tx_out_index
+            ))?;
+        wtr.write_u8(self.script_len).chain_err(cf!(
+            "Failure to convert script_len ({}) into byte vec",
+            self.script_len
+        ))?;
         wtr.append(&mut self.script_sig.into_bytes()?);
-        wtr.write_u32::<LittleEndian>(self.sequence).chain_err(|| {
-            format!(
-                "Failure to convert sequence ({}) into byte vec",
-                self.sequence
-            )
-        })?;
+        wtr.write_u32::<LittleEndian>(self.sequence).chain_err(cf!(
+            "Failure to convert sequence ({}) into byte vec",
+            self.sequence
+        ))?;
         Ok(wtr)
     }
 }

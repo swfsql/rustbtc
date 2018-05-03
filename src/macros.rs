@@ -1,4 +1,18 @@
 #[macro_export]
+macro_rules! cf {
+    () =>(|| {format!("[{}:{}] ",file!()[3..].to_string(),line!())});
+    ($fmt:expr) =>(|| {format!(concat!("[{}:{}] ",$fmt),file!()[3..].to_string(),line!())});
+    ($fmt:expr, $($arg:tt)*) =>(|| {format!(concat!("[{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*)});
+}
+
+#[macro_export]
+macro_rules! ff {
+    () =>(format!("[{}:{}] ",file!()[3..].to_string(),line!()));
+    ($fmt:expr) =>(format!(concat!("[{}:{}] ",$fmt),file!()[3..].to_string(),line!()));
+    ($fmt:expr, $($arg:tt)*) =>(format!(concat!("[{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*));
+}
+
+#[macro_export]
 macro_rules! e {
     () =>(error!("{}:{}] ",file!()[3..].to_string(),line!()));
     ($fmt:expr) =>(error!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!()));

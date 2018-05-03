@@ -71,7 +71,7 @@ impl Stream for Msgs {
             return Ok(Async::NotReady);
         }
         d!("has >=24");
-        let header = msg::header::Header::new(self.rd.iter().take(24)).unwrap();
+        let header = msg::header::Header::new(self.rd.iter().take(24)).expect(&ff!());
         d!("after header made:\n {:?}", &header);
         if self.rd.iter().len() < header.payload_len as usize + 24usize {
             d!("not enought bytes for payload");
@@ -83,7 +83,7 @@ impl Stream for Msgs {
             self.rd
                 .split_to(header.payload_len as usize + 24usize)
                 .iter(),
-        ).unwrap();
+        ).expect(&ff!());
         d!("finished building msg:\n{:?}", &msg);
 
         if sock_closed {

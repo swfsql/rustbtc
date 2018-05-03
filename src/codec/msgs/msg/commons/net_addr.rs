@@ -32,12 +32,9 @@ impl NewFromHex for NetAddr {
     {
         let mut it = it.into_iter();
         let aux = it.by_ref().take(8).cloned().collect::<Vec<u8>>();
-        let service = Cursor::new(&aux).read_u64::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Commons::net_addr) Error at u64 parse for service for value {:?}",
-                aux
-            )
-        })?;
+        let service = Cursor::new(&aux)
+            .read_u64::<LittleEndian>()
+            .chain_err(cf!("Error at u64 parse for service for value {:?}", aux))?;
         let ip = it
             .by_ref()
             .take(16)
@@ -45,12 +42,9 @@ impl NewFromHex for NetAddr {
             .cloned()
             .collect::<ArrayVec<[u8; 16]>>();
         let aux = it.by_ref().take(2).cloned().collect::<Vec<u8>>();
-        let port = Cursor::new(&aux).read_u16::<BigEndian>().chain_err(|| {
-            format!(
-                "(Commons::net_addr) Error at u16 parse for port for value {:?}",
-                aux
-            )
-        })?;
+        let port = Cursor::new(&aux)
+            .read_u16::<BigEndian>()
+            .chain_err(cf!("Error at u16 parse for port for value {:?}", aux))?;
         Ok(NetAddr { service, ip, port })
     }
 }
@@ -88,15 +82,13 @@ impl std::fmt::Debug for NetAddr {
 impl IntoBytes for NetAddr {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_u64::<LittleEndian>(self.service).chain_err(|| {
-            format!(
-                "Failure to convert service ({}) into byte vec",
-                self.service
-            )
-        })?;
+        wtr.write_u64::<LittleEndian>(self.service).chain_err(cf!(
+            "Failure to convert service ({}) into byte vec",
+            self.service
+        ))?;
         wtr.append(&mut self.ip.to_vec());
         wtr.write_u16::<BigEndian>(self.port)
-            .chain_err(|| format!("Failure to convert port ({}) into byte vec", self.port))?;
+            .chain_err(cf!("Failure to convert port ({}) into byte vec", self.port))?;
         Ok(wtr)
     }
 }

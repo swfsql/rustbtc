@@ -36,53 +36,40 @@ impl NewFromHex for Tx {
         let mut it = it.into_iter();
         //pub fn new<'a, I>(it: I) -> Result<Box<std::fmt::Debug>>
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
-        let version = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::tx::Mod) Error at reading for version: read_i32 for {:?}",
-                aux
-            )
-        })?;
+        let version = Cursor::new(&aux)
+            .read_i32::<LittleEndian>()
+            .chain_err(cf!("Error at reading for version: read_i32 for {:?}", aux))?;
 
         let inputs_len = it.next()
-            .ok_or(
-                "(Msg::payload::tx) Input feed ended unexpectedly when reading the input len info",
-            )?
+            .ok_or(ff!(
+                "Input feed ended unexpectedly when reading the input len info"
+            ))?
             .to_le();
         let mut inputs: Vec<input::Input> = vec![];
         for i in 0..inputs_len {
-            let aux = input::Input::new(&mut it).chain_err(|| {
-                format!(
-                    "(Msg::payload::tx::Mod)Error at creating a new input, at input {:?}",
-                    i
-                )
-            })?;
+            let aux = input::Input::new(&mut it)
+                .chain_err(cf!("Error at creating a new input, at input {:?}", i))?;
             inputs.push(aux);
         }
 
         let outputs_len = it.by_ref()
             .next()
-            .ok_or(
-                "(Msg::payload::tx) Input feed ended unexpectedly when reading the output len info",
-            )?
+            .ok_or(ff!(
+                "Input feed ended unexpectedly when reading the output len info"
+            ))?
             .to_le();
         let mut outputs: Vec<output::Output> = vec![];
         for i in 0..outputs_len {
-            let aux = output::Output::new(it.by_ref()).chain_err(|| {
-                format!(
-                    "(Msg::payload::tx::Mod)Error at creating a new Output, at outputs {}",
-                    i
-                )
-            })?;
+            let aux = output::Output::new(it.by_ref())
+                .chain_err(cf!("Error at creating a new Output, at outputs {}", i))?;
             outputs.push(aux);
         }
 
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
-        let locktime = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(|| {
-            format!(
-                "(Msg::payload::tx::Mod)Error at reading for locktime: read_u32 for value {:?}",
-                aux
-            )
-        })?;
+        let locktime = Cursor::new(&aux).read_u32::<LittleEndian>().chain_err(cf!(
+            "Error at reading for locktime: read_u32 for value {:?}",
+            aux
+        ))?;
 
         let tx = Tx {
             version,
@@ -93,7 +80,7 @@ impl NewFromHex for Tx {
             locktime,
         };
         if it.next().is_some() {
-            Err("(Msg::payload::tx::Mod)Error: input feed is bigger than expected")?;
+            Err(ff!("Error: input feed is bigger than expected"))?;
         }
         Ok(tx)
     }
@@ -125,8 +112,10 @@ impl std::fmt::Debug for Tx {
                     }
                 })
                 .collect::<Result<String>>()
-                .unwrap(); // TODO
-                           //chain_err((|| "Error to display some input from a total of {}", self.inputs_len))?;
+                .expect(&ff!(
+                    "Error to display some input from a total of {}",
+                    self.inputs_len
+                ));
         }
         s += &format!("├ Outputs Length: {}\n", self.outputs_len);
         s += "├ Outputs:\n";
@@ -138,9 +127,13 @@ impl std::fmt::Debug for Tx {
                 .map(|(i2, l)| {
                     if i2 == 0 {
                         "│ ├".to_string()
-                            + &l.split(':').next().unwrap() // TODO
-                .to_string()
-                .chars().collect::<String>() + &(i).to_string() + ":\n"
+                            + &l.split(':')
+                                .next()
+                                .expect(&ff!())
+                                .to_string()
+                                .chars()
+                                .collect::<String>() + &(i).to_string()
+                            + ":\n"
                     } else {
                         "│ │ ".to_string() + l + "\n"
                     }
@@ -158,18 +151,14 @@ impl std::fmt::Debug for Tx {
 impl IntoBytes for Tx {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_i32::<LittleEndian>(self.version).chain_err(|| {
-            format!(
-                "Failure to convert version ({}) into byte vec",
-                self.version
-            )
-        })?;
-        wtr.write_u8(self.inputs_len).chain_err(|| {
-            format!(
-                "Failure to convert inputs_len ({}) into byte vec",
-                self.inputs_len
-            )
-        })?;
+        wtr.write_i32::<LittleEndian>(self.version).chain_err(cf!(
+            "Failure to convert version ({}) into byte vec",
+            self.version
+        ))?;
+        wtr.write_u8(self.inputs_len).chain_err(cf!(
+            "Failure to convert inputs_len ({}) into byte vec",
+            self.inputs_len
+        ))?;
         let inputs = self.inputs
             .iter()
             .map(|input| input.into_bytes())
@@ -177,12 +166,10 @@ impl IntoBytes for Tx {
         for mut input in inputs {
             wtr.append(&mut input);
         }
-        wtr.write_u8(self.outputs_len).chain_err(|| {
-            format!(
-                "Failure to convert outputs_len ({}) into byte vec",
-                self.outputs_len
-            )
-        })?;
+        wtr.write_u8(self.outputs_len).chain_err(cf!(
+            "Failure to convert outputs_len ({}) into byte vec",
+            self.outputs_len
+        ))?;
         let outputs = self.outputs
             .iter()
             .map(|output| output.into_bytes())
@@ -190,12 +177,10 @@ impl IntoBytes for Tx {
         for mut output in outputs {
             wtr.append(&mut output);
         }
-        wtr.write_u32::<LittleEndian>(self.locktime).chain_err(|| {
-            format!(
-                "Failure to convert locktime ({}) into byte vec",
-                self.locktime
-            )
-        })?;
+        wtr.write_u32::<LittleEndian>(self.locktime).chain_err(cf!(
+            "Failure to convert locktime ({}) into byte vec",
+            self.locktime
+        ))?;
         Ok(wtr)
     }
 }
