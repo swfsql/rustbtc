@@ -39,3 +39,4 @@ pub mod admin;
 pub mod codec;
 pub mod exec;
 pub mod peer;
+pub mod blockchain;
