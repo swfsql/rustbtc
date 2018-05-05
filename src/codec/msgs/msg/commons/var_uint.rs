@@ -88,6 +88,16 @@ impl VarUint {
             .chain_err(cf!("Failed when VarUint tried to read {:?} as u64", bytes))?;
         Ok(VarUint::U64(value_body))
     }
+
+    pub fn as_usize(&self) -> Option<usize> {
+        match *self {
+            VarUint::U8(u) => Some(u as usize),
+            VarUint::U16(u) => Some(u as usize),
+            VarUint::U32(u) => Some(u as usize),
+            VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
+        }
+    }
+
 }
 
 impl IntoBytes for VarUint {

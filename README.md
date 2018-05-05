@@ -10,6 +10,9 @@ Arrumar programa para OP codes (Machina, codec...)
 blockchain
 modificar mut self.rd
 
+
+
+
 # Goal checkpoints
 ps. may change anytime, including the enumeration.
 

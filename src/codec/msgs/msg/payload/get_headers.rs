@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use std;
 use std::fmt;
 use std::io::Cursor;
@@ -17,12 +18,12 @@ use errors::*;
 
 // https://bitcoin.org/en/developer-reference#ping
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct GetHeaders {
     pub version: i32,
     pub hash_count: VarUint,
-    pub block_locator_hashes: Vec<u32>,
-    pub hash_stop: u32,
+    pub block_locator_hashes: Vec<ArrayVec<[u8; 32]>>,
+    pub hash_stop: ArrayVec<[u8; 32]>,
 }
 
 impl NewFromHex for GetHeaders {
@@ -35,18 +36,68 @@ impl NewFromHex for GetHeaders {
         let version = Cursor::new(&aux)
             .read_i32::<LittleEndian>()
             .chain_err(cf!("Error read to version as i32 for value {:?}", aux))?;
-        unimplemented!("TODO: implement GetHeaders payload NewFromHex")
+
+        let hash_count = VarUint::new(it.by_ref())
+            .chain_err(cf!("Error at new VarUint for length"))?;
+        let hash_count_usize = hash_count
+            .as_usize()
+            .ok_or(ff!("Error at creating HashCount length: too big"))?;
+
+        let block_locator_hashes = (0..hash_count_usize)
+            .map(|_i| it.by_ref()
+                .take(32)
+                .cloned()
+                .collect::<ArrayVec<[u8; 32]>>())
+            .fold(vec![], |mut acc, block_loc| {
+                    acc.push(block_loc);
+                    acc
+            });
+        
+        let hash_stop = it.by_ref()
+            .take(32)
+            .cloned()
+            .collect::<ArrayVec<[u8; 32]>>();
+
+        Ok(GetHeaders {
+            version,
+            hash_count,
+            block_locator_hashes,
+            hash_stop,
+        })
     }
 }
 
+/*
 impl std::fmt::Debug for GetHeaders {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
         unimplemented!("TODO: implement GetHeaders payload Debug")
     }
 }
+*/
 
 impl IntoBytes for GetHeaders {
     fn into_bytes(&self) -> Result<Vec<u8>> {
-        unimplemented!("TODO: implement GetHeaders payload IntoBytes")
+        let mut wtr = vec![];
+        
+        wtr.write_i32::<LittleEndian>(self.version)
+            .chain_err(cf!(
+                "Failure to convert version number ({:?}) into byte vec",
+                self.version
+            ))?;
+
+        let mut hash_count_vec = self.hash_count.into_bytes()
+            .chain_err(cf!(
+                "Failure to convert hash_count ({:?}) into byte vec",
+                self.hash_count))?;
+        wtr.append(&mut hash_count_vec);
+        //.chain_err(cf!("Failure to convert cmd ({}) into byte vec", self.cmd))?;
+
+        for block_loc in self.block_locator_hashes {
+            wtr.append(&mut block_loc.to_vec());
+        };
+        
+        wtr.append(&mut self.hash_stop.to_vec());
+
+        Ok(wtr)
     }
 }

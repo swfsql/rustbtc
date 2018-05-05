@@ -23,18 +23,15 @@ impl NewFromHex for VarStr {
         I: IntoIterator<Item = &'a u8>,
     {
         let mut it = it.into_iter();
-        let length = VarUint::new(it.by_ref()).chain_err(cf!("Error at new VarUint for length"))?;
-        let slen = match length {
-            VarUint::U8(u) => Some(u as usize),
-            VarUint::U16(u) => Some(u as usize),
-            VarUint::U32(u) => Some(u as usize),
-            VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
-        };
-        let slen = slen.ok_or(ff!("Error at creating VarStr length: too big"))?;
+        let length = VarUint::new(it.by_ref())
+            .chain_err(cf!("Error at new VarUint for length"))?;
+        let slen = length.as_usize()
+            .ok_or(ff!("Error at creating VarStr length: too big"))?;
         let string = it.by_ref().take(slen).map(|u| u.to_le()).collect::<Bytes>();
         Ok(VarStr { length, string })
     }
 }
+
 
 impl VarStr {
     pub fn from_bytes(bytes: &[u8]) -> Result<VarStr> {
