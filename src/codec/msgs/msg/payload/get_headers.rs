@@ -68,6 +68,7 @@ impl NewFromHex for GetHeaders {
 }
 
 /*
+// TODO:
 impl std::fmt::Debug for GetHeaders {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
         unimplemented!("TODO: implement GetHeaders payload Debug")
@@ -92,9 +93,9 @@ impl IntoBytes for GetHeaders {
         wtr.append(&mut hash_count_vec);
         //.chain_err(cf!("Failure to convert cmd ({}) into byte vec", self.cmd))?;
 
-        for block_loc in self.block_locator_hashes {
+        self.block_locator_hashes.to_vec().iter().for_each(|ref block_loc| {
             wtr.append(&mut block_loc.to_vec());
-        };
+        });
         
         wtr.append(&mut self.hash_stop.to_vec());
 
