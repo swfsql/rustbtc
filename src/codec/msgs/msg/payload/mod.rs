@@ -1,4 +1,5 @@
 pub mod get_headers;
+pub mod Headers;
 pub mod ping;
 pub mod pong;
 pub mod tx;
@@ -14,11 +15,12 @@ pub enum Payload {
     Version(version::Version),
     Verack,
     GetHeaders(get_headers::GetHeaders),
+    Headers(Headers::Headers)
 }
 
 /*
 impl IntoBytes for Ping {
-    fn into_bytes(&self) -> Result<Vec<u8>> {
+fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
         wtr.write_u64::<LittleEndian>(self.nonce)
             .chain_err(|| format!("Failure to convert nonce ({}) into byte vec", self.nonce))?;

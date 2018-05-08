@@ -118,6 +118,7 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::Version(ref version) => format!("{:?}", version),
                 payload::Payload::Verack => "Verack".into(),
                 payload::Payload::GetHeaders(ref get_headers) => format!("{:?}", get_headers),
+                payload::Payload::Headers(ref headers) => format!("{:?}", headers),
             },
             None => "None".to_string(),
         }.lines()
@@ -138,6 +139,7 @@ impl IntoBytes for Msg {
                 &payload::Payload::Version(ref version) => version.into_bytes()?,
                 &payload::Payload::Verack => vec![],
                 &payload::Payload::GetHeaders(ref get_headers) => get_headers.into_bytes()?,
+                &payload::Payload::Headers(ref headers) => headers.into_bytes()?,
             },
             None => vec![],
         };
