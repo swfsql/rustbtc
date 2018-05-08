@@ -98,6 +98,11 @@ impl NewFromHex for Msg {
                     .chain_err(cf!("Error at creating get_headers"))?;
                 Some(payload::Payload::GetHeaders(get_headers))
             }
+            header::Cmd::Headers => {
+                let headers = payload::headers::Headers::new(it_pl)
+                    .chain_err(cf!("Error at creating get_headers"))?;
+                Some(payload::Payload::Headers(headers))
+            }
         };
         // header.payload_len // TODO
 

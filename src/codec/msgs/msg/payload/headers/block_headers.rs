@@ -33,10 +33,7 @@ impl NewFromHex for BlockHeaders {
         let version = Cursor::new(&aux)
             .read_i32::<LittleEndian>()
             .chain_err(cf!("Error read to version as i32 for value {:?}", aux))?;
-        //TODO VERSION
-        if version < 60_002i32 {
-            Err(format!("Unsuported protocol version: <{}>", version))?
-        }
+        //TODO VERSION VERIFY
 
         let prev_block = it.by_ref()
             .take(32)

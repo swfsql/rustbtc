@@ -1,5 +1,5 @@
 pub mod get_headers;
-pub mod Headers;
+pub mod headers;
 pub mod ping;
 pub mod pong;
 pub mod tx;
@@ -15,7 +15,7 @@ pub enum Payload {
     Version(version::Version),
     Verack,
     GetHeaders(get_headers::GetHeaders),
-    Headers(Headers::Headers)
+    Headers(headers::Headers)
 }
 
 /*

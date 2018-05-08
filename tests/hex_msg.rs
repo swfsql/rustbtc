@@ -59,6 +59,40 @@ fn ping_payload() {
     original_and_coded(ping_pl_hex, &payload);
 }
 
+#[test]
+fn headers_payload() {
+    let headers_pl_hex = "\
+                        01\
+                        02000000\
+                        b6ff0b1b1680a2862a30ca44d346d9e8\
+                        910d334beb48ca0c0000000000000000\
+                        9d10aa52ee949386ca9385695f04ede2\
+                        70dda20810decd12bc9b048aaab31471\
+                        24d95a54\
+                        30c31b18\
+                        fe9f0864\
+                        00\
+                       ";
+    let expected = "\
+                    Ping:\n\
+                    ├ Nonce: 5597941425041871872\n\
+                    ";
+    
+    let payload_vec: Result<Vec<u8>> =
+        Vec::from_hex(headers_pl_hex.trim()).chain_err(cf!("Fail in hex -> Vec<u8>"));
+    // let payload_vec: Vec<u8> = payload_vec.clone().expect(&payload_vec.unwrap_err().display_chain().to_string());
+    let payload_vec: Vec<u8> = unwrap_or_display(payload_vec);
+
+    let payload = btc::codec::msgs::msg::payload::headers::Headers::new(payload_vec.iter())
+        .chain_err(cf!("Fail in hex -> Msg when testing headers Payload"));
+    // let payload = payload.clone().expect(&payload.unwrap_err().display_chain().to_string());
+    let payload = unwrap_or_display(payload);
+    let res = format!("{:?}", payload);
+
+    println!("{}", res);
+    assert_eq!(expected.trim(), res.trim());
+    original_and_coded(headers_pl_hex, &payload);
+}
 // uses Msg::new_from_hex()
 // tries to extract some (transaction) payload information from a different kind (ping) of message
 #[test]

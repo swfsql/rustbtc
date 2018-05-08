@@ -21,6 +21,7 @@ pub enum Cmd {
     Version,
     Verack,
     GetHeaders,
+    Headers,
 }
 
 mod cmd_value {
@@ -30,6 +31,7 @@ mod cmd_value {
     pub const VERSION: &[u8] = b"version\0\0\0\0\0";
     pub const VERACK: &[u8] = b"verack\0\0\0\0\0\0";
     pub const GETHEADERS: &[u8] = b"getheaders\0\0";
+    pub const HEADERS: &[u8] = b"headers\0\0\0\0\0";
 }
 
 impl Cmd {
@@ -41,6 +43,7 @@ impl Cmd {
             cmd_value::VERSION => Some(Cmd::Version),
             cmd_value::VERACK => Some(Cmd::Verack),
             cmd_value::GETHEADERS => Some(Cmd::GetHeaders),
+            cmd_value::HEADERS => Some(Cmd::Headers),
             _ => None,
         }
     }
@@ -53,6 +56,7 @@ impl Cmd {
             Cmd::Version => cmd_value::VERSION,
             Cmd::Verack => cmd_value::VERACK,
             Cmd::GetHeaders => cmd_value::GETHEADERS,
+            Cmd::Headers => cmd_value::HEADERS,
         };
         bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
     }
@@ -67,6 +71,7 @@ impl std::fmt::Debug for Cmd {
             Cmd::Version => format!("Cmd::Version <{:?}>\n", self.value()),
             Cmd::Verack => format!("Cmd::Verack <{:?}>\n", self.value()),
             Cmd::GetHeaders => format!("Cmd::GetHeaders <{:?}>\n", self.value()),
+            Cmd::Headers => format!("Cmd::Headers <{:?}>\n", self.value()),
         };
         write!(f, "{}", s)
     }

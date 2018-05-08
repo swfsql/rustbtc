@@ -16,14 +16,14 @@ mod errors {
 }
 use errors::*;
 
-pub mod BlockHeaders;
+pub mod block_headers;
 
 // https://bitcoin.org/en/developer-reference#ping
 
 #[derive(Clone,Debug)]
 pub struct Headers {
     pub count: VarUint,
-    pub headers: Vec<BlockHeaders::BlockHeaders>,
+    pub headers: Vec<block_headers::BlockHeaders>,
 }
 
 impl NewFromHex for Headers {
@@ -40,9 +40,9 @@ impl NewFromHex for Headers {
             .as_usize()
             .ok_or(ff!("Error at creating HashCount length: too big"))?;
 
-        let mut headers: Vec<BlockHeaders::BlockHeaders> = vec![];
+        let mut headers: Vec<block_headers::BlockHeaders> = vec![];
         for i in 0..count_usize {
-            let aux =  BlockHeaders::BlockHeaders::new(it.by_ref())
+            let aux =  block_headers::BlockHeaders::new(it.by_ref())
                 .chain_err(cf!("Error at creating a new Output, at outputs {}", i))?;
             headers.push(aux);
         }
