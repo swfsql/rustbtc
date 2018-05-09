@@ -112,7 +112,6 @@ impl NewFromHex for Msg {
             }
         };
         // header.payload_len // TODO
-
         Ok(Msg { header, payload })
     }
 }

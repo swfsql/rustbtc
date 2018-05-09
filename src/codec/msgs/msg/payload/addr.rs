@@ -50,7 +50,6 @@ impl NewFromHex for Addr {
     }
 }
 
-
 impl IntoBytes for Addr {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
