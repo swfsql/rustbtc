@@ -24,6 +24,8 @@ pub enum Cmd {
     GetHeaders,
     SendHeaders,
     Headers,
+    GetAddr,
+    Addr,
 }
 
 mod cmd_value {
@@ -35,6 +37,8 @@ mod cmd_value {
     pub const GETHEADERS: &[u8] = b"getheaders\0\0";
     pub const SENDHEADERS: &[u8] = b"sendheaders\0";
     pub const HEADERS: &[u8] = b"headers\0\0\0\0\0";
+    pub const GETADDR: &[u8] = b"getaddr\0\0\0\0\0";
+    pub const ADDR: &[u8] = b"addr\0\0\0\0\0\0\0\0";
 }
 
 impl Cmd {
@@ -48,6 +52,8 @@ impl Cmd {
             cmd_value::GETHEADERS => Some(Cmd::GetHeaders),
             cmd_value::SENDHEADERS => Some(Cmd::SendHeaders),
             cmd_value::HEADERS => Some(Cmd::Headers),
+            cmd_value::GETADDR => Some(Cmd::GetAddr),
+            cmd_value::ADDR => Some(Cmd::Addr),
             _ => None,
         }
     }
@@ -62,6 +68,8 @@ impl Cmd {
             Cmd::GetHeaders => cmd_value::GETHEADERS,
             Cmd::SendHeaders => cmd_value::SENDHEADERS,
             Cmd::Headers => cmd_value::HEADERS,
+            Cmd::GetAddr => cmd_value::GETADDR,
+            Cmd::Addr => cmd_value::ADDR,
         };
         bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
     }
@@ -78,6 +86,8 @@ impl std::fmt::Debug for Cmd {
             Cmd::GetHeaders => format!("Cmd::GetHeaders <{:?}>\n", self.value()),
             Cmd::SendHeaders => format!("Cmd::SendHeaders <{:?}>\n", self.value()),
             Cmd::Headers => format!("Cmd::Headers <{:?}>\n", self.value()),
+            Cmd::GetAddr => format!("Cmd::GetAddr <{:?}>\n", self.value()),
+            Cmd::Addr => format!("Cmd::Addr <{:?}>\n", self.value()),
         };
         write!(f, "{}", s)
     }

@@ -4,6 +4,7 @@ pub mod ping;
 pub mod pong;
 pub mod tx;
 pub mod version;
+pub mod addr;
 //use codec::msgs::msg::commons::into_bytes::IntoBytes;
 //use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
@@ -17,6 +18,8 @@ pub enum Payload {
     GetHeaders(get_headers::GetHeaders),
     Headers(headers::Headers),
     SendHeaders,
+    GetAddr,
+    Addr(addr::Addr),
 }
 
 /*

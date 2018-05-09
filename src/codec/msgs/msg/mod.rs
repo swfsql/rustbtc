@@ -104,6 +104,12 @@ impl NewFromHex for Msg {
                     .chain_err(cf!("Error at creating get_headers"))?;
                 Some(payload::Payload::Headers(headers))
             }
+            header::cmd::Cmd::GetAddr => Some(payload::Payload::GetAddr),
+            header::cmd::Cmd::Addr => {
+                let addr = payload::addr::Addr::new(it_pl)
+                    .chain_err(cf!("Error at creating Addr"))?;
+                Some(payload::Payload::Addr(addr))
+            }
         };
         // header.payload_len // TODO
 
@@ -126,6 +132,8 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::SendHeaders => "SendHeaders".into(),
                 payload::Payload::GetHeaders(ref get_headers) => format!("{:?}", get_headers),
                 payload::Payload::Headers(ref headers) => format!("{:?}", headers),
+                payload::Payload::GetAddr => "Verack".into(),
+                payload::Payload::Addr(ref addr) => format!("{:?}", addr),
             },
             None => "None".to_string(),
         }.lines()
@@ -148,6 +156,8 @@ impl IntoBytes for Msg {
                 &payload::Payload::SendHeaders => vec![],
                 &payload::Payload::GetHeaders(ref get_headers) => get_headers.into_bytes()?,
                 &payload::Payload::Headers(ref headers) => headers.into_bytes()?,
+                &payload::Payload::GetAddr => vec![],
+                &payload::Payload::Addr(ref addr) => addr.into_bytes()?,
             },
             None => vec![],
         };
