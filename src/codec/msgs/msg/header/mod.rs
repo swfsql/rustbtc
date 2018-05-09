@@ -3,91 +3,24 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::params::Network;
+//use codec::msgs::msg::commons::params::Network;
 use std;
 use std::fmt;
 use std::io::Cursor;
+
+pub mod cmd;
+pub mod network;
 
 mod errors {
     error_chain!{}
 }
 use errors::*;
 
-#[derive(Clone)]
-pub enum Cmd {
-    Tx,
-    Ping,
-    Pong,
-    Version,
-    Verack,
-    GetHeaders,
-    Headers,
-}
-
-mod cmd_value {
-    pub const TX: &[u8] = b"tx\0\0\0\0\0\0\0\0\0\0";
-    pub const PING: &[u8] = b"ping\0\0\0\0\0\0\0\0";
-    pub const PONG: &[u8] = b"pong\0\0\0\0\0\0\0\0";
-    pub const VERSION: &[u8] = b"version\0\0\0\0\0";
-    pub const VERACK: &[u8] = b"verack\0\0\0\0\0\0";
-    pub const GETHEADERS: &[u8] = b"getheaders\0\0";
-    pub const HEADERS: &[u8] = b"headers\0\0\0\0\0";
-}
-
-impl Cmd {
-    pub fn new(arrayvec: ArrayVec<[u8; 12]>) -> Option<Cmd> {
-        match arrayvec.as_slice() {
-            cmd_value::TX => Some(Cmd::Tx),
-            cmd_value::PING => Some(Cmd::Ping),
-            cmd_value::PONG => Some(Cmd::Pong),
-            cmd_value::VERSION => Some(Cmd::Version),
-            cmd_value::VERACK => Some(Cmd::Verack),
-            cmd_value::GETHEADERS => Some(Cmd::GetHeaders),
-            cmd_value::HEADERS => Some(Cmd::Headers),
-            _ => None,
-        }
-    }
-
-    pub fn value(&self) -> ArrayVec<[u8; 12]> {
-        let bytes = match *self {
-            Cmd::Tx => cmd_value::TX,
-            Cmd::Ping => cmd_value::PING,
-            Cmd::Pong => cmd_value::PONG,
-            Cmd::Version => cmd_value::VERSION,
-            Cmd::Verack => cmd_value::VERACK,
-            Cmd::GetHeaders => cmd_value::GETHEADERS,
-            Cmd::Headers => cmd_value::HEADERS,
-        };
-        bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
-    }
-}
-
-impl std::fmt::Debug for Cmd {
-    fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
-        let s = match *self {
-            Cmd::Tx => format!("Cmd::Tx <{:?}>\n", self.value()),
-            Cmd::Ping => format!("Cmd::Ping <{:?}>\n", self.value()),
-            Cmd::Pong => format!("Cmd::Pong <{:?}>\n", self.value()),
-            Cmd::Version => format!("Cmd::Version <{:?}>\n", self.value()),
-            Cmd::Verack => format!("Cmd::Verack <{:?}>\n", self.value()),
-            Cmd::GetHeaders => format!("Cmd::GetHeaders <{:?}>\n", self.value()),
-            Cmd::Headers => format!("Cmd::Headers <{:?}>\n", self.value()),
-        };
-        write!(f, "{}", s)
-    }
-}
-
-impl IntoBytes for Cmd {
-    fn into_bytes(&self) -> Result<Vec<u8>> {
-        Ok(self.value().to_vec())
-    }
-}
-
 // https://en.bitcoin.it/wiki/Protocol_documentation#tx
 #[derive(Clone)]
 pub struct Header {
-    pub network: Network,
-    pub cmd: Cmd,
+    pub network: network::Network,
+    pub cmd: cmd::Cmd,
     pub payload_len: i32,
     pub payloadchk: u32,
 }
@@ -103,12 +36,12 @@ impl NewFromHex for Header {
         let network = Cursor::new(&aux)
             .read_u32::<LittleEndian>()
             .chain_err(cf!("Error at u32 parse for network for value {:?}", aux))?;
-        let network = Network::new(network).ok_or(ff!("Error: Network Magic Number unkown"))?;
+        let network = network::Network::new(network).ok_or(ff!("Error: Network Magic Number unkown"))?;
         let cmd = it.by_ref()
             .take(12)
             .cloned()
             .collect::<ArrayVec<[u8; 12]>>();
-        let cmd = Cmd::new(cmd).ok_or(ff!("Error: Error when reading cmd"))?;
+        let cmd = cmd::Cmd::new(cmd).ok_or(ff!("Error: Error when reading cmd"))?;
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let payload_len = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(cf!(
             "Error at i32 parse for payload_len for value {:?}",

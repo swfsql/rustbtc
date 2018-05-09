@@ -23,7 +23,7 @@ use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::net_addr::NetAddr;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::var_str::VarStr;
-use codec::msgs::msg::commons::params::Network;
+//use codec::msgs::msg::commons::params::Network;
 use codec::msgs::msg::header;
 use codec::msgs::msg::header::Header;
 use codec::msgs::msg::payload::version::Version;
@@ -145,8 +145,8 @@ impl Future for Worker {
                     let version_pl_raw = version_pl.into_bytes().expect(&ff!());
 
                     let version_header = Header {
-                        network: Network::Main,
-                        cmd: header::Cmd::Version,
+                        network: header::network::Network::Main,
+                        cmd: header::cmd::Cmd::Version,
                         payload_len: version_pl_raw.len() as i32,
                         payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
                     };

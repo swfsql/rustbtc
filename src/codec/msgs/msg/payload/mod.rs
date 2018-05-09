@@ -15,7 +15,8 @@ pub enum Payload {
     Version(version::Version),
     Verack,
     GetHeaders(get_headers::GetHeaders),
-    Headers(headers::Headers)
+    Headers(headers::Headers),
+    SendHeaders,
 }
 
 /*

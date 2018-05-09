@@ -72,33 +72,34 @@ impl NewFromHex for Msg {
         };
 
         let payload = match header.cmd {
-            header::Cmd::Tx => {
+            header::cmd::Cmd::Tx => {
                 let tx = payload::tx::Tx::new(it_pl.by_ref())
                     .chain_err(cf!("Error at creating Payload"))?;
                 Some(payload::Payload::Tx(tx))
             }
-            header::Cmd::Ping => {
+            header::cmd::Cmd::Ping => {
                 let ping =
                     payload::ping::Ping::new(it_pl).chain_err(cf!("Error at creating ping"))?;
                 Some(payload::Payload::Ping(ping))
             }
-            header::Cmd::Pong => {
+            header::cmd::Cmd::Pong => {
                 let pong =
                     payload::pong::Pong::new(it_pl).chain_err(cf!("Error at creating pong"))?;
                 Some(payload::Payload::Pong(pong))
             }
-            header::Cmd::Version => {
+            header::cmd::Cmd::Version => {
                 let version = payload::version::Version::new(it_pl)
                     .chain_err(cf!("Error at creating version"))?;
                 Some(payload::Payload::Version(version))
             }
-            header::Cmd::Verack => Some(payload::Payload::Verack),
-            header::Cmd::GetHeaders => {
+            header::cmd::Cmd::Verack => Some(payload::Payload::Verack),
+            header::cmd::Cmd::SendHeaders => Some(payload::Payload::SendHeaders),
+            header::cmd::Cmd::GetHeaders => {
                 let get_headers = payload::get_headers::GetHeaders::new(it_pl)
                     .chain_err(cf!("Error at creating get_headers"))?;
                 Some(payload::Payload::GetHeaders(get_headers))
             }
-            header::Cmd::Headers => {
+            header::cmd::Cmd::Headers => {
                 let headers = payload::headers::Headers::new(it_pl)
                     .chain_err(cf!("Error at creating get_headers"))?;
                 Some(payload::Payload::Headers(headers))
@@ -122,6 +123,7 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::Pong(ref pong) => format!("{:?}", pong),
                 payload::Payload::Version(ref version) => format!("{:?}", version),
                 payload::Payload::Verack => "Verack".into(),
+                payload::Payload::SendHeaders => "SendHeaders".into(),
                 payload::Payload::GetHeaders(ref get_headers) => format!("{:?}", get_headers),
                 payload::Payload::Headers(ref headers) => format!("{:?}", headers),
             },
@@ -143,6 +145,7 @@ impl IntoBytes for Msg {
                 &payload::Payload::Pong(ref pong) => pong.into_bytes()?,
                 &payload::Payload::Version(ref version) => version.into_bytes()?,
                 &payload::Payload::Verack => vec![],
+                &payload::Payload::SendHeaders => vec![],
                 &payload::Payload::GetHeaders(ref get_headers) => get_headers.into_bytes()?,
                 &payload::Payload::Headers(ref headers) => headers.into_bytes()?,
             },
