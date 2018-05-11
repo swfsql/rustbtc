@@ -39,3 +39,11 @@ macro_rules! d {
     ($fmt:expr) =>(debug!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!()));
     ($fmt:expr, $($arg:tt)*) =>(debug!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*));
 }
+
+
+#[macro_export]
+macro_rules! t {
+    () =>(trace!("{}:{}] ",file!()[3..].to_string(),line!()));
+    ($fmt:expr) =>(trace!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!()));
+    ($fmt:expr, $($arg:tt)*) =>(trace!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*));
+}

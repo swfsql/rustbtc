@@ -190,10 +190,12 @@ impl Future for Worker {
                                     otx,
                                 );
 
-                                let shot_back = orx.wait().expect(&ff!()); // TODO async
+                                d!("before wait");
                                 tx_sched_unlocked
                                     .unbounded_send(Box::new(sched_req_ctt))
                                     .expect(&ff!());//
+                                let shot_back = orx.wait().expect(&ff!()); // TODO async
+                                d!("after wait");
                                 if let box SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
                                     res_actor_id.clone()
                                 } else {
