@@ -26,6 +26,9 @@ pub enum Cmd {
     Headers,
     GetAddr,
     Addr,
+    GetData,
+    Block,
+    Inv,
 }
 
 mod cmd_value {
@@ -39,6 +42,9 @@ mod cmd_value {
     pub const HEADERS: &[u8] = b"headers\0\0\0\0\0";
     pub const GETADDR: &[u8] = b"getaddr\0\0\0\0\0";
     pub const ADDR: &[u8] = b"addr\0\0\0\0\0\0\0\0";
+    pub const BLOCK: &[u8] = b"block\0\0\0\0\0\0\0";
+    pub const GETDATA: &[u8] = b"getdata\0\0\0\0\0";
+    pub const INV: &[u8] = b"add\0\0\0\0\0\0\0\0\0";
 }
 
 impl Cmd {
@@ -54,6 +60,9 @@ impl Cmd {
             cmd_value::HEADERS => Some(Cmd::Headers),
             cmd_value::GETADDR => Some(Cmd::GetAddr),
             cmd_value::ADDR => Some(Cmd::Addr),
+            cmd_value::GETDATA => Some(Cmd::GetData),
+            cmd_value::INV=> Some(Cmd::Inv),
+            cmd_value::BLOCK => Some(Cmd::Block),
             _ => None,
         }
     }
@@ -70,6 +79,9 @@ impl Cmd {
             Cmd::Headers => cmd_value::HEADERS,
             Cmd::GetAddr => cmd_value::GETADDR,
             Cmd::Addr => cmd_value::ADDR,
+            Cmd::GetData => cmd_value::GETDATA,
+            Cmd::Block => cmd_value::BLOCK,
+            Cmd::Inv => cmd_value::INV,
         };
         bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
     }
@@ -88,6 +100,9 @@ impl std::fmt::Debug for Cmd {
             Cmd::Headers => format!("Cmd::Headers <{:?}>\n", self.value()),
             Cmd::GetAddr => format!("Cmd::GetAddr <{:?}>\n", self.value()),
             Cmd::Addr => format!("Cmd::Addr <{:?}>\n", self.value()),
+            Cmd::GetData => format!("Cmd::GetData <{:?}>\n", self.value()),
+            Cmd::Inv => format!("Cmd::Inv <{:?}>\n", self.value()),
+            Cmd::Block => format!("Cmd::Block <{:?}>\n", self.value()),
         };
         write!(f, "{}", s)
     }

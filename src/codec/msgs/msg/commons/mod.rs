@@ -5,3 +5,5 @@ pub mod net_addr_time;
 pub mod new_from_hex;
 pub mod var_str;
 pub mod var_uint;
+pub mod inventory;
+pub mod block_headers;

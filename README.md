@@ -8,13 +8,7 @@ MACHINA:
 
 
 
-possibilidade: resposta pra pedido de registro etc
-generalizar o inbox pra n depender do ip_addr (id unico incrementado)
-
-> scheduler gerar um id incremental
-
-
-fazer o ator do comut (comutador: ator c/ canais para peers && canal para o bchain)
+fazer o ator do comutador (comutador: ator c/ canais para peers && canal para o bchain)
 canal de cadastro do sched pro comut (cadastro de peers/adm no ator do comutador: mata um uso do mutex)
 canal do wkr pro comut (mata outro uso do mutex)
 fazer o ator do bchain (aí então já teremos todos os atores separados e isolados)

@@ -20,7 +20,7 @@ pub struct BlockHeaders {
     pub timestamp: u32,
     pub bits: u32,
     pub nonce: u32,
-    pub txn_count: VarUint,
+    //pub txn_count: VarUint,
 }
 
 impl NewFromHex for BlockHeaders {
@@ -60,9 +60,9 @@ impl NewFromHex for BlockHeaders {
             .read_u32::<LittleEndian>()
             .chain_err(cf!("Error read to nonce as i64 for value {:?}", aux))?;
 
-        let txn_count = VarUint::new(it.by_ref())
+        /*let txn_count = VarUint::new(it.by_ref())
             .chain_err(cf!("Error read to count as new VarUint for length"))?;
-
+        */
         Ok(BlockHeaders {
             version,
             prev_block,
@@ -70,7 +70,7 @@ impl NewFromHex for BlockHeaders {
             timestamp,
             bits,
             nonce,
-            txn_count,
+            //txn_count,
         })
     }
 }
@@ -104,12 +104,12 @@ impl IntoBytes for BlockHeaders {
             self.nonce
         ))?;
 
-        let mut txn_count = self.txn_count.into_bytes()
+        /*let mut txn_count = self.txn_count.into_bytes()
             .chain_err(cf!(
                 "Failure to convert txn_count ({:?}) into byte vec",
                 self.txn_count))?;
         wtr.append(&mut txn_count);
-
+        */
         Ok(wtr)
     }
 }

@@ -10,13 +10,12 @@ use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::var_uint::VarUint;
+use codec::msgs::msg::commons::block_headers;
 //use std::io::Cursor;
 mod errors {
     error_chain!{}
 }
 use errors::*;
-
-pub mod block_headers;
 
 // https://bitcoin.org/en/developer-reference#ping
 

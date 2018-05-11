@@ -110,6 +110,22 @@ impl NewFromHex for Msg {
                     .chain_err(cf!("Error at creating Addr"))?;
                 Some(payload::Payload::Addr(addr))
             }
+            header::cmd::Cmd::GetData => {
+                let get_data = payload::get_data::GetData::new(it_pl)
+                    .chain_err(cf!("Error at creating GetData"))?;
+                Some(payload::Payload::GetData(get_data))
+            }
+            header::cmd::Cmd::Inv => {
+                let inv = payload::inv::Inv::new(it_pl)
+                    .chain_err(cf!("Error at creating Inv"))?;
+                Some(payload::Payload::Inv(inv))
+            }
+            header::cmd::Cmd::Block => {
+                let block = payload::block::Block::new(it_pl)
+                    .chain_err(cf!("Error at creating Block"))?;
+                Some(payload::Payload::Block(block))
+            }
+
         };
         // header.payload_len // TODO
         Ok(Msg { header, payload })
@@ -133,6 +149,9 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::Headers(ref headers) => format!("{:?}", headers),
                 payload::Payload::GetAddr => "Verack".into(),
                 payload::Payload::Addr(ref addr) => format!("{:?}", addr),
+                payload::Payload::GetData(ref get_data) => format!("{:?}", get_data),
+                payload::Payload::Inv(ref inv) => format!("{:?}", inv),
+                payload::Payload::Block(ref block) => format!("{:?}", block),
             },
             None => "None".to_string(),
         }.lines()
@@ -157,6 +176,9 @@ impl IntoBytes for Msg {
                 &payload::Payload::Headers(ref headers) => headers.into_bytes()?,
                 &payload::Payload::GetAddr => vec![],
                 &payload::Payload::Addr(ref addr) => addr.into_bytes()?,
+                &payload::Payload::Block(ref block) => block.into_bytes()?,
+                &payload::Payload::GetData(ref get_data) => get_data.into_bytes()?,
+                &payload::Payload::Inv(ref inv) => inv.into_bytes()?,
             },
             None => vec![],
         };

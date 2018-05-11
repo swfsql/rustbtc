@@ -1,4 +1,4 @@
-
+/*
 use arrayvec::ArrayVec;
 use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
@@ -98,3 +98,4 @@ impl IntoBytes for Block {
         Ok(wtr)
     }
 }
+*/
