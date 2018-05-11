@@ -1,8 +1,13 @@
 #![recursion_limit = "1024"]
+#![feature(box_patterns)]
 #[macro_use]
 extern crate error_chain;
 mod errors {
-    error_chain!{}
+    error_chain!{
+        // links {
+        //     Btc(::btc::errors::Error)
+        // }
+    }
 }
 use errors::*;
 
@@ -25,7 +30,7 @@ extern crate btc;
 
 //use futures::sync::{mpsc, oneshot};
 use btc::exec::commons;
-use futures::sync::mpsc;
+use futures::sync::{mpsc,oneshot};
 use structopt::StructOpt;
 
 // use btc::commons::new_from_hex::NewFromHex;
@@ -76,6 +81,7 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
     );
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+    let (otx, orx) = oneshot::channel::<Box<commons::SchedulerResponse>>();
     {
         d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
@@ -84,12 +90,22 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
                 commons::RxPeers(socket.peer_addr().expect(&ff!()), rx_peer.into_future()),
                 tx_toolbox,
+                otx,
             )))
             .expect(&ff!()); // TODO may error
         d!("After tx_sched send");
-    }
+    }//
 
-    let peer = btc::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
+    let shot_back = orx.wait().expect(&ff!()); // TODO async
+    let actor_id = {
+        if let box commons::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+            res_actor_id.clone()
+        } else {
+            panic!("TODO: error when registering new peer");
+        }
+    };
+
+    let peer = btc::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
     let peer_machina = btc::peer::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
@@ -103,6 +119,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     );
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+    let (otx, orx) = oneshot::channel::<Box<commons::SchedulerResponse>>();
     {
         d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
@@ -111,12 +128,22 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
                 commons::RxPeers(socket.peer_addr().expect(&ff!()), rx_peer.into_future()),
                 tx_toolbox,
+                otx,
             )))
             .expect(&ff!()); // TODO may error
         d!("After tx_sched send");
     }
 
-    let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
+    let shot_back = orx.wait().expect(&ff!()); // TODO async
+    let actor_id = {
+        if let box commons::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+            res_actor_id.clone()
+        } else {
+            panic!("TODO: error when registering new peer");
+        }
+    };
+
+    let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
     let peer_machina = btc::admin::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());

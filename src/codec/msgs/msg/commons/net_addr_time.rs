@@ -1,13 +1,13 @@
-use arrayvec::ArrayVec;
-use codec::msgs::msg::commons::bytes::Bytes;
+//use arrayvec::ArrayVec;
+//use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::net_addr::NetAddr;
-use std;
-use std::fmt;
+//use std;
+//use std::fmt;
 use std::io::Cursor;
 
-use std::time::*;
-use tokio_timer::*;
+//use std::time::*;
+//use tokio_timer::*;
 use chrono::Utc;
 
 mod errors {
@@ -17,7 +17,7 @@ use errors::*;
 //use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
 use std::net::SocketAddr;
 
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{ LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 
 // falta pub time: u32

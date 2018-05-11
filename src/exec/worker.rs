@@ -18,6 +18,7 @@ use tokio::prelude::*;
 //use admin;
 use codec;
 use peer;
+use futures::sync::{oneshot};
 
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::net_addr::NetAddr;
@@ -31,7 +32,7 @@ use codec::msgs::msg::payload::Payload;
 use codec::msgs::msg::Msg;
 
 use exec::commons::{RxMpsc, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent};
+                    WorkerResponse, WorkerResponseContent, SchedulerResponse};
 
 use std::time::*;
 use tokio_timer::*;
@@ -82,18 +83,18 @@ impl Future for Worker {
             let WorkerRequestContent(WorkerRequestPriority(wrk_req, _req_pri), tx_one, addr) = req;
             let resp = match wrk_req {
                 WorkerRequest::Hello => {
-                    i!("Request received: {:#?}", wrk_req);
+                    // i!("Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 }
                 WorkerRequest::Wait { delay } => {
-                    i!("Request received: {:#?}", wrk_req);
+                    // i!("Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait().expect(&ff!());
                     WorkerResponse::Empty
                 }
                 WorkerRequest::ListPeers => {
-                    i!("Request received: {:#?}", &wrk_req);
+                    // i!("Request received: {:#?}", &wrk_req);
                     let keys = self.toolbox
                         .peer_messenger
                         .lock()
@@ -178,20 +179,29 @@ impl Future for Worker {
                             }
 
                             d!("registering peer");
-                            {
+                            let actor_id = {
                                 let tx_sched_unlocked = tx_sched.lock().expect(&ff!());
 
+                                
+                                let (otx, orx) = oneshot::channel::<Box<SchedulerResponse>>();
                                 let sched_req_ctt = commons::MainToSchedRequestContent::Register(
                                     commons::RxPeers(peer_addr.clone(), rx_peer.into_future()),
                                     tx_toolbox,
+                                    otx,
                                 );
 
+                                let shot_back = orx.wait().expect(&ff!()); // TODO async
                                 tx_sched_unlocked
                                     .unbounded_send(Box::new(sched_req_ctt))
-                                    .expect(&ff!());
-                            }
+                                    .expect(&ff!());//
+                                if let box SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+                                    res_actor_id.clone()
+                                } else {
+                                    panic!("TODO: error when registering new peer");
+                                }
+                            };
                             d!("peer registered");
-                            let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox);
+                            let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
                             {
                                 //let mut messenger_unlocked = self.toolbox.peer_messenger.lock().unwrap();
                                 //messenger_unlocked.insert(peer_addr, tx_toolbox);
@@ -249,7 +259,7 @@ impl Future for Worker {
                     WorkerResponse::MsgFromHex(msg)
                 }
                 _ => {
-                    i!("Request received: {:#?}", wrk_req);
+                    // i!("Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 }
             };

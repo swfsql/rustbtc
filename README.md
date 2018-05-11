@@ -1,6 +1,38 @@
 This is a graduation project being worked by *Felipe Cetrulo* and *Thiago Machado* and oriented/supervisioned by *Paulo Alvarenga*, from *Universidade Federal de Itajubá*. The goal is to use *Rust* (programming language) capabilities for a Bitcoin node implementation. The goal implies studying and learning about both Rust and Bitcoin.
 
 TODO LIST
+MACHINA:
+    peer/ version & verack (handshake)
+    worker/ version & verack
+    admin/ get_headers, 
+
+
+
+possibilidade: resposta pra pedido de registro etc
+generalizar o inbox pra n depender do ip_addr (id unico incrementado)
+
+> scheduler gerar um id incremental
+
+
+fazer o ator do comut (comutador: ator c/ canais para peers && canal para o bchain)
+canal de cadastro do sched pro comut (cadastro de peers/adm no ator do comutador: mata um uso do mutex)
+canal do wkr pro comut (mata outro uso do mutex)
+fazer o ator do bchain (aí então já teremos todos os atores separados e isolados)
+registro inicial do bchain
+...
+máquinas.. do bchain
+...
+fazer download de headers,
+...
+fazer alguma validação de headers,
+...
+salvar em disco (ou algo do tipo),
+...
+pedir download de blocos,
+...
+fazer alguma validação de blocos,
+...
+
 CODEC:
 	getdata (prioridade 1)
 	notfound (todo)

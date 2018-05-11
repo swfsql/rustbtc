@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum WorkerRequest {
     PeerAdd {
         addr: SocketAddr,
@@ -78,7 +78,7 @@ use std::sync::{Arc, Mutex};
 use codec;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
-pub struct AddrReqId(pub SocketAddr, pub RequestId);
+pub struct AddrReqId(pub ActorId, pub RequestId);
 
 // peer <-> scheduler <-> worker
 
@@ -101,19 +101,24 @@ pub type TxMpscMainToSched = mpsc::UnboundedSender<Box<MainToSchedRequestContent
 // scheduler <- main/..
 pub type RxMpscMainToSched = mpsc::UnboundedReceiver<Box<MainToSchedRequestContent>>;
 
-#[derive(Debug)]
 pub struct RxPeers(pub SocketAddr, pub RxMpscSf);
-#[derive(Debug)]
 pub struct TxPeers(pub SocketAddr, pub RxMpscSf);
 
-#[derive(Debug)]
 pub struct WorkerRequestContent(pub WorkerRequestPriority, pub TxOne, pub AddrReqId);
 
-#[derive(Debug)]
 pub enum MainToSchedRequestContent {
-    Register(RxPeers, TxMpscWorkerToPeer),
-    Unregister(SocketAddr),
+    Register(RxPeers, TxMpscWorkerToPeer, TxRegOne),
+    Unregister(ActorId),
 }
+
+pub type ActorId = usize;
+
+// scheduler -> main/worker
+pub type TxRegOne = oneshot::Sender<Box<SchedulerResponse>>;
+// main/worker <- scheduler
+pub type RxRegOne = oneshot::Receiver<Box<SchedulerResponse>>;
+
+
 
 impl Eq for WorkerRequestContent {}
 
@@ -137,13 +142,17 @@ impl PartialEq for WorkerRequestContent {
 
 #[derive(Debug)]
 pub struct WorkerResponseContent(pub WorkerResponse, pub AddrReqId);
+pub enum SchedulerResponse {
+    RegisterResponse(Result<usize>),
+    UnregisterResponse(Result<()>),
+}
 
 pub type RequestPriority = u8;
 pub type RequestId = usize;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct WorkerToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
 
 /*

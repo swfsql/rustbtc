@@ -1,6 +1,6 @@
 use exec;
 use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, RxPeers, TxMpsc, TxOne,
-                    WorkerRequestContent, WorkerResponseContent};
+                    WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId};
 use futures;
 use futures::sync::{mpsc, oneshot};
 use std::borrow::BorrowMut;
@@ -12,6 +12,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio;
 use tokio::prelude::*;
+//
 
 struct Inbox(RxMpscSf, HashMap<RequestId, TxOne>);
 struct Outbox(TxMpsc, HashMap<AddrReqId, RxOne>);
@@ -44,10 +45,11 @@ impl PartialEq for Outbox {
 
 pub struct Scheduler {
     main_channel: exec::commons::RxMpscMainToSched,
-    inbox: HashMap<SocketAddr, Inbox>,
+    inbox: HashMap<ActorId, Inbox>,
     outbox: Vec<Outbox>,
     workers_max_tasks: usize,
     toolbox: Arc<exec::commons::ToolBox>,
+    last_actor_id: ActorId,
 }
 
 impl Scheduler {
@@ -58,6 +60,7 @@ impl Scheduler {
             outbox: vec![],
             workers_max_tasks,
             toolbox: Arc::new(exec::commons::ToolBox::new()),
+            last_actor_id: 0 as usize,
         }
     }
 }
@@ -80,14 +83,20 @@ impl Future for Scheduler {
                     exec::commons::MainToSchedRequestContent::Register(
                         RxPeers(addr, first),
                         tx_mpsc_peer,
+                        tx_reg_one,
                     ) => {
-                        self.inbox.insert(addr, Inbox::new(first));
+                        let this_actor_id = self.last_actor_id;
+                        self.last_actor_id += 1;
+                        self.inbox.insert(this_actor_id, Inbox::new(first));
                         self.toolbox
                             .peer_messenger
                             .lock()
                             .expect(&ff!())
                             .insert(addr, tx_mpsc_peer);
-                    }
+
+                        let resp = Box::new(SchedulerResponse::RegisterResponse(Ok(this_actor_id)));
+                        tx_reg_one.send(resp);//
+                    },
                     exec::commons::MainToSchedRequestContent::Unregister(addr) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);
                         self.inbox.remove(&addr);
@@ -145,12 +154,12 @@ impl Future for Scheduler {
                     // TODO: unlist oneshot receiver on error,
                     // requires: same addr_req_id inside the error structure
                 }
-            };
+            };//
             d!("Removed oneshot from hashmap from the worker who completed the task.");
 
             // Getting the oneshot channel to the peer
             let &mut Inbox(_, ref mut prev_oneshots) =
-                self.inbox.get_mut(&addr_req_id.0).expect(&ff!());
+                self.inbox.get_mut(&addr_req_id.0).expect(&ff!());//
 
             // forwards the message to the peer
             prev_oneshots
@@ -179,7 +188,7 @@ impl Future for Scheduler {
                 })
                     .poll();
                 if let Ok(Async::Ready(((first, tail_stream), _index, _vec))) = poll {
-                    d!("received new request to be forwarded\n {:#?}", &first);
+                    // d!("received new request to be forwarded\n {:#?}", &first);
                     (first, tail_stream)
                 } else {
                     break;

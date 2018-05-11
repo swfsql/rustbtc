@@ -77,9 +77,8 @@ impl PollMachina for Machina {
         defmac!(prepare_transition mut state_peer, wr, priority => {
             let wrp = WorkerRequestPriority(wr, priority);
             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-            let skt = state_peer.codec.socket.peer_addr()
-                .expect(&ff!());
-            let addr = AddrReqId(skt, state_peer.next_request_counter());
+            let actor_id = state_peer.actor_id;
+            let addr = AddrReqId(actor_id, state_peer.next_request_counter());
             let wrc = WorkerRequestContent(wrp, otx, addr);
             state_peer.tx_req.unbounded_send(Box::new(wrc))
                 .expect(&ff!());
@@ -204,9 +203,9 @@ impl PollMachina for Machina {
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) =
                                 oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-                            let skt = peer.0.codec.socket.peer_addr().expect(&ff!());
+                            let actor_id = peer.0.actor_id;
                             let hello_index = 0;
-                            let addr = AddrReqId(skt, hello_index);
+                            let addr = AddrReqId(actor_id, hello_index);
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
                             let peer = peer.take();
@@ -221,9 +220,9 @@ impl PollMachina for Machina {
                             let wrp = WorkerRequestPriority(wr, 200);
                             let (otx, orx) =
                                 oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-                            let skt = peer.0.codec.socket.peer_addr().expect(&ff!());
+                            let actor_id = peer.0.actor_id;
                             let hello_index = 0;
-                            let addr = AddrReqId(skt, hello_index);
+                            let addr = AddrReqId(actor_id, hello_index);
                             let wrc = WorkerRequestContent(wrp, otx, addr);
 
                             let peer = peer.take();
@@ -321,8 +320,9 @@ impl PollMachina for Machina {
         }
         d!("Dumped all trash responses!");
         let state = state.take();
-        let addr = state.0.codec.socket.peer_addr().expect(&ff!());
-        let msg = MainToSchedRequestContent::Unregister(addr);
+        // let addr = state.0.codec.socket.peer_addr().expect(&ff!());
+        let actor_id = state.0.actor_id;
+        let msg = MainToSchedRequestContent::Unregister(actor_id);
         state
             .0
             .tx_sched

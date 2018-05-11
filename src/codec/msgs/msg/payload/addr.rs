@@ -1,12 +1,12 @@
-use std;
-use std::fmt;
-use std::io::Cursor;
+//use std;
+//use std::fmt;
+//use std::io::Cursor;
 
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+//use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::{net_addr_time, new_from_hex, var_str, var_uint};
+use codec::msgs::msg::commons::{net_addr_time,  var_uint};
 mod errors {
     error_chain!{}
 }
