@@ -4,7 +4,7 @@ use futures::Future;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 
-use exec::commons::{RxOne, TxMpscMainToSched, WorkerRequestContent, WorkerToPeerRequestAndPriority, ActorId};
+use exec::commons::{RxOne, TxMpscMainToSched, WorkerRequestContent, RouterToPeerRequestAndPriority, ActorId};
 
 pub mod args;
 pub mod machina;
@@ -15,9 +15,9 @@ pub struct Peer {
     rx_ignored: Vec<RxOne>,
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-    _rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
+    _rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
     actor_id: ActorId,
-    request_counter: usize,
+request_counter: usize,
 }
 
 impl Peer {
@@ -25,7 +25,7 @@ impl Peer {
         socket: TcpStream,
         tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-        rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
+        rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
         actor_id: usize,
     ) -> Peer {
         Peer {

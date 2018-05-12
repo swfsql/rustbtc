@@ -1,5 +1,5 @@
 use codec::msgs::Msgs;
-use exec::commons::{RxOne, TxMpscMainToSched, WorkerRequestContent, WorkerToPeerRequestAndPriority,ActorId};
+use exec::commons::{RxOne,TxMpsc, TxMpscMainToSched, WorkerRequestContent,ActorId,RxMpscRouterToPeer};
 use futures::sync::mpsc;
 use futures::Future;
 use std::sync::{Arc, Mutex};
@@ -10,9 +10,9 @@ pub mod machina;
 pub struct Peer {
     codec: Msgs,
     rx_ignored: Vec<RxOne>,
-    _tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
+    _tx_req: TxMpsc,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-    rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
+    rx_toolbox: RxMpscRouterToPeer,
     actor_id: ActorId,
     request_counter: usize,
 }
@@ -20,9 +20,9 @@ pub struct Peer {
 impl Peer {
     pub fn new(
         socket: TcpStream,
-        tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
+        tx_req: TxMpsc,
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-        rx_toolbox: mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>,
+        rx_toolbox: RxMpscRouterToPeer,
         actor_id: ActorId,
     ) -> Peer {
         Peer {

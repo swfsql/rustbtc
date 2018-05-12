@@ -32,7 +32,8 @@ use codec::msgs::msg::payload::Payload;
 use codec::msgs::msg::Msg;
 
 use exec::commons::{RxMpsc, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent, SchedulerResponse};
+                    WorkerResponse, WorkerResponseContent, SchedulerResponse, TxMpscWorkerToRouter,WorkerToRouterResponse,
+                    WorkerToRouterRequestContent,WorkerToRouterRequest};
 
 use std::time::*;
 use tokio_timer::*;
@@ -41,14 +42,15 @@ struct Inbox(RxMpsc, Vec<Box<WorkerRequestContent>>);
 
 pub struct Worker {
     inbox: Inbox,
-    toolbox: Arc<commons::ToolBox>,
+    //toolbox: Arc<commons::ToolBox>,
+    tx_router: TxMpscWorkerToRouter,
 }
 
 impl Worker {
-    pub fn new(rx_mpsc: RxMpsc, toolbox: Arc<commons::ToolBox>) -> Worker {
+    pub fn new(rx_mpsc: RxMpsc, tx_router: TxMpscWorkerToRouter) -> Worker {
         Worker {
             inbox: Inbox(rx_mpsc, vec![]),
-            toolbox,
+            tx_router,
         }
     }
 }
@@ -58,7 +60,7 @@ impl Future for Worker {
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<(), io::Error> {
-        d!("poll");
+        t!("poll");
 
         // gets the worker's requests receiver, and also the requests queue
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
@@ -68,51 +70,76 @@ impl Future for Worker {
             match rec.poll() {
                 Ok(Async::Ready(Some(wrk_req))) => {
                     // brand new incomming requests
+                    d!("{:?}", &wrk_req);
                     reqs.push(wrk_req);
                     d!("End of mpsc channel to scheduler loop (Ok Ready)");
                 }
-                Ok(Async::NotReady) => break,
-                _ => panic!(ff!("Unexpected value for worker polling on reader channel")),
+                Ok(Async::NotReady) => {
+                    d!("not ready");
+                    break
+                },
+                _ => {
+                    d!("panic");
+                    panic!(ff!("Unexpected value for worker polling on reader channel"));
+                },
             };
         }
+        d!("broke from loop");
 
         // give priority to requests with highest priority (last)
         reqs.sort_unstable();
         if let Some(req) = reqs.pop() {
+            d!("inner if");
             let mut req = *req;
             let WorkerRequestContent(WorkerRequestPriority(wrk_req, _req_pri), tx_one, addr) = req;
             let resp = match wrk_req {
                 WorkerRequest::Hello => {
-                    // i!("Request received: {:#?}", wrk_req);
+                    d!("Request received: {:#?}", wrk_req);
                     WorkerResponse::Empty
                 }
                 WorkerRequest::Wait { delay } => {
-                    // i!("Request received: {:#?}", wrk_req);
+                    d!("Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait().expect(&ff!());
                     WorkerResponse::Empty
                 }
                 WorkerRequest::ListPeers => {
-                    // i!("Request received: {:#?}", &wrk_req);
-                    let keys = self.toolbox
+                    d!("Request received: {:#?}", &wrk_req);
+
+                    let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
+
+                    let wrk_to_router_req = WorkerToRouterRequest::ListPeers;
+                    let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
+                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content));
+                    d!("sent to router");
+
+                    if let Ok(box WorkerToRouterResponse::ListPeers(peer_list)) = orx.wait() {
+                         d!("todo: show peer list");
+                        WorkerResponse::ListPeers(peer_list)
+                        // i!("Peer list: {:?}", peer_list);
+                    } else {
+                        e!("Logic error");
+                        panic!("logic error")
+                    }
+                    
+                    /*let keys = self.toolbox
                         .peer_messenger
                         .lock()
                         .expect(&ff!())
                         .keys()
                         .cloned()
-                        .collect();
+                        .collect();*/
                     //let msg = commons::PeerRequest::Dummy;
-                    //tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
+                    //tx.unbounded_send(Box::new(commons::RouterToPeerRequestAndPriority(msg, 100)));
 
-                    WorkerResponse::ListPeers(keys)
                 }//
                 WorkerRequest::PeerAdd {
                     addr,
                     wait_handshake: _,
                     tx_sched,
                 } => {
-                    i!("PeerAdd Request received");
+                    d!("PeerAdd Request received");
 
                     let self_addr = SocketAddr::new(
                         IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
@@ -166,7 +193,7 @@ impl Future for Worker {
                             let peer_addr = socket.peer_addr().expect(&ff!());
                             {
                                 d!("started sending rawmsg toolbox message to the new peer");
-                                let boxed_binary = commons::WorkerToPeerRequestAndPriority(
+                                let boxed_binary = commons::RouterToPeerRequestAndPriority(
                                     commons::PeerRequest::RawMsg(
                                         version_msg.into_bytes().expect(&ff!()),
                                     ),
@@ -181,11 +208,10 @@ impl Future for Worker {
                             d!("registering peer");
                             let actor_id = {
                                 let tx_sched_unlocked = tx_sched.lock().expect(&ff!());
-
-                                
                                 let (otx, orx) = oneshot::channel::<Box<SchedulerResponse>>();
                                 let sched_req_ctt = commons::MainToSchedRequestContent::Register(
-                                    commons::RxPeers(peer_addr.clone(), rx_peer.into_future()),
+                                    peer_addr.clone(),
+                                    rx_peer.into_future(),
                                     tx_toolbox,
                                     otx,
                                 );
@@ -219,23 +245,37 @@ impl Future for Worker {
                         Err(_) => WorkerResponse::PeerAdd(None),
                     }
                 }
-                WorkerRequest::PeerRemove { addr } => {
+                WorkerRequest::PeerRemove { actor_id } => {
                     d!("Worker received PeerRemove command");
-                    if let Some(tx) = self.toolbox
-                        .peer_messenger
-                        .lock()
-                        .expect(&ff!())
-                        .remove(&addr)
-                    {
-                        let msg = commons::PeerRequest::SelfRemove;
-                        tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(
-                            msg, 255,
-                        ))).expect(&ff!());
-                        d!("Worker sended SelfRemove command to Peer");
-                        WorkerResponse::Empty
+                    let msg_to_peer = commons::PeerRequest::SelfRemove;
+                    let msg_to_peer_priority = commons::RouterToPeerRequestAndPriority(msg_to_peer, 255);
+                    let wrk_to_router_req = WorkerToRouterRequest::PeerRemove(
+                            actor_id, 
+                            Box::new(msg_to_peer_priority));
+                    let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
+                    let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
+                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content));
+
+                    if let Ok(box WorkerToRouterResponse::PeerRemove(status)) = orx.wait(){
+                        WorkerResponse::PeerRemove(status)
+                        // i!("Peer list: {:?}", peer_list);
+                        // w!("todo: show peer list");
                     } else {
-                        WorkerResponse::Empty
+                        e!("Logic error");
+                        panic!("logic error")
                     }
+
+                    // if let Some(tx) = self.toolbox
+                    //     .peer_messenger
+                    //     .lock()
+                    //     .expect(&ff!())
+                    //     .remove(&addr)
+                    // {
+                    //     d!("Worker sended SelfRemove command to Peer");
+                    //     WorkerResponse::Empty
+                    // } else {
+                    //     WorkerResponse::Empty
+                    // }
                 }
                 WorkerRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
@@ -245,20 +285,33 @@ impl Future for Worker {
                     d!("message from hex");
                     if send {
                         if let &Ok(ref _okmsg) = &msg {
-                            for (_addr, tx) in
-                                self.toolbox.peer_messenger.lock().expect(&ff!()).iter()
-                            {
-                                let boxed_binary = commons::WorkerToPeerRequestAndPriority(
-                                    commons::PeerRequest::RawMsg(binary.clone()),
-                                    100,
-                                );
-                                tx.unbounded_send(Box::new(boxed_binary.clone()))
-                                    .expect(&ff!());
-                            }
+                        let msg_to_peer = commons::PeerRequest::RawMsg(binary.clone());
+                        let msg_to_peer_priority = commons::RouterToPeerRequestAndPriority(msg_to_peer, 100);
+                        let wrk_to_router_req = WorkerToRouterRequest::MsgToAllPeers(
+                                Box::new(msg_to_peer_priority));
+                        //let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
+                        let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, None);
+                        self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content));
+                        // WorkerResponse::Empty
                         }
-                    };
+                    } else {
+                        w!("Something wrong on msg to all peer");
+                        // WorkerResponse::Empty
+                    }
+                    WorkerResponse::Empty
 
-                    WorkerResponse::MsgFromHex(msg)
+                            // for (_addr, tx) in
+                            //     self.toolbox.peer_messenger.lock().expect(&ff!()).iter()
+                            // {
+                            //     let boxed_binary = commons::RouterToPeerRequestAndPriority(
+                            //         commons::PeerRequest::RawMsg(binary.clone()),
+                            //         100,
+                            //     );
+                            //     tx.unbounded_send(Box::new(boxed_binary.clone()))
+                            //         .expect(&ff!());
+                            // }
+                            // };
+
                 }
                 _ => {
                     // i!("Request received: {:#?}", wrk_req);

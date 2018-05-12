@@ -12,7 +12,7 @@ use peer::Peer;
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use exec::commons::{MainToSchedRequestContent, PeerRequest, RxOne, WorkerToPeerRequestAndPriority};
+use exec::commons::{MainToSchedRequestContent, PeerRequest, RxOne, RouterToPeerRequestAndPriority};
 
 //use futures::sync::{mpsc, oneshot};
 //use futures::sync::{oneshot};
@@ -83,7 +83,7 @@ impl PollMachina for Machina {
         peer.0.poll_ignored();
 
         loop {
-            if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, _priority)))) =
+            if let Ok(Async::Ready(Some(box RouterToPeerRequestAndPriority(peer_req, _priority)))) =
                 peer.0.rx_toolbox.poll()
             {
                 match peer_req {

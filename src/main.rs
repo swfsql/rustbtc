@@ -88,7 +88,8 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
         d!("After mutex was locked.");
         tx_sched_unlocked
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
-                commons::RxPeers(socket.peer_addr().expect(&ff!()), rx_peer.into_future()),
+                socket.peer_addr().expect(&ff!()), 
+                rx_peer.into_future(),
                 tx_toolbox,
                 otx,
             )))
@@ -104,6 +105,9 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
             panic!("TODO: error when registering new peer");
         }
     };
+
+    // TODO: 
+    // let tx_sched_inner = tx_sched.lock().unwrap().clone();
 
     let peer = btc::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
     let peer_machina = btc::peer::machina::Machina::start(peer)
@@ -126,7 +130,8 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         d!("After mutex was locked.");
         tx_sched_unlocked
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
-                commons::RxPeers(socket.peer_addr().expect(&ff!()), rx_peer.into_future()),
+                socket.peer_addr().expect(&ff!()),
+                rx_peer.into_future(),
                 tx_toolbox,
                 otx,
             )))
@@ -179,8 +184,18 @@ fn run() -> Result<()> {
         .expect(&ff!());
 
     let (tx, rx) = mpsc::unbounded();
+    let (tx_peer_messenger_reg, rx_peer_messenger_reg) = mpsc::unbounded();
+    let (tx_worker_to_router_backup, rx_worker_to_router) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
-    let scheduler = btc::exec::scheduler::Scheduler::new(rx, 3).map_err(|_| ());
+
+    let router = btc::exec::router::Router::new(rx_peer_messenger_reg, rx_worker_to_router)
+        .map_err(|_| ());
+    let scheduler = btc::exec::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, 3)
+        .map_err(|_| ());
+
+    thread::spawn(move || {
+        tokio::run(router);
+    });
     thread::spawn(move || {
         tokio::run(scheduler);
     });

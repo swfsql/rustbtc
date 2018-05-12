@@ -90,7 +90,7 @@ impl PollMachina for Machina {
         // possibility for admin to listen to the toolbox peer_messenger; unused for now
         /*
         loop {
-            if let Ok(Async::Ready(Some(box WorkerToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
+            if let Ok(Async::Ready(Some(box RouterToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
                 match peer_req {
 
                     PeerRequest::Dummy => {
@@ -165,17 +165,17 @@ impl PollMachina for Machina {
                             let next = SimpleWait(peer, orx);
                             transition!(next);
                         }
-                        args::PeerCmd::Remove { addr } => {
+                        args::PeerCmd::Remove { actor_id } => {
                             let state = peer.take();
                             d!("Entered command: Removing a peer");
-                            let wr = WorkerRequest::PeerRemove { addr: addr };
+                            let wr = WorkerRequest::PeerRemove { actor_id: actor_id };
                             let (peer, orx) = prepare_transition!(state.0, wr, 200);
                             let next = SimpleWait(peer, orx);
                             transition!(next);
                         }
                         args::PeerCmd::List => {
                             let state = peer.take();
-                            d!("Entered command: Removing a peer");
+                            d!("Entered command: Listing peers");
                             let wr = WorkerRequest::ListPeers {};
                             let (peer, orx) = prepare_transition!(state.0, wr, 200);
                             let next = SimpleWait(peer, orx);
@@ -250,7 +250,8 @@ impl PollMachina for Machina {
                         let state = peer.take();
                         d!("Entered command: Exiting admin");
                         let wr = WorkerRequest::PeerRemove {
-                            addr: state.0.codec.socket.peer_addr().expect(&ff!()),
+                            actor_id:state.0.actor_id,
+                            //addr: state.0.codec.socket.peer_addr().expect(&ff!()),
                         };
                         let (mut peer, orx) = prepare_transition!(state.0, wr, 200);
                         d!("Request sent to worker");

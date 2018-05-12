@@ -3,6 +3,7 @@ use hex;
 use hex::FromHex;
 use std::net::SocketAddr;
 use std::str::FromStr;
+use exec::commons::ActorId;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "")]
@@ -71,9 +72,12 @@ pub enum PeerCmd {
     #[structopt(name = "rm")]
     /// Closes the connection with a peer
     Remove {
-        #[structopt(long = "addr")]
-        /// The peer's socket address that is to be disconnected. example: <addr="127.0.0.1:8080">
-        addr: SocketAddr,
+        #[structopt(long = "actor_id")]
+        /// The peer's actor_id that is to be disconnected. example: <actor_id=3>
+        actor_id: ActorId,
+        // #[structopt(long = "addr")]
+        // /// The peer's socket address that is to be disconnected. example: <addr="127.0.0.1:8080">
+        // addr: SocketAddr,
     },
 }
 

@@ -1,6 +1,7 @@
 use exec;
-use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, RxPeers, TxMpsc, TxOne,
-                    WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId};
+use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc, TxOne,
+                    WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId, 
+                    TxMpscSchedToRouter, SchedToRouterRequestContent, TxMpscWorkerToRouter };
 use futures;
 use futures::sync::{mpsc, oneshot};
 use std::borrow::BorrowMut;
@@ -47,19 +48,23 @@ pub struct Scheduler {
     main_channel: exec::commons::RxMpscMainToSched,
     inbox: HashMap<ActorId, Inbox>,
     outbox: Vec<Outbox>,
+    tx_router: TxMpscSchedToRouter,
+    tx_worker_to_router_backup: TxMpscWorkerToRouter,
     workers_max_tasks: usize,
-    toolbox: Arc<exec::commons::ToolBox>,
+    // toolbox: Arc<exec::commons::ToolBox>,
     last_actor_id: ActorId,
 }
 
 impl Scheduler {
-    pub fn new(rx: exec::commons::RxMpscMainToSched, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(rx: exec::commons::RxMpscMainToSched, tx_router: TxMpscSchedToRouter, tx_worker_to_router_backup: TxMpscWorkerToRouter, workers_max_tasks: usize) -> Scheduler {
         Scheduler {
             main_channel: rx,
             inbox: HashMap::new(),
             outbox: vec![],
+            tx_router,
+            tx_worker_to_router_backup,
             workers_max_tasks,
-            toolbox: Arc::new(exec::commons::ToolBox::new()),
+            // toolbox: Arc::new(exec::commons::ToolBox::new()),
             last_actor_id: 0 as usize,
         }
     }
@@ -81,19 +86,23 @@ impl Future for Scheduler {
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(box intention))) => match intention {
                     exec::commons::MainToSchedRequestContent::Register(
-                        RxPeers(addr, first),
+                        addr,
+                        first,
                         tx_mpsc_peer,
                         tx_reg_one,
                     ) => {
                         let this_actor_id = self.last_actor_id;
                         self.last_actor_id += 1;
                         self.inbox.insert(this_actor_id, Inbox::new(first));
+                        let router_msg = SchedToRouterRequestContent::Register(this_actor_id, addr, tx_mpsc_peer);
+                        self.tx_router.unbounded_send(Box::new(router_msg));
+                        /*
                         self.toolbox
                             .peer_messenger
                             .lock()
                             .expect(&ff!())
                             .insert(addr, tx_mpsc_peer);
-
+                        */
                         let resp = Box::new(SchedulerResponse::RegisterResponse(Ok(this_actor_id)));
                         let _a = tx_reg_one.send(resp);
                     },
@@ -227,9 +236,13 @@ impl Future for Scheduler {
             if new_box_flag {
                 let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
-                let worker = exec::worker::Worker::new(rx, self.toolbox.clone())
+
+                let worker = exec::worker::Worker::new(rx, self.tx_worker_to_router_backup.clone())
                     .map(|_item| ())
                     .map_err(|_err| ());
+                // let worker = exec::worker::Worker::new(rx, self.toolbox.clone())
+                //     .map(|_item| ())
+                //     .map_err(|_err| ());
                 // spawn the worke's future
                 tokio::spawn(worker);
                 // create a new outbox, that is created for each new worker

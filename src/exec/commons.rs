@@ -6,14 +6,14 @@ pub enum WorkerRequest {
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
     },
     PeerRemove {
-        addr: SocketAddr,
+        actor_id: ActorId,
     },
     PeerGetInfo {
-        addr: SocketAddr,
+        actor_id: ActorId,
     },
     ListPeers,
     SendPing {
-        addr: SocketAddr,
+        actor_id: ActorId,
     },
     Hello,
     Wait {
@@ -24,6 +24,27 @@ pub enum WorkerRequest {
         send: bool,
         binary: Vec<u8>,
     },
+}
+
+
+use std;
+use std::fmt;
+impl std::fmt::Debug for WorkerRequest {
+    fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+        let s = match self {
+            WorkerRequest::PeerAdd{addr,wait_handshake,tx_sched} => format!("PeerAdd"),
+            WorkerRequest::PeerRemove{actor_id} => format!("PeerRemove"),
+            WorkerRequest::PeerGetInfo{actor_id} => format!("PeerGetInfo"),
+            WorkerRequest::Wait{delay} => format!("Wait"),
+            WorkerRequest::ListPeers => format!("ListPeers"),
+            WorkerRequest::PeerPrint => format!("PeerPrint"),
+            WorkerRequest::MsgFromHex{send,binary} => format!("MsgFromHex"),
+            
+            _ => format!("some other"),
+            
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(Debug)]
@@ -32,47 +53,29 @@ pub enum WorkerResponse {
     String(String),
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
+    PeerRemove(bool),
     MsgFromHex(Result<codec::msgs::msg::Msg>),
-    ListPeers(Vec<SocketAddr>),
+    ListPeers(HashMap<ActorId, SocketAddr>),
 }
-
 
 #[derive(Clone)]
-pub enum RouterRequest {
-    PeerAdd {
-        addr: SocketAddr,
-        wait_handshake: bool,
-        tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-    },
-    PeerRemove {
-        addr: SocketAddr,
-    },
-    PeerGetInfo {
-        addr: SocketAddr,
-    },
+pub enum WorkerToRouterRequest {
     ListPeers,
-    SendPing {
-        addr: SocketAddr,
-    },
-    Hello,
-    Wait {
-        delay: u64,
-    },
-    PeerPrint,
-    MsgFromHex {
-        send: bool,
-        binary: Vec<u8>,
-    },
+    MsgToPeer(ActorId, Box<RouterToPeerRequestAndPriority>),
+    MsgToAllPeers(Box<RouterToPeerRequestAndPriority>),
+    PeerRemove(ActorId, Box<RouterToPeerRequestAndPriority>),
 }
 
+
 #[derive(Debug)]
-pub enum RouterResponse {
+pub enum WorkerToRouterResponse {
     Empty,
     String(String),
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
+    PeerRemove(bool),
     MsgFromHex(Result<codec::msgs::msg::Msg>),
-    ListPeers(Vec<SocketAddr>),
+    ListPeers(HashMap<ActorId, SocketAddr>),
 }
 
 #[derive(Debug, Clone)]
@@ -83,7 +86,7 @@ pub enum PeerRequest {
 }
 
 pub struct ToolBox {
-    pub peer_messenger: Mutex<HashMap<SocketAddr, TxMpscWorkerToPeer>>,
+    pub peer_messenger: Mutex<HashMap<SocketAddr, TxMpscRouterToPeer>>,
 }
 
 impl ToolBox {
@@ -131,22 +134,48 @@ pub type RxMpscSf = futures::stream::StreamFuture<RxMpsc>;
 pub type TxOne = oneshot::Sender<Result<Box<WorkerResponseContent>>>;
 // peer <- scheduler <- worker
 pub type RxOne = oneshot::Receiver<Result<Box<WorkerResponseContent>>>;
-// worker [with toolbox] -> peer
-pub type TxMpscWorkerToPeer = mpsc::UnboundedSender<Box<WorkerToPeerRequestAndPriority>>;
-// peer <- worker [with toolbox]
-pub type RxMpscWorkerToPeer = mpsc::UnboundedReceiver<Box<WorkerToPeerRequestAndPriority>>;
+
+// router -> peer
+pub type TxMpscRouterToPeer = mpsc::UnboundedSender<Box<RouterToPeerRequestAndPriority>>;
+// peer <- router
+pub type RxMpscRouterToPeer = mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>;
+
 // main/.. -> scheduler
 pub type TxMpscMainToSched = mpsc::UnboundedSender<Box<MainToSchedRequestContent>>;
 // scheduler <- main/..
 pub type RxMpscMainToSched = mpsc::UnboundedReceiver<Box<MainToSchedRequestContent>>;
 
-pub struct RxPeers(pub SocketAddr, pub RxMpscSf);
+// router -> worker
+pub type TxOneWorkerToRouter = Option<oneshot::Sender<Box<WorkerToRouterResponse>>>;
+// worker <- router
+pub type RxOneWorkerToRouter = Option<oneshot::Receiver<Box<WorkerToRouterResponse>>>;
+
+// worker -> router
+pub type TxMpscWorkerToRouter = mpsc::UnboundedSender<Box<WorkerToRouterRequestContent>>;
+// router <- worker
+pub type RxMpscWorkerToRouter = mpsc::UnboundedReceiver<Box<WorkerToRouterRequestContent>>;
+
+// sched -> router
+pub type TxMpscSchedToRouter = mpsc::UnboundedSender<Box<SchedToRouterRequestContent>>;
+// router <- sched
+pub type RxMpscSchedToRouter = mpsc::UnboundedReceiver<Box<SchedToRouterRequestContent>>;
+
+
+// TODO maybe remove
 pub struct TxPeers(pub SocketAddr, pub RxMpscSf);
 
+pub enum SchedToRouterRequestContent {
+    Register(ActorId, SocketAddr, TxMpscRouterToPeer),
+    Unregister(ActorId),
+}
+
+pub struct WorkerToRouterRequestContent(pub WorkerToRouterRequest, pub TxOneWorkerToRouter);
+
+#[derive(Debug)]
 pub struct WorkerRequestContent(pub WorkerRequestPriority, pub TxOne, pub AddrReqId);
 
 pub enum MainToSchedRequestContent {
-    Register(RxPeers, TxMpscWorkerToPeer, TxRegOne),
+    Register(SocketAddr, RxMpscSf, TxMpscRouterToPeer, TxRegOne),
     Unregister(ActorId),
 }
 
@@ -156,7 +185,6 @@ pub type ActorId = usize;
 pub type TxRegOne = oneshot::Sender<Box<SchedulerResponse>>;
 // main/worker <- scheduler
 pub type RxRegOne = oneshot::Receiver<Box<SchedulerResponse>>;
-
 
 
 impl Eq for WorkerRequestContent {}
@@ -189,10 +217,11 @@ pub enum SchedulerResponse {
 pub type RequestPriority = u8;
 pub type RequestId = usize;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
+
 #[derive(Clone)]
-pub struct WorkerToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
+pub struct RouterToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
 
 /*
 
