@@ -30,37 +30,39 @@ use codec::msgs::msg::header::Header;
 use codec::msgs::msg::payload::version::Version;
 use codec::msgs::msg::payload::Payload;
 use codec::msgs::msg::Msg;
-
-use exec::commons::{RxMpsc, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent, SchedulerResponse};
+/*
+use exec::commons::{RxMpsc, RouterRequest, RouterRequestContent, RouterRequestPriority,
+                    RouterResponse, RouterResponseContent, SchedulerResponse};
+*/
 
 use std::time::*;
 use tokio_timer::*;
 
-struct Inbox(RxMpsc, Vec<Box<WorkerRequestContent>>);
+struct Inbox(RxMpsc, Vec<Box<RouterRequestContent>>);
 
-pub struct Worker {
+//
+pub struct Router {
     inbox: Inbox,
-    toolbox: Arc<commons::ToolBox>,
+    toolbox: commons::ToolBox,
 }
 
-impl Worker {
-    pub fn new(rx_mpsc: RxMpsc, toolbox: Arc<commons::ToolBox>) -> Worker {
-        Worker {
+impl Router {
+    pub fn new(rx_mpsc: RxMpsc, toolbox: Arc<commons::ToolBox>) -> Router {
+        Router {
             inbox: Inbox(rx_mpsc, vec![]),
             toolbox,
         }
     }
 }
 
-impl Future for Worker {
+impl Future for Router {
     type Item = ();
     type Error = io::Error;
 
     fn poll(&mut self) -> Poll<(), io::Error> {
         d!("poll");
 
-        // gets the worker's requests receiver, and also the requests queue
+        // gets the router's requests receiver, and also the requests queue
         let Inbox(ref mut rec, ref mut reqs) = self.inbox;
 
         loop {
@@ -72,7 +74,7 @@ impl Future for Worker {
                     d!("End of mpsc channel to scheduler loop (Ok Ready)");
                 }
                 Ok(Async::NotReady) => break,
-                _ => panic!(ff!("Unexpected value for worker polling on reader channel")),
+                _ => panic!(ff!("Unexpected value for router polling on reader channel")),
             };
         }
 
@@ -80,20 +82,20 @@ impl Future for Worker {
         reqs.sort_unstable();
         if let Some(req) = reqs.pop() {
             let mut req = *req;
-            let WorkerRequestContent(WorkerRequestPriority(wrk_req, _req_pri), tx_one, addr) = req;
+            let RouterRequestContent(RouterRequestPriority(wrk_req, _req_pri), tx_one, addr) = req;
             let resp = match wrk_req {
-                WorkerRequest::Hello => {
+                RouterRequest::Hello => {
                     // i!("Request received: {:#?}", wrk_req);
-                    WorkerResponse::Empty
+                    RouterResponse::Empty
                 }
-                WorkerRequest::Wait { delay } => {
+                RouterRequest::Wait { delay } => {
                     // i!("Request received: {:#?}", wrk_req);
                     let timer = Timer::default();
                     let sleep = timer.sleep(Duration::from_secs(delay));
                     sleep.wait().expect(&ff!());
-                    WorkerResponse::Empty
+                    RouterResponse::Empty
                 }
-                WorkerRequest::ListPeers => {
+                RouterRequest::ListPeers => {
                     // i!("Request received: {:#?}", &wrk_req);
                     let keys = self.toolbox
                         .peer_messenger
@@ -103,13 +105,13 @@ impl Future for Worker {
                         .cloned()
                         .collect();
                     //let msg = commons::PeerRequest::Dummy;
-                    //tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(msg, 100)));
+                    //tx.unbounded_send(Box::new(commons::RouterToPeerRequestAndPriority(msg, 100)));
 
-                    WorkerResponse::ListPeers(keys)
-                }//
-                WorkerRequest::PeerAdd {
+                    RouterResponse::ListPeers(keys)
+                }
+                RouterRequest::PeerAdd {
                     addr,
-                    wait_handshake: _,
+                    wait_handhsake: _,
                     tx_sched,
                 } => {
                     i!("PeerAdd Request received");
@@ -158,7 +160,7 @@ impl Future for Worker {
                         payload: Some(Payload::Version(version_pl)),
                     };
 
-                    //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);
+                    //d!("router:: PeerAdd Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
                             let (tx_peer, rx_peer) = mpsc::unbounded();
@@ -166,7 +168,7 @@ impl Future for Worker {
                             let peer_addr = socket.peer_addr().expect(&ff!());
                             {
                                 d!("started sending rawmsg toolbox message to the new peer");
-                                let boxed_binary = commons::WorkerToPeerRequestAndPriority(
+                                let boxed_binary = commons::RouterToPeerRequestAndPriority(
                                     commons::PeerRequest::RawMsg(
                                         version_msg.into_bytes().expect(&ff!()),
                                     ),
@@ -214,13 +216,13 @@ impl Future for Worker {
                             d!("spawning peer machina");
                             tokio::spawn(peer_machina);
                             d!("peer machina spawned");
-                            WorkerResponse::PeerAdd(Some(addr))
+                            RouterResponse::PeerAdd(Some(addr))
                         }
-                        Err(_) => WorkerResponse::PeerAdd(None),
+                        Err(_) => RouterResponse::PeerAdd(None),
                     }
                 }
-                WorkerRequest::PeerRemove { addr } => {
-                    d!("Worker received PeerRemove command");
+                RouterRequest::PeerRemove { addr } => {
+                    d!("Router received PeerRemove command");
                     if let Some(tx) = self.toolbox
                         .peer_messenger
                         .lock()
@@ -228,16 +230,16 @@ impl Future for Worker {
                         .remove(&addr)
                     {
                         let msg = commons::PeerRequest::SelfRemove;
-                        tx.unbounded_send(Box::new(commons::WorkerToPeerRequestAndPriority(
+                        tx.unbounded_send(Box::new(commons::RouterToPeerRequestAndPriority(
                             msg, 255,
                         ))).expect(&ff!());
-                        d!("Worker sended SelfRemove command to Peer");
-                        WorkerResponse::Empty
+                        d!("Router sended SelfRemove command to Peer");
+                        RouterResponse::Empty
                     } else {
-                        WorkerResponse::Empty
+                        RouterResponse::Empty
                     }
                 }
-                WorkerRequest::MsgFromHex { send, binary } => {
+                RouterRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
                     let msg = codec::msgs::msg::Msg::new(binary.iter());
 
@@ -248,7 +250,7 @@ impl Future for Worker {
                             for (_addr, tx) in
                                 self.toolbox.peer_messenger.lock().expect(&ff!()).iter()
                             {
-                                let boxed_binary = commons::WorkerToPeerRequestAndPriority(
+                                let boxed_binary = commons::RouterToPeerRequestAndPriority(
                                     commons::PeerRequest::RawMsg(binary.clone()),
                                     100,
                                 );
@@ -258,17 +260,17 @@ impl Future for Worker {
                         }
                     };
 
-                    WorkerResponse::MsgFromHex(msg)
+                    RouterResponse::MsgFromHex(msg)
                 }
                 _ => {
                     // i!("Request received: {:#?}", wrk_req);
-                    WorkerResponse::Empty
+                    RouterResponse::Empty
                 }
             };
 
             d!("response sending.");
             tx_one
-                .send(Ok(Box::new(WorkerResponseContent(resp, addr.clone()))))
+                .send(Ok(Box::new(RouterResponseContent(resp, addr.clone()))))
                 .expect(&ff!());
             d!("response sent.");
             task::current().notify();

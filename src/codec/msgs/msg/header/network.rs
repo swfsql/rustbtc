@@ -1,6 +1,6 @@
 use std::fmt;
 use std;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 
 mod errors {

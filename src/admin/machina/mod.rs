@@ -152,13 +152,13 @@ impl PollMachina for Machina {
                     args::AdminCmd::Peer(peercmd) => match peercmd {
                         args::PeerCmd::Add {
                             addr,
-                            wait_handhsake,
+                            wait_handshake,
                         } => {
                             let peer = peer.take();
                             d!("Entered command: Adding a peer");
                             let wr = WorkerRequest::PeerAdd {
                                 addr: addr,
-                                wait_handhsake: wait_handhsake,
+                                wait_handshake: wait_handshake,
                                 tx_sched: peer.0.tx_sched.clone(),
                             };
                             let (peer, orx) = prepare_transition!(peer.0, wr, 200);

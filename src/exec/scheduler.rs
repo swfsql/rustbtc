@@ -8,7 +8,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
 use std::mem;
-use std::net::SocketAddr;
+//use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio;
 use tokio::prelude::*;
@@ -95,7 +95,7 @@ impl Future for Scheduler {
                             .insert(addr, tx_mpsc_peer);
 
                         let resp = Box::new(SchedulerResponse::RegisterResponse(Ok(this_actor_id)));
-                        tx_reg_one.send(resp);//
+                        let _a = tx_reg_one.send(resp);
                     },
                     exec::commons::MainToSchedRequestContent::Unregister(addr) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);

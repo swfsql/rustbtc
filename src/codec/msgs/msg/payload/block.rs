@@ -1,9 +1,9 @@
-use arrayvec::ArrayVec;
+//use arrayvec::ArrayVec;
 //use std;
 //use std::fmt;
-use std::io::Cursor;
+//use std::io::Cursor;
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+//use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 //use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
 
 //use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -72,11 +72,11 @@ impl IntoBytes for Block {
 
         let txns = self.txns
             .iter()
-            .map(|Tx| Tx.into_bytes())
+            .map(|tx| tx.into_bytes())
             .collect::<Result<Vec<_>>>()?;
 
-        for mut Tx in txns {
-            wtr.append(&mut Tx);
+        for mut tx in txns {
+            wtr.append(&mut tx);
         }
 
         Ok(wtr)

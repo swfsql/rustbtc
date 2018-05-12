@@ -65,7 +65,7 @@ pub enum PeerCmd {
 
         #[structopt(long = "wait")]
         /// Wait for the peer's handhsake initiation.
-        wait_handhsake: bool,
+        wait_handshake: bool,
     },
 
     #[structopt(name = "rm")]

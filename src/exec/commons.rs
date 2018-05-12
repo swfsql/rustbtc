@@ -2,7 +2,7 @@
 pub enum WorkerRequest {
     PeerAdd {
         addr: SocketAddr,
-        wait_handhsake: bool,
+        wait_handshake: bool,
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
     },
     PeerRemove {
@@ -28,6 +28,45 @@ pub enum WorkerRequest {
 
 #[derive(Debug)]
 pub enum WorkerResponse {
+    Empty,
+    String(String),
+    Bool(bool),
+    PeerAdd(Option<SocketAddr>),
+    MsgFromHex(Result<codec::msgs::msg::Msg>),
+    ListPeers(Vec<SocketAddr>),
+}
+
+
+#[derive(Clone)]
+pub enum RouterRequest {
+    PeerAdd {
+        addr: SocketAddr,
+        wait_handshake: bool,
+        tx_sched: Arc<Mutex<TxMpscMainToSched>>,
+    },
+    PeerRemove {
+        addr: SocketAddr,
+    },
+    PeerGetInfo {
+        addr: SocketAddr,
+    },
+    ListPeers,
+    SendPing {
+        addr: SocketAddr,
+    },
+    Hello,
+    Wait {
+        delay: u64,
+    },
+    PeerPrint,
+    MsgFromHex {
+        send: bool,
+        binary: Vec<u8>,
+    },
+}
+
+#[derive(Debug)]
+pub enum RouterResponse {
     Empty,
     String(String),
     Bool(bool),

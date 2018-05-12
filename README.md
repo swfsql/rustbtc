@@ -8,8 +8,8 @@ MACHINA:
 
 
 
-fazer o ator do comutador (comutador: ator c/ canais para peers && canal para o bchain)
-canal de cadastro do sched pro comut (cadastro de peers/adm no ator do comutador: mata um uso do mutex)
+fazer o ator do Router (comutador: ator c/ canais para peers && canal para o bchain)
+canal de cadastro do sched pro router (cadastro de peers/adm no ator do router: mata um uso do mutex)
 canal do wkr pro comut (mata outro uso do mutex)
 fazer o ator do bchain (aí então já teremos todos os atores separados e isolados)
 registro inicial do bchain
@@ -24,7 +24,7 @@ salvar em disco (ou algo do tipo),
 ...
 pedir download de blocos,
 ...
-fazer alguma validação de blocos,
+fazer alguma validação de blocos,   
 ...
 
 CODEC:

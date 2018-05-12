@@ -1,11 +1,11 @@
 use arrayvec::ArrayVec;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use codec::msgs::msg::commons::bytes::Bytes;
+//use codec::msgs::msg::commons::bytes::Bytes;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use std;
-use std::fmt;
-use codec::msgs::msg::commons::var_uint::VarUint;
+//use std;
+//use std::fmt;
+//use codec::msgs::msg::commons::var_uint::VarUint;
 use std::io::Cursor;
 mod errors {
     error_chain!{}
