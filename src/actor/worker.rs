@@ -9,7 +9,6 @@ use actor::commons;
 use futures::sync::mpsc;
 use rand;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-use std::sync::Arc;
 use tokio;
 use tokio::io;
 use tokio::net::TcpStream;
@@ -111,7 +110,7 @@ impl Future for Worker {
 
                     let wrk_to_router_req = WorkerToRouterRequest::ListPeers;
                     let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
-                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content));
+                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content)).expect(&ff!());
                     d!("sent to router");
 
                     if let Ok(box WorkerToRouterResponse::ListPeers(peer_list)) = orx.wait() {
@@ -254,7 +253,7 @@ impl Future for Worker {
                             Box::new(msg_to_peer_priority));
                     let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
                     let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
-                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content));
+                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content)).expect(&ff!());
 
                     if let Ok(box WorkerToRouterResponse::PeerRemove(status)) = orx.wait(){
                         WorkerResponse::PeerRemove(status)
@@ -291,7 +290,7 @@ impl Future for Worker {
                                 Box::new(msg_to_peer_priority));
                         //let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
                         let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, None);
-                        self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content));
+                        self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content)).expect(&ff!());
                         // WorkerResponse::Empty
                         }
                     } else {

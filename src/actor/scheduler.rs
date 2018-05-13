@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
 use std::mem;
 //use std::net::SocketAddr;
-use std::sync::Arc;
 use tokio;
 use tokio::prelude::*;
 //
@@ -95,7 +94,7 @@ impl Future for Scheduler {
                         self.last_actor_id += 1;
                         self.inbox.insert(this_actor_id, Inbox::new(first));
                         let router_msg = SchedToRouterRequestContent::Register(this_actor_id, addr, tx_mpsc_peer);
-                        self.tx_router.unbounded_send(Box::new(router_msg));
+                        self.tx_router.unbounded_send(Box::new(router_msg)).expect(&ff!());
                         /*
                         self.toolbox
                             .peer_messenger

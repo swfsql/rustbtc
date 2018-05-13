@@ -4,41 +4,41 @@ mod errors {
 
 //use errors::*;
 
-use chrono::Utc;
-use actor::commons;
-use futures::sync::mpsc;
-use rand;
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-use std::sync::Arc;
-use tokio;
+// use chrono::Utc;
+// use actor::commons;
+// use futures::sync::mpsc;
+// use rand;
+use std::net::{ SocketAddr};
+// use std::sync::Arc;
+// use tokio;
 use tokio::io;
-use tokio::net::TcpStream;
+//use tokio::net::TcpStream;
 use tokio::prelude::*;
 //use rand::{Rng, thread_rng};
 //use admin;
-use codec;
-use actor::peer;
-use futures::sync::{oneshot};
+//use codec;
+//use actor::peer;
+//use futures::sync::{oneshot};
 use std::collections::HashMap;
 
-use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use codec::msgs::msg::commons::net_addr::NetAddr;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::var_str::VarStr;
-//use codec::msgs::msg::commons::params::Network;
-use codec::msgs::msg::header;
-use codec::msgs::msg::header::Header;
-use codec::msgs::msg::payload::version::Version;
-use codec::msgs::msg::payload::Payload;
-use codec::msgs::msg::Msg;
+// use codec::msgs::msg::commons::into_bytes::IntoBytes;
+// use codec::msgs::msg::commons::net_addr::NetAddr;
+// use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+// use codec::msgs::msg::commons::var_str::VarStr;
+// //use codec::msgs::msg::commons::params::Network;
+// use codec::msgs::msg::header;
+// use codec::msgs::msg::header::Header;
+// use codec::msgs::msg::payload::version::Version;
+// use codec::msgs::msg::payload::Payload;
+// use codec::msgs::msg::Msg;
 
-use actor::commons::{RxMpsc, TxMpscRouterToPeer, ActorId,
-                    RxMpscWorkerToRouter, SchedulerResponse,
+use actor::commons::{ TxMpscRouterToPeer, ActorId,
+                    RxMpscWorkerToRouter, 
                     RxMpscSchedToRouter, WorkerToRouterRequest, WorkerToRouterRequestContent,
                     SchedToRouterRequestContent,WorkerToRouterResponse};
 
-use std::time::*;
-use tokio_timer::*;
+// use std::time::*;
+// use tokio_timer::*;
 
 pub struct Router {
     peer_messenger_reg: RxMpscSchedToRouter,
@@ -98,20 +98,19 @@ impl Future for Router {
                         d!("List peers asked. TODO: implement it");
                         let hm_clone = self.peer_messenger_addr.clone();
                         let resp = WorkerToRouterResponse::ListPeers(hm_clone);
-                        rx_one.send(Box::new(resp));
+                        rx_one.send(Box::new(resp)).expect(&ff!());
                     },
                     WorkerToRouterRequest::PeerRemove(actor_id, msg_to_peer_priority) => {
 
                         if let Some(tx) = self.peer_messenger.remove(&actor_id) {
                             d!("Router sent SelfRemove command to Peer");
-                            tx.send(msg_to_peer_priority);
+                            tx.unbounded_send(msg_to_peer_priority).expect(&ff!());
                         } else {
                             e!("Error when Deleting peer");
                         }
                         let resp = WorkerToRouterResponse::PeerRemove(true);
-                        rx_one.send(Box::new(resp));
-                    },
-                    
+                        rx_one.send(Box::new(resp)).expect(&ff!());                        
+                    },                    
                     _ => {
                         w!("Router Logic error");
                     },
@@ -122,12 +121,12 @@ impl Future for Router {
                 match req {
                     WorkerToRouterRequest::MsgToPeer(actor_id, peer_req) => {
                         if let Some(chn) = self.peer_messenger.get(&actor_id) {
-                            chn.unbounded_send(peer_req);
+                            chn.unbounded_send(peer_req).expect(&ff!());
                         };
                     },
                     WorkerToRouterRequest::MsgToAllPeers(ref msg_to_peer_priority) => {
                         for (_actor_id, tx) in self.peer_messenger.iter() {
-                            tx.unbounded_send(msg_to_peer_priority.clone());
+                            tx.unbounded_send(msg_to_peer_priority.clone()).expect(&ff!());
                         }
                     },
 

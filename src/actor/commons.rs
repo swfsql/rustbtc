@@ -32,15 +32,15 @@ use std::fmt;
 impl std::fmt::Debug for WorkerRequest {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
         let s = match self {
-            WorkerRequest::PeerAdd{addr,wait_handshake,tx_sched} => format!("PeerAdd"),
-            WorkerRequest::PeerRemove{actor_id} => format!("PeerRemove"),
-            WorkerRequest::PeerGetInfo{actor_id} => format!("PeerGetInfo"),
-            WorkerRequest::Wait{delay} => format!("Wait"),
+            WorkerRequest::PeerAdd{addr: _, wait_handshake: _, tx_sched: _} => format!("PeerAdd"),
+            WorkerRequest::PeerRemove{actor_id: _} => format!("PeerRemove"),
+            WorkerRequest::PeerGetInfo{actor_id: _} => format!("PeerGetInfo"),
+            WorkerRequest::Wait{delay: _} => format!("Wait"),
             WorkerRequest::ListPeers => format!("ListPeers"),
             WorkerRequest::PeerPrint => format!("PeerPrint"),
-            WorkerRequest::MsgFromHex{send,binary} => format!("MsgFromHex"),
+            WorkerRequest::MsgFromHex{send: _,binary: _} => format!("MsgFromHex"),
             
-            _ => format!("some other"),
+            _ => format!("some other"),//
             
         };
         write!(f, "{}", s)

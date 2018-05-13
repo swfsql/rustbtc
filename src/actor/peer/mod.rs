@@ -1,6 +1,5 @@
 use codec::msgs::Msgs;
-use actor::commons::{RxOne,TxMpsc, TxMpscMainToSched, WorkerRequestContent,ActorId,RxMpscRouterToPeer};
-use futures::sync::mpsc;
+use actor::commons::{RxOne,TxMpsc, TxMpscMainToSched, ActorId,RxMpscRouterToPeer};
 use futures::Future;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
