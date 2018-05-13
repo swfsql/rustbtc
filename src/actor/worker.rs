@@ -193,7 +193,7 @@ impl Future for Worker {
                             {
                                 d!("started sending rawmsg toolbox message to the new peer");
                                 let boxed_binary = commons::RouterToPeerRequestAndPriority(
-                                    commons::PeerRequest::RawMsg(
+                                    commons::PeerRequest::HandShake(
                                         version_msg.into_bytes().expect(&ff!()),
                                     ),
                                     100,
@@ -284,7 +284,7 @@ impl Future for Worker {
                     d!("message from hex");
                     if send {
                         if let &Ok(ref _okmsg) = &msg {
-                        let msg_to_peer = commons::PeerRequest::RawMsg(binary.clone());
+                        let msg_to_peer = commons::PeerRequest::Forward(binary.clone());
                         let msg_to_peer_priority = commons::RouterToPeerRequestAndPriority(msg_to_peer, 100);
                         let wrk_to_router_req = WorkerToRouterRequest::MsgToAllPeers(
                                 Box::new(msg_to_peer_priority));
@@ -303,7 +303,7 @@ impl Future for Worker {
                             //     self.toolbox.peer_messenger.lock().expect(&ff!()).iter()
                             // {
                             //     let boxed_binary = commons::RouterToPeerRequestAndPriority(
-                            //         commons::PeerRequest::RawMsg(binary.clone()),
+                            //         commons::PeerRequest::Forward(binary.clone()),
                             //         100,
                             //     );
                             //     tx.unbounded_send(Box::new(boxed_binary.clone()))

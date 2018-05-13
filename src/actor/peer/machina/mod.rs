@@ -98,12 +98,16 @@ impl PollMachina for Machina {
                         let next = SelfRemove(peer.0); //Calling this simplewait???
                         transition!(next);
                     }
-                    PeerRequest::RawMsg(raw_msg) => {
+                    PeerRequest::Forward(raw_msg) => {
                         let bytes = codec::msgs::msg::commons::bytes::Bytes::new(raw_msg.clone());
                         i!("received RawMsg command:\n{}{:?}", &raw_msg.to_hex(), bytes);
                         peer.0.codec.buffer(&raw_msg);
                         let _ = peer.0.codec.poll_flush()?;
                     }
+                    PeerRequest::HandShake(raw_msg) => {
+
+                    }
+                    
                 }
             } else {
                 break;

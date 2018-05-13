@@ -194,8 +194,8 @@ fn run() -> Result<()> {
         .map_err(|_| ());
 
     //impl future/state machine
-    let bchain = btc::actor::blockchain::Blockchain::new(tx_bchain_to_sched, rx_worker_to_bchain)
-        .map_err(|_| ());
+    // let bchain = btc::actor::blockchain::Blockchain::new(tx_bchain_to_sched, rx_worker_to_bchain)
+    //     .map_err(|_| ());
     let scheduler = btc::actor::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, rx_bchain_to_sched.into_future(), tx_worker_to_bchain, 3)
         .map_err(|_| ());
 

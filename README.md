@@ -8,9 +8,6 @@ MACHINA:
 
 
 
-fazer o ator do bchain (aí então já teremos todos os atores separados e isolados)
-registro inicial do bchain
-...
 máquinas.. do bchain
 ...
 fazer download de headers,

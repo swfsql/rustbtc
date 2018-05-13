@@ -97,12 +97,12 @@ pub enum WorkerToBlockChainResponse {
     ListPeers(HashMap<ActorId, SocketAddr>),
 }
 
-
 #[derive(Debug, Clone)]
 pub enum PeerRequest {
     Dummy,
     SelfRemove,
-    RawMsg(Vec<u8>),
+    Forward(RawMsg),
+    HandShake(RawMsg),
 }
 
 pub struct ToolBox {
@@ -208,6 +208,7 @@ pub enum MainToSchedRequestContent {
 }
 
 pub type ActorId = usize;
+pub type RawMsg = Vec<u8>;
 
 // scheduler -> main/worker
 pub type TxRegOne = oneshot::Sender<Box<SchedulerResponse>>;
