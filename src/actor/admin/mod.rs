@@ -15,7 +15,7 @@ pub struct Peer {
     rx_ignored: Vec<RxOne>,
     tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-    _rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
+    _rx_router: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
     actor_id: ActorId,
     request_counter: usize,
 }
@@ -25,7 +25,7 @@ impl Peer {
         socket: TcpStream,
         tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-        rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
+        rx_router: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
         actor_id: usize,
     ) -> Peer {
         Peer {
@@ -33,7 +33,7 @@ impl Peer {
             rx_ignored: Vec::new(),
             tx_req: tx_req,
             tx_sched: tx_sched,
-            _rx_toolbox: rx_toolbox,
+            _rx_router: rx_router,
             actor_id,
             request_counter: 0,
         }

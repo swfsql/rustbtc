@@ -24,8 +24,15 @@ pub enum WorkerRequest {
         send: bool,
         binary: Vec<u8>,
     },
+    NewVersion {
+        addr: SocketAddr,
+    },
+    NewVerack{
+        version: Msg,
+    }
 }
 
+use codec::msgs::msg::Msg;
 
 use std;
 use std::fmt;
@@ -56,6 +63,8 @@ pub enum WorkerResponse {
     PeerRemove(bool),
     MsgFromHex(Result<codec::msgs::msg::Msg>),
     ListPeers(HashMap<ActorId, SocketAddr>),
+    Version(codec::msgs::msg::Msg),
+    Verack(codec::msgs::msg::Msg),
 }
 
 #[derive(Clone)]

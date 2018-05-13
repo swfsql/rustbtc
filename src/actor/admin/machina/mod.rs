@@ -90,7 +90,7 @@ impl PollMachina for Machina {
         // possibility for admin to listen to the toolbox peer_messenger; unused for now
         /*
         loop {
-            if let Ok(Async::Ready(Some(box RouterToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_toolbox.poll() {
+            if let Ok(Async::Ready(Some(box RouterToPeerRequestAndPriority(peer_req, priority)))) = peer.0.rx_router.poll() {
                 match peer_req {
 
                     PeerRequest::Dummy => {

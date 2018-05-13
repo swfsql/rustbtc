@@ -80,7 +80,7 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
         socket.peer_addr().expect(&ff!())
     );
     let (tx_peer, rx_peer) = mpsc::unbounded();
-    let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+    let (tx_router, rx_router) = mpsc::unbounded();
     let (otx, orx) = oneshot::channel::<Box<commons::SchedulerResponse>>();
     {
         d!("after channel mpsc created.");
@@ -90,7 +90,7 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
                 socket.peer_addr().expect(&ff!()), 
                 rx_peer.into_future(),
-                tx_toolbox,
+                tx_router,
                 otx,
             )))
             .expect(&ff!()); // TODO may error
@@ -109,7 +109,7 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
     // TODO: 
     // let tx_sched_inner = tx_sched.lock().unwrap().clone();
 
-    let peer = btc::actor::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
+    let peer = btc::actor::peer::Peer::new(socket, tx_peer, tx_sched, rx_router, actor_id);
     let peer_machina = btc::actor::peer::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
@@ -122,7 +122,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         socket.peer_addr().expect(&ff!())
     );
     let (tx_peer, rx_peer) = mpsc::unbounded();
-    let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+    let (tx_router, rx_router) = mpsc::unbounded();
     let (otx, orx) = oneshot::channel::<Box<commons::SchedulerResponse>>();
     {
         d!("after channel mpsc created.");
@@ -132,7 +132,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
             .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
                 socket.peer_addr().expect(&ff!()),
                 rx_peer.into_future(),
-                tx_toolbox,
+                tx_router,
                 otx,
             )))
             .expect(&ff!()); // TODO may error
@@ -148,7 +148,7 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         }
     };
 
-    let peer = btc::actor::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
+    let peer = btc::actor::admin::Peer::new(socket, tx_peer, tx_sched, rx_router, actor_id);
     let peer_machina = btc::actor::admin::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());

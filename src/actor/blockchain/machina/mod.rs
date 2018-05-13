@@ -84,7 +84,7 @@
 
 //         loop {
 //             if let Ok(Async::Ready(Some(box RouterToPeerRequestAndPriority(peer_req, _priority)))) =
-//                 peer.0.rx_toolbox.poll()
+//                 peer.0.rx_router.poll()
 //             {
 //                 match peer_req {
 //                     PeerRequest::Dummy => {

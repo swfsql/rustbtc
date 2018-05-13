@@ -28,6 +28,7 @@ pub enum Payload {
     Inv(inv::Inv),
 }
 
+
 /*
 impl IntoBytes for Ping {
 fn into_bytes(&self) -> Result<Vec<u8>> {

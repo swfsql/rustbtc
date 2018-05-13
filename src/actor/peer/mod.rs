@@ -1,3 +1,4 @@
+use codec::msgs::msg::Msg;
 use codec::msgs::Msgs;
 use actor::commons::{RxOne,TxMpsc, TxMpscMainToSched, ActorId,RxMpscRouterToPeer};
 use futures::Future;
@@ -11,9 +12,10 @@ pub struct Peer {
     rx_ignored: Vec<RxOne>,
     _tx_req: TxMpsc,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-    rx_toolbox: RxMpscRouterToPeer,
+    rx_router: RxMpscRouterToPeer,
     actor_id: ActorId,
     request_counter: usize,
+    version: Option<Msg>,
 }
 
 impl Peer {
@@ -21,7 +23,7 @@ impl Peer {
         socket: TcpStream,
         tx_req: TxMpsc,
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-        rx_toolbox: RxMpscRouterToPeer,
+        rx_router: RxMpscRouterToPeer,
         actor_id: ActorId,
     ) -> Peer {
         Peer {
@@ -29,9 +31,10 @@ impl Peer {
             rx_ignored: Vec::new(),
             _tx_req: tx_req,
             tx_sched: tx_sched,
-            rx_toolbox: rx_toolbox,
+            rx_router: rx_router,
             actor_id,
             request_counter: 0,
+            version: None,
         }
     }//
 

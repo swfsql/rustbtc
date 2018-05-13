@@ -22,6 +22,7 @@ use actor::commons::{MainToSchedRequestContent, PeerRequest, RxOne, RouterToPeer
 //use env_logger::LogBuilder;
 //#[macro_use]
 //use macros;
+pub mod hand_shake;
 
 use codec;
 use hex::ToHex;
@@ -84,7 +85,7 @@ impl PollMachina for Machina {
 
         loop {
             if let Ok(Async::Ready(Some(box RouterToPeerRequestAndPriority(peer_req, _priority)))) =
-                peer.0.rx_toolbox.poll()
+                peer.0.rx_router.poll()
             {
                 match peer_req {
                     PeerRequest::Dummy => {

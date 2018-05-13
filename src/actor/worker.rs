@@ -52,6 +52,52 @@ impl Worker {
             tx_router,
         }
     }
+
+    fn new_version(addr: SocketAddr) -> Msg {
+        let self_addr = SocketAddr::new(
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
+            8333,
+        ); // TODO get from toolbox
+        let version = 70013_i32;
+        let addr_trans = NetAddr::from_socket_addr(&addr);
+        let addr_recv = NetAddr::from_socket_addr(&self_addr);
+        let services = addr_trans.service;
+        let nonce = rand::random::<u64>(); // TODO record into peer and toolbox
+        let timestamp = Utc::now().timestamp();
+        let start_height = 0_i32; // maybe 1
+        let relay = Some(false);
+        let agent_bytes = b"/Rustbtc:0.0.1/";
+        let user_agent = VarStr::from_bytes(agent_bytes).expect(&ff!());
+
+        d!("version payload creating");
+        let version_pl = Version {
+            version,
+            services,
+            timestamp,
+            addr_recv,
+            addr_trans,
+            nonce,
+            user_agent,
+            start_height,
+            relay,
+        };
+        d!("version payload created");
+
+        let version_pl_raw = version_pl.into_bytes().expect(&ff!());
+
+        let version_header = Header {
+            network: header::network::Network::Main,
+            cmd: header::cmd::Cmd::Version,
+            payload_len: version_pl_raw.len() as i32,
+            payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
+        };
+        d!("version header created");
+
+        Msg {
+            header: version_header,
+            payload: Some(Payload::Version(version_pl)),
+        }
+    }
 }
 
 impl Future for Worker {
@@ -121,16 +167,6 @@ impl Future for Worker {
                         e!("Logic error");
                         panic!("logic error")
                     }
-                    
-                    /*let keys = self.toolbox
-                        .peer_messenger
-                        .lock()
-                        .expect(&ff!())
-                        .keys()
-                        .cloned()
-                        .collect();*/
-                    //let msg = commons::PeerRequest::Dummy;
-                    //tx.unbounded_send(Box::new(commons::RouterToPeerRequestAndPriority(msg, 100)));
 
                 }//
                 WorkerRequest::PeerAdd {
@@ -140,55 +176,13 @@ impl Future for Worker {
                 } => {
                     d!("PeerAdd Request received");
 
-                    let self_addr = SocketAddr::new(
-                        IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
-                        8333,
-                    ); // TODO get from toolbox
-                    let version = 70013_i32;
-                    let addr_trans = NetAddr::from_socket_addr(&addr);
-                    let addr_recv = NetAddr::from_socket_addr(&self_addr);
-                    let services = addr_trans.service;
-                    let nonce = rand::random::<u64>(); // TODO record into peer and toolbox
-                    let timestamp = Utc::now().timestamp();
-                    let start_height = 0_i32; // maybe 1
-                    let relay = Some(false);
-                    let agent_bytes = b"/Rustbtc:0.0.1/";
-                    let user_agent = VarStr::from_bytes(agent_bytes).expect(&ff!());
-
-                    d!("version payload creating");
-                    let version_pl = Version {
-                        version,
-                        services,
-                        timestamp,
-                        addr_recv,
-                        addr_trans,
-                        nonce,
-                        user_agent,
-                        start_height,
-                        relay,
-                    };
-                    d!("version payload created");
-
-                    let version_pl_raw = version_pl.into_bytes().expect(&ff!());
-
-                    let version_header = Header {
-                        network: header::network::Network::Main,
-                        cmd: header::cmd::Cmd::Version,
-                        payload_len: version_pl_raw.len() as i32,
-                        payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
-                    };
-                    d!("version header created");
-
-                    let version_msg = Msg {
-                        header: version_header,
-                        payload: Some(Payload::Version(version_pl)),
-                    };
+                    let version_msg = Worker::new_version(addr);
 
                     //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
                         Ok(socket) => {
                             let (tx_peer, rx_peer) = mpsc::unbounded();
-                            let (tx_toolbox, rx_toolbox) = mpsc::unbounded();
+                            let (tx_router, rx_router) = mpsc::unbounded();
                             let peer_addr = socket.peer_addr().expect(&ff!());
                             {
                                 d!("started sending rawmsg toolbox message to the new peer");
@@ -198,7 +192,7 @@ impl Future for Worker {
                                     ),
                                     100,
                                 );
-                                tx_toolbox
+                                tx_router
                                     .unbounded_send(Box::new(boxed_binary.clone()))
                                     .expect(&ff!());
                                 d!("finished sending rawmsg toolbox message to the new peer");
@@ -211,7 +205,7 @@ impl Future for Worker {
                                 let sched_req_ctt = commons::MainToSchedRequestContent::Register(
                                     peer_addr.clone(),
                                     rx_peer.into_future(),
-                                    tx_toolbox,
+                                    tx_router,
                                     otx,
                                 );
 
@@ -228,10 +222,10 @@ impl Future for Worker {
                                 }
                             };
                             d!("peer registered");
-                            let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
+                            let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_router, actor_id);
                             {
                                 //let mut messenger_unlocked = self.toolbox.peer_messenger.lock().unwrap();
-                                //messenger_unlocked.insert(peer_addr, tx_toolbox);
+                                //messenger_unlocked.insert(peer_addr, tx_router);
                             }
                             let peer_machina = peer::machina::Machina::start(peer)
                                 .map(|_| ())
@@ -264,17 +258,6 @@ impl Future for Worker {
                         panic!("logic error")
                     }
 
-                    // if let Some(tx) = self.toolbox
-                    //     .peer_messenger
-                    //     .lock()
-                    //     .expect(&ff!())
-                    //     .remove(&addr)
-                    // {
-                    //     d!("Worker sended SelfRemove command to Peer");
-                    //     WorkerResponse::Empty
-                    // } else {
-                    //     WorkerResponse::Empty
-                    // }
                 }
                 WorkerRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);

@@ -10,7 +10,8 @@ mod errors {
 }
 use errors::*;
 //use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
-use std::net::SocketAddr;
+use std::net::{SocketAddr, IpAddr};
+use std::convert::From;
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
@@ -63,6 +64,14 @@ impl NetAddr {
                 port: socket_addr.port(),
             },
         }
+    }
+}
+
+impl From<NetAddr> for SocketAddr {
+    fn from(net_addr: NetAddr) -> Self {
+        let mut ipv6_arr: [u8; 16] = [0; 16];
+        ipv6_arr.copy_from_slice(net_addr.ip.as_slice());
+        SocketAddr::new(IpAddr::from(ipv6_arr), net_addr.port)
     }
 }
 
