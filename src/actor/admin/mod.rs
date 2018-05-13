@@ -17,7 +17,7 @@ pub struct Peer {
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
     _rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
     actor_id: ActorId,
-request_counter: usize,
+    request_counter: usize,
 }
 
 impl Peer {

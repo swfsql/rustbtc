@@ -186,19 +186,23 @@ fn run() -> Result<()> {
     let (tx, rx) = mpsc::unbounded();
     let (tx_peer_messenger_reg, rx_peer_messenger_reg) = mpsc::unbounded();
     let (tx_worker_to_router_backup, rx_worker_to_router) = mpsc::unbounded();
+    let (tx_bchain_to_sched, rx_bchain_to_sched) = mpsc::unbounded();
+    let (tx_worker_to_bchain, rx_worker_to_bchain) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
 
     let router = btc::actor::router::Router::new(rx_peer_messenger_reg, rx_worker_to_router)
         .map_err(|_| ());
-    let scheduler = btc::actor::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, 3)
+
+    //impl future/state machine
+    let bchain = btc::actor::blockchain::Blockchain::new(tx_bchain_to_sched, rx_worker_to_bchain)
+        .map_err(|_| ());
+    let scheduler = btc::actor::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, rx_bchain_to_sched.into_future(), tx_worker_to_bchain, 3)
         .map_err(|_| ());
 
     thread::spawn(move || {
         tokio::run(router);
     });
-    thread::spawn(move || {
-        tokio::run(scheduler);
-    });
+    thread::spawn(move || tokio::run(scheduler));
 
     let listener_peer = TcpListener::bind(&args.node_addr).expect(&ff!());
     let listener_admin = TcpListener::bind(&args.admin_addr).expect(&ff!());

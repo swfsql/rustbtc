@@ -38,7 +38,7 @@ impl std::fmt::Debug for WorkerRequest {
             WorkerRequest::Wait{delay: _} => format!("Wait"),
             WorkerRequest::ListPeers => format!("ListPeers"),
             WorkerRequest::PeerPrint => format!("PeerPrint"),
-            WorkerRequest::MsgFromHex{send: _,binary: _} => format!("MsgFromHex"),
+            WorkerRequest::MsgFromHex{send: _, binary: _} => format!("MsgFromHex"),
             
             _ => format!("some other"),//
             
@@ -77,6 +77,26 @@ pub enum WorkerToRouterResponse {
     MsgFromHex(Result<codec::msgs::msg::Msg>),
     ListPeers(HashMap<ActorId, SocketAddr>),
 }
+
+#[derive(Clone)]
+pub enum WorkerToBlockChainRequest {
+    ListPeers,
+    MsgToPeer(ActorId, Box<RouterToPeerRequestAndPriority>),
+    MsgToAllPeers(Box<RouterToPeerRequestAndPriority>),
+    PeerRemove(ActorId, Box<RouterToPeerRequestAndPriority>),
+}
+
+#[derive(Debug)]
+pub enum WorkerToBlockChainResponse {
+    Empty,
+    String(String),
+    Bool(bool),
+    PeerAdd(Option<SocketAddr>),
+    PeerRemove(bool),
+    MsgFromHex(Result<codec::msgs::msg::Msg>),
+    ListPeers(HashMap<ActorId, SocketAddr>),
+}
+
 
 #[derive(Debug, Clone)]
 pub enum PeerRequest {
@@ -160,6 +180,14 @@ pub type TxMpscSchedToRouter = mpsc::UnboundedSender<Box<SchedToRouterRequestCon
 // router <- sched
 pub type RxMpscSchedToRouter = mpsc::UnboundedReceiver<Box<SchedToRouterRequestContent>>;
 
+// blockchain -> worker
+pub type RxMpscWorkerToBlockChain = mpsc::UnboundedReceiver<Box<WorkerToBlockChainRequestContent>>;
+// worker -> blockchain
+pub type TxMpscWorkerToBlockChain = mpsc::UnboundedSender<Box<WorkerToBlockChainRequestContent>>;
+
+pub struct WorkerToBlockChainRequestContent(pub WorkerToBlockChainRequest, pub TxOneWorkerToBlockChain);
+
+pub type TxOneWorkerToBlockChain = Option<oneshot::Sender<Box<WorkerToBlockChainResponse>>>;
 
 // TODO maybe remove
 pub struct TxPeers(pub SocketAddr, pub RxMpscSf);
@@ -222,19 +250,3 @@ pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
 
 #[derive(Clone)]
 pub struct RouterToPeerRequestAndPriority(pub PeerRequest, pub RequestPriority);
-
-/*
-
-
-if let Bool(bool_interno) = reposta {
-
-} else {
-    panic!("allsad");
-}
-
-match resposta {
-    Bool(pega_a_bool) => {},
-    _ => panic!(),
-}
-
-*/

@@ -1,7 +1,8 @@
 use actor;
 use actor::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc, TxOne,
                     WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId, 
-                    TxMpscSchedToRouter, SchedToRouterRequestContent, TxMpscWorkerToRouter };
+                    TxMpscSchedToRouter, SchedToRouterRequestContent, TxMpscWorkerToRouter,
+                    TxMpscWorkerToBlockChain };
 use futures;
 use futures::sync::{mpsc, oneshot};
 use std::borrow::BorrowMut;
@@ -49,22 +50,31 @@ pub struct Scheduler {
     outbox: Vec<Outbox>,
     tx_router: TxMpscSchedToRouter,
     tx_worker_to_router_backup: TxMpscWorkerToRouter,
+    //rx_bchain: RxMpscSf,
+    tx_worker_to_bchain: TxMpscWorkerToBlockChain,
     workers_max_tasks: usize,
-    // toolbox: Arc<actor::commons::ToolBox>,
     last_actor_id: ActorId,
 }
 
 impl Scheduler {
-    pub fn new(rx: actor::commons::RxMpscMainToSched, tx_router: TxMpscSchedToRouter, tx_worker_to_router_backup: TxMpscWorkerToRouter, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(rx: actor::commons::RxMpscMainToSched, tx_router: TxMpscSchedToRouter, 
+                tx_worker_to_router_backup: TxMpscWorkerToRouter, rx_bchain: RxMpscSf, 
+                tx_worker_to_bchain: TxMpscWorkerToBlockChain, workers_max_tasks: usize) -> Scheduler {
+        let mut last_actor_id = 0;
+        let mut inbox = HashMap::new();
+        inbox.insert(last_actor_id, Inbox::new(rx_bchain));
+        
+        last_actor_id += 1;
         Scheduler {
             main_channel: rx,
-            inbox: HashMap::new(),
+            inbox,
             outbox: vec![],
             tx_router,
             tx_worker_to_router_backup,
+            //rx_bchain,
+            tx_worker_to_bchain,
             workers_max_tasks,
-            // toolbox: Arc::new(actor::commons::ToolBox::new()),
-            last_actor_id: 0 as usize,
+            last_actor_id: last_actor_id,
         }
     }
 }
@@ -95,15 +105,12 @@ impl Future for Scheduler {
                         self.inbox.insert(this_actor_id, Inbox::new(first));
                         let router_msg = SchedToRouterRequestContent::Register(this_actor_id, addr, tx_mpsc_peer);
                         self.tx_router.unbounded_send(Box::new(router_msg)).expect(&ff!());
-                        /*
-                        self.toolbox
-                            .peer_messenger
-                            .lock()
-                            .expect(&ff!())
-                            .insert(addr, tx_mpsc_peer);
-                        */
+
                         let resp = Box::new(SchedulerResponse::RegisterResponse(Ok(this_actor_id)));
-                        let _a = tx_reg_one.send(resp);
+                        if let Err(_) = tx_reg_one.send(resp) {
+                            e!("Error when registering new actor into scheduler");
+                            panic!("Error when registering new actor into scheduler");
+                        }
                     },
                     actor::commons::MainToSchedRequestContent::Unregister(addr) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);
