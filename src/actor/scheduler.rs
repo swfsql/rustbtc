@@ -1,5 +1,5 @@
-use exec;
-use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc, TxOne,
+use actor;
+use actor::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc, TxOne,
                     WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId, 
                     TxMpscSchedToRouter, SchedToRouterRequestContent, TxMpscWorkerToRouter };
 use futures;
@@ -45,18 +45,18 @@ impl PartialEq for Outbox {
 }
 
 pub struct Scheduler {
-    main_channel: exec::commons::RxMpscMainToSched,
+    main_channel: actor::commons::RxMpscMainToSched,
     inbox: HashMap<ActorId, Inbox>,
     outbox: Vec<Outbox>,
     tx_router: TxMpscSchedToRouter,
     tx_worker_to_router_backup: TxMpscWorkerToRouter,
     workers_max_tasks: usize,
-    // toolbox: Arc<exec::commons::ToolBox>,
+    // toolbox: Arc<actor::commons::ToolBox>,
     last_actor_id: ActorId,
 }
 
 impl Scheduler {
-    pub fn new(rx: exec::commons::RxMpscMainToSched, tx_router: TxMpscSchedToRouter, tx_worker_to_router_backup: TxMpscWorkerToRouter, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(rx: actor::commons::RxMpscMainToSched, tx_router: TxMpscSchedToRouter, tx_worker_to_router_backup: TxMpscWorkerToRouter, workers_max_tasks: usize) -> Scheduler {
         Scheduler {
             main_channel: rx,
             inbox: HashMap::new(),
@@ -64,7 +64,7 @@ impl Scheduler {
             tx_router,
             tx_worker_to_router_backup,
             workers_max_tasks,
-            // toolbox: Arc::new(exec::commons::ToolBox::new()),
+            // toolbox: Arc::new(actor::commons::ToolBox::new()),
             last_actor_id: 0 as usize,
         }
     }
@@ -85,7 +85,7 @@ impl Future for Scheduler {
         loop {
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(box intention))) => match intention {
-                    exec::commons::MainToSchedRequestContent::Register(
+                    actor::commons::MainToSchedRequestContent::Register(
                         addr,
                         first,
                         tx_mpsc_peer,
@@ -106,7 +106,7 @@ impl Future for Scheduler {
                         let resp = Box::new(SchedulerResponse::RegisterResponse(Ok(this_actor_id)));
                         let _a = tx_reg_one.send(resp);
                     },
-                    exec::commons::MainToSchedRequestContent::Unregister(addr) => {
+                    actor::commons::MainToSchedRequestContent::Unregister(addr) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);
                         self.inbox.remove(&addr);
                     }
@@ -237,10 +237,10 @@ impl Future for Scheduler {
                 let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
 
-                let worker = exec::worker::Worker::new(rx, self.tx_worker_to_router_backup.clone())
+                let worker = actor::worker::Worker::new(rx, self.tx_worker_to_router_backup.clone())
                     .map(|_item| ())
                     .map_err(|_err| ());
-                // let worker = exec::worker::Worker::new(rx, self.toolbox.clone())
+                // let worker = actor::worker::Worker::new(rx, self.toolbox.clone())
                 //     .map(|_item| ())
                 //     .map_err(|_err| ());
                 // spawn the worke's future

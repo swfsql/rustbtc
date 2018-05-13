@@ -1,40 +1,43 @@
-use codec::msgs::Msgs;
-use exec::commons::{RxOne,TxMpsc, TxMpscMainToSched, WorkerRequestContent,ActorId,RxMpscRouterToPeer};
+use codec::lines::Lines;
 use futures::sync::mpsc;
 use futures::Future;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 
+use actor::commons::{RxOne, TxMpscMainToSched, WorkerRequestContent, RouterToPeerRequestAndPriority, ActorId};
+
+pub mod args;
 pub mod machina;
+//use::macros;
 
 pub struct Peer {
-    codec: Msgs,
+    codec: Lines,
     rx_ignored: Vec<RxOne>,
-    _tx_req: TxMpsc,
+    tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
     tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-    rx_toolbox: RxMpscRouterToPeer,
+    _rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
     actor_id: ActorId,
-    request_counter: usize,
+request_counter: usize,
 }
 
 impl Peer {
     pub fn new(
         socket: TcpStream,
-        tx_req: TxMpsc,
+        tx_req: mpsc::UnboundedSender<Box<WorkerRequestContent>>,
         tx_sched: Arc<Mutex<TxMpscMainToSched>>,
-        rx_toolbox: RxMpscRouterToPeer,
-        actor_id: ActorId,
+        rx_toolbox: mpsc::UnboundedReceiver<Box<RouterToPeerRequestAndPriority>>,
+        actor_id: usize,
     ) -> Peer {
         Peer {
-            codec: Msgs::new(socket),
+            codec: Lines::new(socket),
             rx_ignored: Vec::new(),
-            _tx_req: tx_req,
+            tx_req: tx_req,
             tx_sched: tx_sched,
-            rx_toolbox: rx_toolbox,
+            _rx_toolbox: rx_toolbox,
             actor_id,
             request_counter: 0,
         }
-    }//
+    }
 
     pub fn push_ignored(&mut self, rx: RxOne) {
         self.rx_ignored.push(rx);

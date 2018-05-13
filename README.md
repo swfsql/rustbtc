@@ -8,9 +8,6 @@ MACHINA:
 
 
 
-fazer o ator do Router (comutador: ator c/ canais para peers && canal para o bchain)
-canal de cadastro do sched pro router (cadastro de peers/adm no ator do router: mata um uso do mutex)
-canal do wkr pro comut (mata outro uso do mutex)
 fazer o ator do bchain (aí então já teremos todos os atores separados e isolados)
 registro inicial do bchain
 ...

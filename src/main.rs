@@ -29,7 +29,7 @@ extern crate btc;
 //use chrono::Local;
 
 //use futures::sync::{mpsc, oneshot};
-use btc::exec::commons;
+use btc::actor::commons;
 use futures::sync::{mpsc,oneshot};
 use structopt::StructOpt;
 
@@ -109,8 +109,8 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
     // TODO: 
     // let tx_sched_inner = tx_sched.lock().unwrap().clone();
 
-    let peer = btc::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
-    let peer_machina = btc::peer::machina::Machina::start(peer)
+    let peer = btc::actor::peer::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
+    let peer_machina = btc::actor::peer::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
 
@@ -148,8 +148,8 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         }
     };
 
-    let peer = btc::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
-    let peer_machina = btc::admin::machina::Machina::start(peer)
+    let peer = btc::actor::admin::Peer::new(socket, tx_peer, tx_sched, rx_toolbox, actor_id);
+    let peer_machina = btc::actor::admin::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
 
@@ -188,9 +188,9 @@ fn run() -> Result<()> {
     let (tx_worker_to_router_backup, rx_worker_to_router) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
 
-    let router = btc::exec::router::Router::new(rx_peer_messenger_reg, rx_worker_to_router)
+    let router = btc::actor::router::Router::new(rx_peer_messenger_reg, rx_worker_to_router)
         .map_err(|_| ());
-    let scheduler = btc::exec::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, 3)
+    let scheduler = btc::actor::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, 3)
         .map_err(|_| ());
 
     thread::spawn(move || {

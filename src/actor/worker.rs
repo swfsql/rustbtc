@@ -5,7 +5,7 @@ mod errors {
 //use errors::*;
 
 use chrono::Utc;
-use exec::commons;
+use actor::commons;
 use futures::sync::mpsc;
 use rand;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
@@ -17,7 +17,7 @@ use tokio::prelude::*;
 //use rand::{Rng, thread_rng};
 //use admin;
 use codec;
-use peer;
+use actor::peer;
 use futures::sync::{oneshot};
 
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
@@ -31,7 +31,7 @@ use codec::msgs::msg::payload::version::Version;
 use codec::msgs::msg::payload::Payload;
 use codec::msgs::msg::Msg;
 
-use exec::commons::{RxMpsc, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+use actor::commons::{RxMpsc, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
                     WorkerResponse, WorkerResponseContent, SchedulerResponse, TxMpscWorkerToRouter,WorkerToRouterResponse,
                     WorkerToRouterRequestContent,WorkerToRouterRequest};
 

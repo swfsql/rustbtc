@@ -4,15 +4,15 @@ use tokio::prelude::*;
 
 use state_machine_future::RentToOwn;
 
-use peer::Peer;
+use actor::peer::Peer;
 
 //use structopt::StructOpt;
 
-//use exec::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
+//use actor::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc,
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use exec::commons::{MainToSchedRequestContent, PeerRequest, RxOne, RouterToPeerRequestAndPriority};
+use actor::commons::{MainToSchedRequestContent, PeerRequest, RxOne, RouterToPeerRequestAndPriority};
 
 //use futures::sync::{mpsc, oneshot};
 //use futures::sync::{oneshot};
