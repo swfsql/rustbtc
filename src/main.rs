@@ -81,13 +81,13 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
     );
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_router, rx_router) = mpsc::unbounded();
-    let (otx, orx) = oneshot::channel::<Box<commons::SchedulerResponse>>();
+    let (otx, orx) = oneshot::channel::<Box<commons::channel_content::SchedulerResponse>>();
     {
         d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
         d!("After mutex was locked.");
         tx_sched_unlocked
-            .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
+            .unbounded_send(Box::new(commons::channel_content::MainToSchedRequestContent::Register(
                 socket.peer_addr().expect(&ff!()), 
                 rx_peer.into_future(),
                 tx_router,
@@ -99,17 +99,16 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
 
     let shot_back = orx.wait().expect(&ff!()); // TODO async
     let actor_id = {
-        if let box commons::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+        if let box commons::channel_content::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
             res_actor_id.clone()
         } else {
             panic!("TODO: error when registering new peer");
         }
     };
 
-    // TODO: 
-    // let tx_sched_inner = tx_sched.lock().unwrap().clone();
+    let tx_sched_inner = tx_sched.lock().expect(&ff!()).clone();
 
-    let peer = btc::actor::peer::Peer::new(socket, tx_peer, tx_sched, rx_router, actor_id);
+    let peer = btc::actor::peer::Peer::new(socket, tx_peer, tx_sched_inner, rx_router, actor_id);
     let peer_machina = btc::actor::peer::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());
@@ -123,13 +122,13 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
     );
     let (tx_peer, rx_peer) = mpsc::unbounded();
     let (tx_router, rx_router) = mpsc::unbounded();
-    let (otx, orx) = oneshot::channel::<Box<commons::SchedulerResponse>>();
+    let (otx, orx) = oneshot::channel::<Box<commons::channel_content::SchedulerResponse>>();
     {
         d!("after channel mpsc created.");
         let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
         d!("After mutex was locked.");
         tx_sched_unlocked
-            .unbounded_send(Box::new(commons::MainToSchedRequestContent::Register(
+            .unbounded_send(Box::new(commons::channel_content::MainToSchedRequestContent::Register(
                 socket.peer_addr().expect(&ff!()),
                 rx_peer.into_future(),
                 tx_router,
@@ -141,14 +140,16 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
 
     let shot_back = orx.wait().expect(&ff!()); // TODO async
     let actor_id = {
-        if let box commons::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+        if let box commons::channel_content::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
             res_actor_id.clone()
         } else {
             panic!("TODO: error when registering new peer");
         }
     };
 
-    let peer = btc::actor::admin::Peer::new(socket, tx_peer, tx_sched, rx_router, actor_id);
+    let tx_sched_inner = tx_sched.lock().expect(&ff!()).clone();
+
+    let peer = btc::actor::admin::Peer::new(socket, tx_peer, tx_sched_inner, rx_router, actor_id);
     let peer_machina = btc::actor::admin::machina::Machina::start(peer)
         .map_err(|_| ())
         .map(|_| ());

@@ -13,8 +13,10 @@ use structopt::StructOpt;
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use actor::commons::{AddrReqId, MainToSchedRequestContent, RxOne, WorkerRequest,
+use actor::commons::channel_content::{AddrReqId, MainToSchedRequestContent, WorkerRequest,
                     WorkerRequestContent, WorkerRequestPriority, WorkerResponseContent};
+                    
+use actor::commons::{RxOne};
 
 //use futures::sync::{mpsc, oneshot};
 use futures::sync::oneshot;
@@ -327,8 +329,6 @@ impl PollMachina for Machina {
         state
             .0
             .tx_sched
-            .lock()
-            .expect(&ff!())
             .unbounded_send(Box::new(msg))
             .expect(&ff!());
         let next = End(state.0); //Calling this simplewait???

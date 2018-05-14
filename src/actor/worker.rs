@@ -30,9 +30,10 @@ use codec::msgs::msg::payload::version::Version;
 use codec::msgs::msg::payload::Payload;
 use codec::msgs::msg::Msg;
 
-use actor::commons::{RxMpsc, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent, SchedulerResponse, TxMpscWorkerToRouter,WorkerToRouterResponse,
+use actor::commons::channel_content::{WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
+                    WorkerResponse, WorkerResponseContent, SchedulerResponse, WorkerToRouterResponse,
                     WorkerToRouterRequestContent,WorkerToRouterRequest};
+use actor::commons::{RxMpsc, TxMpscWorkerToRouter};
 
 use std::time::*;
 use tokio_timer::*;
@@ -186,8 +187,8 @@ impl Future for Worker {
                             let peer_addr = socket.peer_addr().expect(&ff!());
                             {
                                 d!("started sending rawmsg toolbox message to the new peer");
-                                let boxed_binary = commons::RouterToPeerRequestAndPriority(
-                                    commons::PeerRequest::HandShake(
+                                let boxed_binary = commons::channel_content::RouterToPeerRequestAndPriority(
+                                    commons::channel_content::PeerRequest::HandShake(
                                         version_msg.into_bytes().expect(&ff!()),
                                     ),
                                     100,
@@ -200,9 +201,9 @@ impl Future for Worker {
 
                             d!("registering peer");
                             let actor_id = {
-                                let tx_sched_unlocked = tx_sched.lock().expect(&ff!());
+                                //let tx_sched_unlocked = tx_sched.lock().expect(&ff!());
                                 let (otx, orx) = oneshot::channel::<Box<SchedulerResponse>>();
-                                let sched_req_ctt = commons::MainToSchedRequestContent::Register(
+                                let sched_req_ctt = commons::channel_content::MainToSchedRequestContent::Register(
                                     peer_addr.clone(),
                                     rx_peer.into_future(),
                                     tx_router,
@@ -210,7 +211,7 @@ impl Future for Worker {
                                 );
 
                                 d!("before wait");
-                                tx_sched_unlocked
+                                tx_sched
                                     .unbounded_send(Box::new(sched_req_ctt))
                                     .expect(&ff!());//
                                 let shot_back = orx.wait().expect(&ff!()); // TODO async
@@ -240,8 +241,8 @@ impl Future for Worker {
                 }
                 WorkerRequest::PeerRemove { actor_id } => {
                     d!("Worker received PeerRemove command");
-                    let msg_to_peer = commons::PeerRequest::SelfRemove;
-                    let msg_to_peer_priority = commons::RouterToPeerRequestAndPriority(msg_to_peer, 255);
+                    let msg_to_peer = commons::channel_content::PeerRequest::SelfRemove;
+                    let msg_to_peer_priority = commons::channel_content::RouterToPeerRequestAndPriority(msg_to_peer, 255);
                     let wrk_to_router_req = WorkerToRouterRequest::PeerRemove(
                             actor_id, 
                             Box::new(msg_to_peer_priority));
@@ -267,8 +268,8 @@ impl Future for Worker {
                     d!("message from hex");
                     if send {
                         if let &Ok(ref _okmsg) = &msg {
-                        let msg_to_peer = commons::PeerRequest::Forward(binary.clone());
-                        let msg_to_peer_priority = commons::RouterToPeerRequestAndPriority(msg_to_peer, 100);
+                        let msg_to_peer = commons::channel_content::PeerRequest::Forward(binary.clone());
+                        let msg_to_peer_priority = commons::channel_content::RouterToPeerRequestAndPriority(msg_to_peer, 100);
                         let wrk_to_router_req = WorkerToRouterRequest::MsgToAllPeers(
                                 Box::new(msg_to_peer_priority));
                         //let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();

@@ -21,10 +21,11 @@ use actor::peer::Peer;
 use codec::msgs::msg::Msg;
 use codec::msgs::msg::payload::Payload;
 
-use actor::commons::{AddrReqId, WorkerRequest, PeerRequest,
-                    WorkerRequestContent, WorkerRequestPriority, WorkerResponseContent};
+use actor::commons::channel_content::{AddrReqId, WorkerRequest, PeerRequest,
+                    WorkerRequestContent, WorkerRequestPriority, WorkerResponse, WorkerResponseContent};
+
+
 use futures::sync::oneshot;
-use actor::commons::WorkerResponse;
 
 
 

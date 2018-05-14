@@ -10,7 +10,6 @@ MACHINA:
 
 
 ----
-
 máquinas.. do bchain
 ...
 fazer download de headers,
@@ -25,19 +24,12 @@ fazer alguma validação de blocos,
 ...
 
 CODEC:
-	getdata (prioridade 1)
-	notfound (todo)
-	getblocks (todo)
-	block (prioridade 1)
-	inv (prioridade 1)
-
 	reject
 	mempool
 
+	getblocks
 	merkleblock
 	blocktxn
 	getblocktxn
 	sendcmpctblock
 	cmpctblock
-
-Organizar commons

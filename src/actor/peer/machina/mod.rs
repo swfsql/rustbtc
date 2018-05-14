@@ -12,7 +12,8 @@ use actor::peer::Peer;
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use actor::commons::{MainToSchedRequestContent, PeerRequest, RxOne, RouterToPeerRequestAndPriority};
+use actor::commons::channel_content::{MainToSchedRequestContent, PeerRequest, RouterToPeerRequestAndPriority};
+use actor::commons::{RxOne};
 
 //use futures::sync::{mpsc, oneshot};
 //use futures::sync::{oneshot};
@@ -105,7 +106,7 @@ impl PollMachina for Machina {
                         peer.0.codec.buffer(&raw_msg);
                         let _ = peer.0.codec.poll_flush()?;
                     }
-                    PeerRequest::HandShake(raw_msg) => {
+                    PeerRequest::HandShake(_raw_msg) => {
 
                     }
                     
@@ -171,8 +172,6 @@ impl PollMachina for Machina {
         state
             .0
             .tx_sched
-            .lock()
-            .expect(&ff!())
             .unbounded_send(Box::new(msg))
             .expect(&ff!());
         let next = End(state.0); //Calling this simplewait???

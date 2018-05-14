@@ -3,7 +3,7 @@ use hex;
 use hex::FromHex;
 use std::net::SocketAddr;
 use std::str::FromStr;
-use actor::commons::ActorId;
+use actor::commons::channel_content::ActorId;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "")]

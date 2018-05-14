@@ -125,12 +125,11 @@ impl NewFromHex for Msg {
                     .chain_err(cf!("Error at creating Block"))?;
                 Some(payload::Payload::Block(block))
             }
-            header::cmd::Cmd::Inv => {
+            header::cmd::Cmd::NotFound => {
                 let not_found = payload::not_found::NotFound::new(it_pl)
                     .chain_err(cf!("Error at creating NotFound"))?;
-                Some(payload::Payload::Inv(not_found))
+                Some(payload::Payload::NotFound(not_found))
             }
-
         };
         // header.payload_len // TODO
         Ok(Msg { header, payload })

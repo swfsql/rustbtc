@@ -1,8 +1,11 @@
 use actor;
-use actor::commons::{AddrReqId, RequestId, RxMpscSf, RxOne, TxMpsc, TxOne,
+use actor::commons::channel_content::{AddrReqId, RequestId, 
                     WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId, 
-                    TxMpscSchedToRouter, SchedToRouterRequestContent, TxMpscWorkerToRouter,
-                    TxMpscWorkerToBlockChain };
+                    SchedToRouterRequestContent,};
+
+use actor::commons::{RxOne, RxMpscSf, TxMpsc, TxOne,TxMpscSchedToRouter, TxMpscWorkerToRouter,
+                    TxMpscWorkerToBlockChain};
+
 use futures;
 use futures::sync::{mpsc, oneshot};
 use std::borrow::BorrowMut;
@@ -94,7 +97,7 @@ impl Future for Scheduler {
         loop {
             match self.main_channel.poll() {
                 Ok(Async::Ready(Some(box intention))) => match intention {
-                    actor::commons::MainToSchedRequestContent::Register(
+                    actor::commons::channel_content::MainToSchedRequestContent::Register(
                         addr,
                         first,
                         tx_mpsc_peer,
@@ -112,7 +115,7 @@ impl Future for Scheduler {
                             panic!("Error when registering new actor into scheduler");
                         }
                     },
-                    actor::commons::MainToSchedRequestContent::Unregister(addr) => {
+                    actor::commons::channel_content::MainToSchedRequestContent::Unregister(addr) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);
                         self.inbox.remove(&addr);
                     }

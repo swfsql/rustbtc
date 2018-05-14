@@ -1,8 +1,8 @@
 use codec::msgs::msg::Msg;
 use codec::msgs::Msgs;
-use actor::commons::{RxOne,TxMpsc, TxMpscMainToSched, ActorId,RxMpscRouterToPeer};
+use actor::commons::channel_content::{ ActorId};
+use actor::commons::{RxOne,TxMpsc, TxMpscMainToSched,RxMpscRouterToPeer};
 use futures::Future;
-use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 
 pub mod machina;
@@ -11,7 +11,7 @@ pub struct Peer {
     codec: Msgs,
     rx_ignored: Vec<RxOne>,
     _tx_req: TxMpsc,
-    tx_sched: Arc<Mutex<TxMpscMainToSched>>,
+    tx_sched: TxMpscMainToSched,
     rx_router: RxMpscRouterToPeer,
     actor_id: ActorId,
     request_counter: usize,
@@ -22,7 +22,7 @@ impl Peer {
     pub fn new(
         socket: TcpStream,
         tx_req: TxMpsc,
-        tx_sched: Arc<Mutex<TxMpscMainToSched>>,
+        tx_sched: TxMpscMainToSched,
         rx_router: RxMpscRouterToPeer,
         actor_id: ActorId,
     ) -> Peer {

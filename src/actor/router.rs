@@ -32,10 +32,10 @@ use std::collections::HashMap;
 // use codec::msgs::msg::payload::Payload;
 // use codec::msgs::msg::Msg;
 
-use actor::commons::{ TxMpscRouterToPeer, ActorId,
-                    RxMpscWorkerToRouter, 
-                    RxMpscSchedToRouter, WorkerToRouterRequest, WorkerToRouterRequestContent,
-                    SchedToRouterRequestContent,WorkerToRouterResponse};
+use actor::commons::channel_content::{ActorId, WorkerToRouterRequest, WorkerToRouterRequestContent,
+                    SchedToRouterRequestContent, WorkerToRouterResponse};
+use actor::commons::{TxMpscRouterToPeer, RxMpscWorkerToRouter, 
+                    RxMpscSchedToRouter,};
 
 // use std::time::*;
 // use tokio_timer::*;
