@@ -105,6 +105,7 @@ impl Future for Scheduler {
                     ) => {
                         let this_actor_id = self.last_actor_id;
                         self.last_actor_id += 1;
+                        // let first2 = first.and_then(|msg| (msg, this_actor_id));
                         self.inbox.insert(this_actor_id, Inbox::new(first));
                         let router_msg = SchedToRouterRequestContent::Register(this_actor_id, addr, tx_mpsc_peer);
                         self.tx_router.unbounded_send(Box::new(router_msg)).expect(&ff!());

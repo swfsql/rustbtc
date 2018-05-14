@@ -1,8 +1,20 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
+
 use std;
 use std::fmt;
+use codec::msgs::msg::commons::net_addr::NetAddr;
+use codec::msgs::msg::commons::var_str::VarStr;
+//use codec::msgs::msg::commons::params::Network;
+use codec::msgs::msg::header;
+use codec::msgs::msg::header::Header;
+use codec::msgs::msg::payload::version::Version;
+use codec::msgs::msg::payload::Payload;
+
+use rand;
+use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+use chrono::Utc;
 // use codec::msgs::msg::commons::into_bytes::into_bytes;
 use std::io::Cursor;
 
@@ -19,7 +31,6 @@ use errors::*;
 //use codec::msgs::msg::payload::payload::Verack;
 
 pub mod commons;
-pub mod header;
 pub mod payload;
 
 #[derive(Clone)]
@@ -46,6 +57,52 @@ impl Msg {
             "Error at u32 parse for payloadchk for value {:?}",
             &sha
         ))
+    }
+    
+    pub fn new_version(addr: SocketAddr) -> Msg {
+        let self_addr = SocketAddr::new(
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
+            8333,
+        ); // TODO get from toolbox
+        let version = 70013_i32;
+        let addr_trans = NetAddr::from_socket_addr(&addr);
+        let addr_recv = NetAddr::from_socket_addr(&self_addr);
+        let services = addr_trans.service;
+        let nonce = rand::random::<u64>(); // TODO record into peer and toolbox
+        let timestamp = Utc::now().timestamp();
+        let start_height = 0_i32; // maybe 1
+        let relay = Some(false);
+        let agent_bytes = b"/Rustbtc:0.0.1/";
+        let user_agent = VarStr::from_bytes(agent_bytes).expect(&ff!());
+
+        d!("version payload creating");
+        let version_pl = Version {
+            version,
+            services,
+            timestamp,
+            addr_recv,
+            addr_trans,
+            nonce,
+            user_agent,
+            start_height,
+            relay,
+        };
+        d!("version payload created");
+
+        let version_pl_raw = version_pl.into_bytes().expect(&ff!());
+
+        let version_header = header::Header::new {
+            network: header::network::Network::Main,
+            cmd: header::cmd::Cmd::Version,
+            payload_len: version_pl_raw.len() as i32,
+            payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
+        };
+        d!("version header created");
+
+        Msg {
+            header: version_header,
+            payload: Some(Payload::Version(version_pl)),
+        }
     }
 }
 

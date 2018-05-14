@@ -8,6 +8,9 @@ MACHINA:
 -> fazer newversion
 -> fazer newverack
 
+-> fazer getheaders
+-> receber headers
+
 
 ----
 máquinas.. do bchain

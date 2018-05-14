@@ -4,11 +4,10 @@ mod errors {
 
 //use errors::*;
 
-use chrono::Utc;
+
 use actor::commons;
 use futures::sync::mpsc;
-use rand;
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+
 use tokio;
 use tokio::io;
 use tokio::net::TcpStream;
@@ -18,17 +17,11 @@ use tokio::prelude::*;
 use codec;
 use actor::peer;
 use futures::sync::{oneshot};
+use codec::msgs::msg::Msg;
+use codec::msgs::msg;
 
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-use codec::msgs::msg::commons::net_addr::NetAddr;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-use codec::msgs::msg::commons::var_str::VarStr;
-//use codec::msgs::msg::commons::params::Network;
-use codec::msgs::msg::header;
-use codec::msgs::msg::header::Header;
-use codec::msgs::msg::payload::version::Version;
-use codec::msgs::msg::payload::Payload;
-use codec::msgs::msg::Msg;
+
 
 use actor::commons::channel_content::{WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
                     WorkerResponse, WorkerResponseContent, SchedulerResponse, WorkerToRouterResponse,
@@ -51,52 +44,6 @@ impl Worker {
         Worker {
             inbox: Inbox(rx_mpsc, vec![]),
             tx_router,
-        }
-    }
-
-    fn new_version(addr: SocketAddr) -> Msg {
-        let self_addr = SocketAddr::new(
-            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
-            8333,
-        ); // TODO get from toolbox
-        let version = 70013_i32;
-        let addr_trans = NetAddr::from_socket_addr(&addr);
-        let addr_recv = NetAddr::from_socket_addr(&self_addr);
-        let services = addr_trans.service;
-        let nonce = rand::random::<u64>(); // TODO record into peer and toolbox
-        let timestamp = Utc::now().timestamp();
-        let start_height = 0_i32; // maybe 1
-        let relay = Some(false);
-        let agent_bytes = b"/Rustbtc:0.0.1/";
-        let user_agent = VarStr::from_bytes(agent_bytes).expect(&ff!());
-
-        d!("version payload creating");
-        let version_pl = Version {
-            version,
-            services,
-            timestamp,
-            addr_recv,
-            addr_trans,
-            nonce,
-            user_agent,
-            start_height,
-            relay,
-        };
-        d!("version payload created");
-
-        let version_pl_raw = version_pl.into_bytes().expect(&ff!());
-
-        let version_header = Header {
-            network: header::network::Network::Main,
-            cmd: header::cmd::Cmd::Version,
-            payload_len: version_pl_raw.len() as i32,
-            payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
-        };
-        d!("version header created");
-
-        Msg {
-            header: version_header,
-            payload: Some(Payload::Version(version_pl)),
         }
     }
 }
@@ -177,7 +124,7 @@ impl Future for Worker {
                 } => {
                     d!("PeerAdd Request received");
 
-                    let version_msg = Worker::new_version(addr);
+                    let version_msg = Msg::new_version(addr);
 
                     //d!("worker:: PeerAdd Request received: {:#?}", &wrk_req);
                     match TcpStream::connect(&addr).wait() {
@@ -262,7 +209,7 @@ impl Future for Worker {
                 }
                 WorkerRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
-                    let msg = codec::msgs::msg::Msg::new(binary.iter());
+                    let msg = msg::Msg::new(binary.iter());
 
                     //d!("Request received: {:#?}", &wrk_req);
                     d!("message from hex");
@@ -283,18 +230,14 @@ impl Future for Worker {
                     }
                     WorkerResponse::Empty
 
-                            // for (_addr, tx) in
-                            //     self.toolbox.peer_messenger.lock().expect(&ff!()).iter()
-                            // {
-                            //     let boxed_binary = commons::RouterToPeerRequestAndPriority(
-                            //         commons::PeerRequest::Forward(binary.clone()),
-                            //         100,
-                            //     );
-                            //     tx.unbounded_send(Box::new(boxed_binary.clone()))
-                            //         .expect(&ff!());
-                            // }
-                            // };
-
+                }
+                WorkerRequest::NewVersion{addr: SocketAddr} => {
+                    let version = Msg::new_version(addr);
+                    WorkerResponse::Version(version)
+                }
+                WorkerRequest::NewVerack{version: Msg} => {
+                    let verack = Msg::new_verack(version);
+                    WorkerResponse::Verack(verack)
                 }
                 _ => {
                     // i!("Request received: {:#?}", wrk_req);
