@@ -125,6 +125,11 @@ impl NewFromHex for Msg {
                     .chain_err(cf!("Error at creating Block"))?;
                 Some(payload::Payload::Block(block))
             }
+            header::cmd::Cmd::Inv => {
+                let not_found = payload::not_found::NotFound::new(it_pl)
+                    .chain_err(cf!("Error at creating NotFound"))?;
+                Some(payload::Payload::Inv(not_found))
+            }
 
         };
         // header.payload_len // TODO
@@ -152,6 +157,7 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::GetData(ref get_data) => format!("{:?}", get_data),
                 payload::Payload::Inv(ref inv) => format!("{:?}", inv),
                 payload::Payload::Block(ref block) => format!("{:?}", block),
+                payload::Payload::NotFound(ref not_found) => format!("{:?}", not_found),                
             },
             None => "None".to_string(),
         }.lines()
@@ -179,6 +185,7 @@ impl IntoBytes for Msg {
                 &payload::Payload::Block(ref block) => block.into_bytes()?,
                 &payload::Payload::GetData(ref get_data) => get_data.into_bytes()?,
                 &payload::Payload::Inv(ref inv) => inv.into_bytes()?,
+                &payload::Payload::NotFound(ref not_found) => not_found.into_bytes()?,
             },
             None => vec![],
         };

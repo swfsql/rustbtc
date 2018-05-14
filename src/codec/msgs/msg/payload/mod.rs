@@ -8,6 +8,7 @@ pub mod addr;
 pub mod inv;
 pub mod get_data;
 pub mod block;
+pub mod not_found;
 //use codec::msgs::msg::commons::into_bytes::IntoBytes;
 //use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
@@ -26,6 +27,7 @@ pub enum Payload {
     GetData(get_data::GetData),
     Block(block::Block),
     Inv(inv::Inv),
+    NotFound(not_found::NotFound),
 }
 
 

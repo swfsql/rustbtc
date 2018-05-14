@@ -29,6 +29,7 @@ pub enum Cmd {
     GetData,
     Block,
     Inv,
+    NotFound,
 }
 
 mod cmd_value {
@@ -45,6 +46,7 @@ mod cmd_value {
     pub const BLOCK: &[u8] = b"block\0\0\0\0\0\0\0";
     pub const GETDATA: &[u8] = b"getdata\0\0\0\0\0";
     pub const INV: &[u8] = b"add\0\0\0\0\0\0\0\0\0";
+    pub const NOTFOUND: &[u8] = b"notfound\0\0\0\0";
 }
 
 impl Cmd {
@@ -63,6 +65,7 @@ impl Cmd {
             cmd_value::GETDATA => Some(Cmd::GetData),
             cmd_value::INV=> Some(Cmd::Inv),
             cmd_value::BLOCK => Some(Cmd::Block),
+            cmd_value::NOTFOUND=> Some(Cmd::NotFound),
             _ => None,
         }
     }
@@ -82,6 +85,7 @@ impl Cmd {
             Cmd::GetData => cmd_value::GETDATA,
             Cmd::Block => cmd_value::BLOCK,
             Cmd::Inv => cmd_value::INV,
+            Cmd::NotFound => cmd_value::NOTFOUND,
         };
         bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
     }
@@ -103,6 +107,7 @@ impl std::fmt::Debug for Cmd {
             Cmd::GetData => format!("Cmd::GetData <{:?}>\n", self.value()),
             Cmd::Inv => format!("Cmd::Inv <{:?}>\n", self.value()),
             Cmd::Block => format!("Cmd::Block <{:?}>\n", self.value()),
+            Cmd::NotFound => format!("Cmd::NotFound <{:?}>\n", self.value()),
         };
         write!(f, "{}", s)
     }
