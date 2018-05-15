@@ -59,9 +59,7 @@ pub enum WorkerRequest {
     NewVersion {
         addr: SocketAddr,
     },
-    NewVerack{
-        version: Msg,
-    }
+    NewVerack,
 }
 
 impl std::fmt::Debug for WorkerRequest {

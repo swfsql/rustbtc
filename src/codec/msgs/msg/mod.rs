@@ -1,3 +1,7 @@
+pub mod commons;
+pub mod payload;
+pub mod header;
+
 use byteorder::{LittleEndian, ReadBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
@@ -7,8 +11,6 @@ use std::fmt;
 use codec::msgs::msg::commons::net_addr::NetAddr;
 use codec::msgs::msg::commons::var_str::VarStr;
 //use codec::msgs::msg::commons::params::Network;
-use codec::msgs::msg::header;
-use codec::msgs::msg::header::Header;
 use codec::msgs::msg::payload::version::Version;
 use codec::msgs::msg::payload::Payload;
 
@@ -30,8 +32,6 @@ use errors::*;
 //use ::payload::payload::Verack;
 //use codec::msgs::msg::payload::payload::Verack;
 
-pub mod commons;
-pub mod payload;
 
 #[derive(Clone)]
 pub struct Msg {
@@ -58,7 +58,21 @@ impl Msg {
             &sha
         ))
     }
-    
+    pub fn new_verack() -> Msg {
+
+        let version_pl_raw = [];
+        let verack_header = header::Header {
+            network: header::network::Network::Main,
+            cmd: header::cmd::Cmd::Verack,
+            payload_len: version_pl_raw.len() as i32,
+            payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
+        };
+        
+        Msg {
+            header: verack_header,
+            payload: None,
+        }
+    }
     pub fn new_version(addr: SocketAddr) -> Msg {
         let self_addr = SocketAddr::new(
             IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
@@ -91,7 +105,7 @@ impl Msg {
 
         let version_pl_raw = version_pl.into_bytes().expect(&ff!());
 
-        let version_header = header::Header::new {
+        let version_header = header::Header {
             network: header::network::Network::Main,
             cmd: header::cmd::Cmd::Version,
             payload_len: version_pl_raw.len() as i32,

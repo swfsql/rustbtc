@@ -9,11 +9,11 @@ pub mod errors {
     }
 }
 use errors::*;
-
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use tokio::prelude::*;
 use state_machine_future::RentToOwn;
-use std::net::SocketAddr;
+//use std::net::SocketAddr;
 
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 
@@ -105,7 +105,7 @@ impl PollMachina for Machina {
             };
             // asks for version and verack for workers
             let (mut peer, orx_ver) = worker_request!(peer, WorkerRequest::NewVersion{addr: SocketAddr::from(other_ver.addr_recv.clone())}, 100);
-            let (mut peer, orx_verack) = worker_request!(peer, WorkerRequest::NewVerack{version: msg.clone()}, 100);
+            let (mut peer, orx_verack) = worker_request!(peer, WorkerRequest::NewVerack, 100);
             if let (WorkerResponse::Version(ver), WorkerResponse::Verack(verack)) = orx_ver.join(orx_verack).wait().expect(&ff!()) {
 
                 // sends version and verack
@@ -142,7 +142,7 @@ impl PollMachina for Machina {
 
             match (state.1, state.2) {
                 (Some(ver), Some(_verack)) => {
-                    let (mut peer, orx_verack) = worker_request!(peer, WorkerRequest::NewVerack{version: ver.clone()}, 100);
+                    let (mut peer, orx_verack) = worker_request!(peer, WorkerRequest::NewVerack, 100);
                     if let WorkerResponse::Verack(verack) = orx_verack.wait().expect(&ff!()) {
                         peer.codec.buffer(&verack.into_bytes().expect(&ff!()));
                         peer.codec.poll_flush()?;            

@@ -20,8 +20,8 @@ use futures::sync::{oneshot};
 use codec::msgs::msg::Msg;
 use codec::msgs::msg;
 
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
-
 
 use actor::commons::channel_content::{WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
                     WorkerResponse, WorkerResponseContent, SchedulerResponse, WorkerToRouterResponse,
@@ -185,7 +185,7 @@ impl Future for Worker {
                         }
                         Err(_) => WorkerResponse::PeerAdd(None),
                     }
-                }
+                },
                 WorkerRequest::PeerRemove { actor_id } => {
                     d!("Worker received PeerRemove command");
                     let msg_to_peer = commons::channel_content::PeerRequest::SelfRemove;
@@ -206,11 +206,11 @@ impl Future for Worker {
                         panic!("logic error")
                     }
 
-                }
+                },
                 WorkerRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
-                    let msg = msg::Msg::new(binary.iter());
-
+                    let msg = Msg::new(binary.iter());
+                              
                     //d!("Request received: {:#?}", &wrk_req);
                     d!("message from hex");
                     if send {
@@ -230,13 +230,13 @@ impl Future for Worker {
                     }
                     WorkerResponse::Empty
 
-                }
-                WorkerRequest::NewVersion{addr: SocketAddr} => {
+                },
+                WorkerRequest::NewVersion{addr} => {
                     let version = Msg::new_version(addr);
                     WorkerResponse::Version(version)
                 }
-                WorkerRequest::NewVerack{version: Msg} => {
-                    let verack = Msg::new_verack(version);
+                WorkerRequest::NewVerack => {
+                    let verack = Msg::new_verack();
                     WorkerResponse::Verack(verack)
                 }
                 _ => {

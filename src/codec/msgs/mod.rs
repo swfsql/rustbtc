@@ -7,7 +7,7 @@ use tokio::prelude::*;
 pub mod msg;
 
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
-
+use codec::msgs::msg::header::Header;
 use hex::ToHex;
 
 #[derive(Debug)]
@@ -71,7 +71,7 @@ impl Stream for Msgs {
             return Ok(Async::NotReady);
         }
         d!("has >=24");
-        let header = header::Header::new(self.rd.iter().take(24)).expect(&ff!());
+        let header = Header::new(self.rd.iter().take(24)).expect(&ff!());
         d!("after header made:\n {:?}", &header);
         if self.rd.iter().len() < header.payload_len as usize + 24usize {
             d!("not enought bytes for payload");
