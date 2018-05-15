@@ -12,6 +12,7 @@ mod errors {
 use errors::*;
 
 extern crate state_machine_future;
+use std::path::Path;
 
 //extern crate env_logger;
 
@@ -179,6 +180,23 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
 fn run() -> Result<()> {
     let args = EnvVar::from_args();
 
+    let available_log_path = {
+        let path = Path::new(&args.log_file);
+        let ext = path.extension().expect("Error to extract log path file extension");
+        let stem = path.file_stem().expect("Error to extract log path file stem");
+        let parent = path.parent().expect("Error to extract log path file parent");
+        let mut next = path;
+        (1..)
+            .map(|i| parent.join(format!("{}.{}.{}", 
+                stem.to_string_lossy().to_string(), 
+                i, 
+                ext.to_string_lossy().to_string())))
+            .filter(|p| !p.exists())
+            .next()
+            .expect("Error when generating new log path")
+    };
+    println!("{:?}", &available_log_path);
+
     fern::Dispatch::new()
         // Perform allocation-free log formatting
         .format(|out, message, record| {
@@ -196,7 +214,7 @@ fn run() -> Result<()> {
         //.level_for("hyper", log::LevelFilter::Info)
         // Output to stdout, files, and other Dispatch configurations
         .chain(std::io::stdout())
-        .chain(fern::log_file(args.log_file).expect(&ff!()))
+        .chain(fern::log_file(available_log_path).expect(&ff!()))
         // Apply globally
         .apply()
         .expect(&ff!());
