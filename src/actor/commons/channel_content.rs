@@ -13,12 +13,15 @@ use std::collections::HashMap;
 //use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
+use actor::commons::{
+    RxMpscSf, TxMpscMainToSched, TxMpscRouterToPeer, TxOne, TxOneWorkerToBlockChain,
+    TxOneWorkerToRouter, TxRegOne,
+};
 use codec;
 use codec::msgs::msg::Msg;
 use errors::*;
 use std;
 use std::fmt;
-use actor::commons::{TxOne, TxRegOne,TxMpscRouterToPeer,RxMpscSf, TxOneWorkerToBlockChain, TxOneWorkerToRouter,TxMpscMainToSched};
 pub type RequestPriority = u8;
 pub type RequestId = usize;
 pub type ActorId = usize;
@@ -60,19 +63,24 @@ pub enum WorkerRequest {
         addr: SocketAddr,
     },
     NewVerack,
+    NewGetHeaders,
 }
 
 impl std::fmt::Debug for WorkerRequest {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
         let s = match self {
-            WorkerRequest::PeerAdd{addr: _, wait_handshake: _, tx_sched: _} => format!("PeerAdd"),
-            WorkerRequest::PeerRemove{actor_id: _} => format!("PeerRemove"),
-            WorkerRequest::PeerGetInfo{actor_id: _} => format!("PeerGetInfo"),
-            WorkerRequest::Wait{delay: _} => format!("Wait"),
+            WorkerRequest::PeerAdd {
+                addr: _,
+                wait_handshake: _,
+                tx_sched: _,
+            } => format!("PeerAdd"),
+            WorkerRequest::PeerRemove { actor_id: _ } => format!("PeerRemove"),
+            WorkerRequest::PeerGetInfo { actor_id: _ } => format!("PeerGetInfo"),
+            WorkerRequest::Wait { delay: _ } => format!("Wait"),
             WorkerRequest::ListPeers => format!("ListPeers"),
             WorkerRequest::PeerPrint => format!("PeerPrint"),
-            WorkerRequest::MsgFromHex{send: _, binary: _} => format!("MsgFromHex"),            
-            _ => format!("some other"),//            
+            WorkerRequest::MsgFromHex { send: _, binary: _ } => format!("MsgFromHex"),
+            _ => format!("some other"), //
         };
         write!(f, "{}", s)
     }
@@ -85,13 +93,14 @@ pub enum WorkerResponse {
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
     PeerRemove(bool),
-    MsgFromHex(Result<codec::msgs::msg::Msg>),
+    MsgFromHex(Result<Msg>),
     ListPeers(HashMap<ActorId, SocketAddr>),
-    Version(codec::msgs::msg::Msg),
-    Verack(codec::msgs::msg::Msg),
+    Version(Msg),
+    Verack(Msg),
+    GetHeaders(Msg)
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct WorkerRequestPriority(pub WorkerRequest, pub RequestPriority);
 
 #[derive(Debug)]
@@ -154,7 +163,7 @@ pub enum WorkerToRouterResponse {
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
     PeerRemove(bool),
-    MsgFromHex(Result<codec::msgs::msg::Msg>),
+    MsgFromHex(Result<Msg>),
     ListPeers(HashMap<ActorId, SocketAddr>),
 }
 
@@ -169,7 +178,10 @@ pub enum WorkerToBlockChainRequest {
     MsgToAllPeers(Box<RouterToPeerRequestAndPriority>),
     PeerRemove(ActorId, Box<RouterToPeerRequestAndPriority>),
 }
-pub struct WorkerToBlockChainRequestContent(pub WorkerToBlockChainRequest, pub TxOneWorkerToBlockChain);
+pub struct WorkerToBlockChainRequestContent(
+    pub WorkerToBlockChainRequest,
+    pub TxOneWorkerToBlockChain,
+);
 
 #[derive(Debug)]
 pub enum WorkerToBlockChainResponse {
@@ -178,7 +190,7 @@ pub enum WorkerToBlockChainResponse {
     Bool(bool),
     PeerAdd(Option<SocketAddr>),
     PeerRemove(bool),
-    MsgFromHex(Result<codec::msgs::msg::Msg>),
+    MsgFromHex(Result<Msg>),
     ListPeers(HashMap<ActorId, SocketAddr>),
 }
 /////////////////////////////////////////////
@@ -201,15 +213,3 @@ pub enum MainToSchedRequestContent {
     Register(SocketAddr, RxMpscSf, TxMpscRouterToPeer, TxRegOne),
     Unregister(ActorId),
 }
-
-
-
-
-
-
-
-
-
-
-
-

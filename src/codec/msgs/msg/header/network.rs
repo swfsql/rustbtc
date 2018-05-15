@@ -1,7 +1,7 @@
-use std::fmt;
-use std;
 use byteorder::{LittleEndian, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use std;
+use std::fmt;
 
 mod errors {
     error_chain!{}

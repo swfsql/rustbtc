@@ -97,7 +97,6 @@ impl VarUint {
             VarUint::U64(_) => None, // u64 as usize is uncertain on x86 arch
         }
     }
-
 }
 
 impl IntoBytes for VarUint {

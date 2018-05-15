@@ -14,9 +14,12 @@ use futures::sync::{mpsc, oneshot};
 
 use errors::*;
 //use futures::future::{select_all, Either};
-use self::channel_content::{WorkerRequestContent, WorkerResponseContent, WorkerToBlockChainRequestContent, WorkerToBlockChainResponse,
-                      WorkerToRouterRequestContent, WorkerToRouterResponse, RouterToPeerRequestAndPriority, MainToSchedRequestContent,
-                      SchedToRouterRequestContent, SchedulerResponse};
+use self::channel_content::{
+    MainToSchedRequestContent, RouterToPeerRequestAndPriority, SchedToRouterRequestContent,
+    SchedulerResponse, WorkerRequestContent, WorkerResponseContent,
+    WorkerToBlockChainRequestContent, WorkerToBlockChainResponse, WorkerToRouterRequestContent,
+    WorkerToRouterResponse,
+};
 
 // peer/admin -> scheduler -> worker
 pub type TxMpsc = mpsc::UnboundedSender<Box<WorkerRequestContent>>;
@@ -59,7 +62,6 @@ pub type RxMpscWorkerToBlockChain = mpsc::UnboundedReceiver<Box<WorkerToBlockCha
 // worker -> blockchain
 pub type TxMpscWorkerToBlockChain = mpsc::UnboundedSender<Box<WorkerToBlockChainRequestContent>>;
 
-
 // worker -> blockchain
 pub type TxOneWorkerToBlockChain = Option<oneshot::Sender<Box<WorkerToBlockChainResponse>>>;
 
@@ -71,6 +73,3 @@ pub struct TxPeers(pub SocketAddr, pub RxMpscSf);
 pub type TxRegOne = oneshot::Sender<Box<SchedulerResponse>>;
 // main/worker <- scheduler
 pub type RxRegOne = oneshot::Receiver<Box<SchedulerResponse>>;
-
-
-

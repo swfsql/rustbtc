@@ -1,7 +1,7 @@
+use actor::commons::channel_content::ActorId;
+use actor::commons::{RxMpscRouterToPeer, RxOne, TxMpsc, TxMpscMainToSched};
 use codec::msgs::msg::Msg;
 use codec::msgs::Msgs;
-use actor::commons::channel_content::{ ActorId};
-use actor::commons::{RxOne,TxMpsc, TxMpscMainToSched,RxMpscRouterToPeer};
 use futures::Future;
 use tokio::net::TcpStream;
 
@@ -36,7 +36,7 @@ impl Peer {
             request_counter: 0,
             version: None,
         }
-    }//
+    } //
 
     pub fn push_ignored(&mut self, rx: RxOne) {
         self.rx_ignored.push(rx);

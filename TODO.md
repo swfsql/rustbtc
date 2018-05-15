@@ -11,6 +11,7 @@ MACHINA:
 -> fazer getheaders
 -> receber headers
 
+102, 101, 101, 102, 105, 108, 116, 101, 114, 0, 0, 0
 
 ----
 máquinas.. do bchain
@@ -27,6 +28,7 @@ fazer alguma validação de blocos,
 ...
 
 CODEC:
+	feefilter
 	reject
 	mempool
 

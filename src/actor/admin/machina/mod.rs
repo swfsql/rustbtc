@@ -13,10 +13,12 @@ use structopt::StructOpt;
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use actor::commons::channel_content::{AddrReqId, MainToSchedRequestContent, WorkerRequest,
-                    WorkerRequestContent, WorkerRequestPriority, WorkerResponseContent};
-                    
-use actor::commons::{RxOne};
+use actor::commons::channel_content::{
+    AddrReqId, MainToSchedRequestContent, WorkerRequest, WorkerRequestContent,
+    WorkerRequestPriority, WorkerResponseContent,
+};
+
+use actor::commons::RxOne;
 
 //use futures::sync::{mpsc, oneshot};
 use futures::sync::oneshot;
@@ -252,7 +254,7 @@ impl PollMachina for Machina {
                         let state = peer.take();
                         d!("Entered command: Exiting admin");
                         let wr = WorkerRequest::PeerRemove {
-                            actor_id:state.0.actor_id,
+                            actor_id: state.0.actor_id,
                             //addr: state.0.codec.socket.peer_addr().expect(&ff!()),
                         };
                         let (mut peer, orx) = prepare_transition!(state.0, wr, 200);

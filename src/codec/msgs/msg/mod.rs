@@ -1,22 +1,22 @@
 pub mod commons;
-pub mod payload;
 pub mod header;
+pub mod payload;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 
-use std;
-use std::fmt;
 use codec::msgs::msg::commons::net_addr::NetAddr;
 use codec::msgs::msg::commons::var_str::VarStr;
+use std;
+use std::fmt;
 //use codec::msgs::msg::commons::params::Network;
 use codec::msgs::msg::payload::version::Version;
 use codec::msgs::msg::payload::Payload;
 
+use chrono::Utc;
 use rand;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-use chrono::Utc;
 // use codec::msgs::msg::commons::into_bytes::into_bytes;
 use std::io::Cursor;
 
@@ -31,7 +31,6 @@ mod errors {
 use errors::*;
 //use ::payload::payload::Verack;
 //use codec::msgs::msg::payload::payload::Verack;
-
 
 #[derive(Clone)]
 pub struct Msg {
@@ -59,20 +58,35 @@ impl Msg {
         ))
     }
     pub fn new_verack() -> Msg {
-
-        let version_pl_raw = [];
+        let verack_pl_raw = [];
         let verack_header = header::Header {
             network: header::network::Network::Main,
             cmd: header::cmd::Cmd::Verack,
-            payload_len: version_pl_raw.len() as i32,
-            payloadchk: Msg::chk(&version_pl_raw[..]).expect(&ff!()),
+            payload_len: verack_pl_raw.len() as i32,
+            payloadchk: Msg::chk(&verack_pl_raw[..]).expect(&ff!()),
         };
-        
+
         Msg {
             header: verack_header,
             payload: None,
         }
     }
+
+    pub fn new_get_headers() -> Msg {
+        let get_headers_pl_raw = [];
+        let get_headers_header = header::Header {
+            network: header::network::Network::Main,
+            cmd: header::cmd::Cmd::GetHeaders,
+            payload_len: get_headers_pl_raw.len() as i32,
+            payloadchk: Msg::chk(&get_headers_pl_raw[..]).expect(&ff!()),
+        };
+
+        Msg {
+            header: get_headers_header,
+            payload: None,
+        }
+    }
+
     pub fn new_version(addr: SocketAddr) -> Msg {
         let self_addr = SocketAddr::new(
             IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x7f00, 1)),
@@ -177,8 +191,8 @@ impl NewFromHex for Msg {
             }
             header::cmd::Cmd::GetAddr => Some(payload::Payload::GetAddr),
             header::cmd::Cmd::Addr => {
-                let addr = payload::addr::Addr::new(it_pl)
-                    .chain_err(cf!("Error at creating Addr"))?;
+                let addr =
+                    payload::addr::Addr::new(it_pl).chain_err(cf!("Error at creating Addr"))?;
                 Some(payload::Payload::Addr(addr))
             }
             header::cmd::Cmd::GetData => {
@@ -187,13 +201,12 @@ impl NewFromHex for Msg {
                 Some(payload::Payload::GetData(get_data))
             }
             header::cmd::Cmd::Inv => {
-                let inv = payload::inv::Inv::new(it_pl)
-                    .chain_err(cf!("Error at creating Inv"))?;
+                let inv = payload::inv::Inv::new(it_pl).chain_err(cf!("Error at creating Inv"))?;
                 Some(payload::Payload::Inv(inv))
             }
             header::cmd::Cmd::Block => {
-                let block = payload::block::Block::new(it_pl)
-                    .chain_err(cf!("Error at creating Block"))?;
+                let block =
+                    payload::block::Block::new(it_pl).chain_err(cf!("Error at creating Block"))?;
                 Some(payload::Payload::Block(block))
             }
             header::cmd::Cmd::NotFound => {
@@ -227,7 +240,7 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::GetData(ref get_data) => format!("{:?}", get_data),
                 payload::Payload::Inv(ref inv) => format!("{:?}", inv),
                 payload::Payload::Block(ref block) => format!("{:?}", block),
-                payload::Payload::NotFound(ref not_found) => format!("{:?}", not_found),                
+                payload::Payload::NotFound(ref not_found) => format!("{:?}", not_found),
             },
             None => "None".to_string(),
         }.lines()

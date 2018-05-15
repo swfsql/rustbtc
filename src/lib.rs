@@ -35,6 +35,6 @@ pub mod macros;
 #[macro_use]
 extern crate defmac;
 
-pub mod codec;
 pub mod actor;
 pub mod blockchain;
+pub mod codec;

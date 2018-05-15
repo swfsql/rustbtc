@@ -4,7 +4,6 @@ mod errors {
 
 //use errors::*;
 
-
 use actor::commons;
 use futures::sync::mpsc;
 
@@ -14,18 +13,22 @@ use tokio::net::TcpStream;
 use tokio::prelude::*;
 //use rand::{Rng, thread_rng};
 //use admin;
-use codec;
 use actor::peer;
-use futures::sync::{oneshot};
-use codec::msgs::msg::Msg;
+use codec;
 use codec::msgs::msg;
+use codec::msgs::msg::Msg;
+use futures::sync::oneshot;
 
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 
-use actor::commons::channel_content::{WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
-                    WorkerResponse, WorkerResponseContent, SchedulerResponse, WorkerToRouterResponse,
-                    WorkerToRouterRequestContent,WorkerToRouterRequest};
+use actor::peer::machina::handshake;
+
+use actor::commons::channel_content::{
+    SchedulerResponse, WorkerRequest, WorkerRequestContent, WorkerRequestPriority, WorkerResponse,
+    WorkerResponseContent, WorkerToRouterRequest, WorkerToRouterRequestContent,
+    WorkerToRouterResponse,
+};
 use actor::commons::{RxMpsc, TxMpscWorkerToRouter};
 
 use std::time::*;
@@ -69,12 +72,12 @@ impl Future for Worker {
                 }
                 Ok(Async::NotReady) => {
                     d!("not ready");
-                    break
-                },
+                    break;
+                }
                 _ => {
                     d!("panic");
                     panic!(ff!("Unexpected value for worker polling on reader channel"));
-                },
+                }
             };
         }
         d!("broke from loop");
@@ -103,20 +106,22 @@ impl Future for Worker {
                     let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
 
                     let wrk_to_router_req = WorkerToRouterRequest::ListPeers;
-                    let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
-                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content)).expect(&ff!());
+                    let wrk_to_router_req_content =
+                        WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
+                    self.tx_router
+                        .unbounded_send(Box::new(wrk_to_router_req_content))
+                        .expect(&ff!());
                     d!("sent to router");
 
                     if let Ok(box WorkerToRouterResponse::ListPeers(peer_list)) = orx.wait() {
-                         d!("todo: show peer list");
+                        d!("todo: show peer list");
                         WorkerResponse::ListPeers(peer_list)
-                        // i!("Peer list: {:?}", peer_list);
+                    // i!("Peer list: {:?}", peer_list);
                     } else {
                         e!("Logic error");
                         panic!("logic error")
                     }
-
-                }//
+                } //
                 WorkerRequest::PeerAdd {
                     addr,
                     wait_handshake: _,
@@ -134,12 +139,13 @@ impl Future for Worker {
                             let peer_addr = socket.peer_addr().expect(&ff!());
                             {
                                 d!("started sending rawmsg toolbox message to the new peer");
-                                let boxed_binary = commons::channel_content::RouterToPeerRequestAndPriority(
-                                    commons::channel_content::PeerRequest::HandShake(
-                                        version_msg.into_bytes().expect(&ff!()),
-                                    ),
-                                    100,
-                                );
+                                let boxed_binary =
+                                    commons::channel_content::RouterToPeerRequestAndPriority(
+                                        commons::channel_content::PeerRequest::HandShake(
+                                            version_msg.into_bytes().expect(&ff!()),
+                                        ),
+                                        100,
+                                    );
                                 tx_router
                                     .unbounded_send(Box::new(boxed_binary.clone()))
                                     .expect(&ff!());
@@ -150,20 +156,24 @@ impl Future for Worker {
                             let actor_id = {
                                 //let tx_sched_unlocked = tx_sched.lock().expect(&ff!());
                                 let (otx, orx) = oneshot::channel::<Box<SchedulerResponse>>();
-                                let sched_req_ctt = commons::channel_content::MainToSchedRequestContent::Register(
-                                    peer_addr.clone(),
-                                    rx_peer.into_future(),
-                                    tx_router,
-                                    otx,
-                                );
+                                let sched_req_ctt =
+                                    commons::channel_content::MainToSchedRequestContent::Register(
+                                        peer_addr.clone(),
+                                        rx_peer.into_future(),
+                                        tx_router,
+                                        otx,
+                                    );
 
                                 d!("before wait");
                                 tx_sched
                                     .unbounded_send(Box::new(sched_req_ctt))
-                                    .expect(&ff!());//
+                                    .expect(&ff!()); //
                                 let shot_back = orx.wait().expect(&ff!()); // TODO async
                                 d!("after wait");
-                                if let box SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+                                if let box SchedulerResponse::RegisterResponse(Ok(
+                                    ref res_actor_id,
+                                )) = shot_back
+                                {
                                     res_actor_id.clone()
                                 } else {
                                     panic!("TODO: error when registering new peer");
@@ -171,13 +181,17 @@ impl Future for Worker {
                             };
                             d!("peer registered");
                             let peer = peer::Peer::new(socket, tx_peer, tx_sched, rx_router, actor_id);
+                            let handshake = handshake::Machina::start(peer);
                             {
                                 //let mut messenger_unlocked = self.toolbox.peer_messenger.lock().unwrap();
                                 //messenger_unlocked.insert(peer_addr, tx_router);
                             }
-                            let peer_machina = peer::machina::Machina::start(peer)
-                                .map(|_| ())
-                                .map_err(|_| ());
+                            let peer_machina = peer::machina::Machina::start(handshake)
+                                .map_err(|e| {
+                                    e!("peer machina error. {:?}", e);
+                                    ()
+                                })
+                                .map(|_| ());
                             d!("spawning peer machina");
                             tokio::spawn(peer_machina);
                             d!("peer machina spawned");
@@ -185,59 +199,73 @@ impl Future for Worker {
                         }
                         Err(_) => WorkerResponse::PeerAdd(None),
                     }
-                },
+                }
                 WorkerRequest::PeerRemove { actor_id } => {
                     d!("Worker received PeerRemove command");
                     let msg_to_peer = commons::channel_content::PeerRequest::SelfRemove;
-                    let msg_to_peer_priority = commons::channel_content::RouterToPeerRequestAndPriority(msg_to_peer, 255);
-                    let wrk_to_router_req = WorkerToRouterRequest::PeerRemove(
-                            actor_id, 
-                            Box::new(msg_to_peer_priority));
+                    let msg_to_peer_priority =
+                        commons::channel_content::RouterToPeerRequestAndPriority(msg_to_peer, 255);
+                    let wrk_to_router_req =
+                        WorkerToRouterRequest::PeerRemove(actor_id, Box::new(msg_to_peer_priority));
                     let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
-                    let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
-                    self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content)).expect(&ff!());
+                    let wrk_to_router_req_content =
+                        WorkerToRouterRequestContent(wrk_to_router_req, Some(otx));
+                    self.tx_router
+                        .unbounded_send(Box::new(wrk_to_router_req_content))
+                        .expect(&ff!());
 
-                    if let Ok(box WorkerToRouterResponse::PeerRemove(status)) = orx.wait(){
+                    if let Ok(box WorkerToRouterResponse::PeerRemove(status)) = orx.wait() {
                         WorkerResponse::PeerRemove(status)
-                        // i!("Peer list: {:?}", peer_list);
-                        // w!("todo: show peer list");
+                    // i!("Peer list: {:?}", peer_list);
+                    // w!("todo: show peer list");
                     } else {
                         e!("Logic error");
                         panic!("logic error")
                     }
-
-                },
+                }
                 WorkerRequest::MsgFromHex { send, binary } => {
                     //let msg = codec::msgs::msg::Msg::new_from_hex(&binary);
                     let msg = Msg::new(binary.iter());
-                              
+
                     //d!("Request received: {:#?}", &wrk_req);
                     d!("message from hex");
                     if send {
                         if let &Ok(ref _okmsg) = &msg {
-                        let msg_to_peer = commons::channel_content::PeerRequest::Forward(binary.clone());
-                        let msg_to_peer_priority = commons::channel_content::RouterToPeerRequestAndPriority(msg_to_peer, 100);
-                        let wrk_to_router_req = WorkerToRouterRequest::MsgToAllPeers(
-                                Box::new(msg_to_peer_priority));
-                        //let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
-                        let wrk_to_router_req_content = WorkerToRouterRequestContent(wrk_to_router_req, None);
-                        self.tx_router.unbounded_send(Box::new(wrk_to_router_req_content)).expect(&ff!());
-                        // WorkerResponse::Empty
+                            let msg_to_peer =
+                                commons::channel_content::PeerRequest::Forward(binary.clone());
+                            let msg_to_peer_priority =
+                                commons::channel_content::RouterToPeerRequestAndPriority(
+                                    msg_to_peer,
+                                    100,
+                                );
+                            let wrk_to_router_req = WorkerToRouterRequest::MsgToAllPeers(Box::new(
+                                msg_to_peer_priority,
+                            ));
+                            //let (otx, orx) = oneshot::channel::<Box<WorkerToRouterResponse>>();
+                            let wrk_to_router_req_content =
+                                WorkerToRouterRequestContent(wrk_to_router_req, None);
+                            self.tx_router
+                                .unbounded_send(Box::new(wrk_to_router_req_content))
+                                .expect(&ff!());
+                            // WorkerResponse::Empty
                         }
                     } else {
                         w!("Something wrong on msg to all peer");
                         // WorkerResponse::Empty
                     }
                     WorkerResponse::Empty
-
-                },
-                WorkerRequest::NewVersion{addr} => {
+                }
+                WorkerRequest::NewVersion { addr } => {
                     let version = Msg::new_version(addr);
                     WorkerResponse::Version(version)
                 }
                 WorkerRequest::NewVerack => {
                     let verack = Msg::new_verack();
                     WorkerResponse::Verack(verack)
+                }
+                WorkerRequest::NewGetHeaders => {
+                    let get_headers = Msg::new_get_headers();
+                    WorkerResponse::GetHeaders(get_headers)
                 }
                 _ => {
                     // i!("Request received: {:#?}", wrk_req);

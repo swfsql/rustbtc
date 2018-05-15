@@ -1,14 +1,14 @@
+pub mod addr;
+pub mod block;
+pub mod get_data;
 pub mod get_headers;
 pub mod headers;
+pub mod inv;
+pub mod not_found;
 pub mod ping;
 pub mod pong;
 pub mod tx;
 pub mod version;
-pub mod addr;
-pub mod inv;
-pub mod get_data;
-pub mod block;
-pub mod not_found;
 //use codec::msgs::msg::commons::into_bytes::IntoBytes;
 //use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
@@ -29,7 +29,6 @@ pub enum Payload {
     Inv(inv::Inv),
     NotFound(not_found::NotFound),
 }
-
 
 /*
 impl IntoBytes for Ping {

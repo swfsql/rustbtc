@@ -12,7 +12,7 @@ mod errors {
 }
 use errors::*;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct BlockHeaders {
     pub version: i32,
     pub prev_block: ArrayVec<[u8; 32]>,
@@ -75,7 +75,6 @@ impl NewFromHex for BlockHeaders {
     }
 }
 
-
 impl IntoBytes for BlockHeaders {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
@@ -84,20 +83,19 @@ impl IntoBytes for BlockHeaders {
             "Failure to convert version ({}) into byte vec",
             self.version
         ))?;
-        
+
         wtr.append(&mut self.prev_block.to_vec());
 
         wtr.append(&mut self.markle_root.to_vec());
 
-        wtr.write_u32::<LittleEndian>(self.timestamp).chain_err(cf!(
-            "Failure to convert timestamp ({}) into byte vec",
-            self.timestamp
-        ))?;
+        wtr.write_u32::<LittleEndian>(self.timestamp)
+            .chain_err(cf!(
+                "Failure to convert timestamp ({}) into byte vec",
+                self.timestamp
+            ))?;
 
-        wtr.write_u32::<LittleEndian>(self.bits).chain_err(cf!(
-            "Failure to convert bits ({}) into byte vec",
-            self.bits
-        ))?;
+        wtr.write_u32::<LittleEndian>(self.bits)
+            .chain_err(cf!("Failure to convert bits ({}) into byte vec", self.bits))?;
 
         wtr.write_u32::<LittleEndian>(self.nonce).chain_err(cf!(
             "Failure to convert nonce ({}) into byte vec",

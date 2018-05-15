@@ -7,10 +7,10 @@
 //use codec::msgs::msg::commons::{net_addr, new_from_hex, var_str};
 
 //use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use codec::msgs::msg::commons::block_headers;
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::var_uint::VarUint;
-use codec::msgs::msg::commons::block_headers;
 //use std::io::Cursor;
 mod errors {
     error_chain!{}
@@ -19,7 +19,7 @@ use errors::*;
 
 // https://bitcoin.org/en/developer-reference#ping
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Headers {
     pub count: VarUint,
     pub headers: Vec<block_headers::BlockHeaders>,
@@ -30,7 +30,6 @@ impl NewFromHex for Headers {
     where
         I: IntoIterator<Item = &'a u8>,
     {
-
         let mut it = it.into_iter();
 
         let count = VarUint::new(it.by_ref())
@@ -41,15 +40,12 @@ impl NewFromHex for Headers {
 
         let mut headers: Vec<block_headers::BlockHeaders> = vec![];
         for i in 0..count_usize {
-            let aux =  block_headers::BlockHeaders::new(it.by_ref())
+            let aux = block_headers::BlockHeaders::new(it.by_ref())
                 .chain_err(cf!("Error at creating a new Output, at outputs {}", i))?;
             headers.push(aux);
         }
 
-        Ok(Headers {
-            count,
-            headers,
-        })
+        Ok(Headers { count, headers })
     }
 }
 
@@ -57,10 +53,10 @@ impl IntoBytes for Headers {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
 
-        let mut count= self.count.into_bytes()
-            .chain_err(cf!(
-                "Failure to convert count ({:?}) into byte vec",
-                self.count))?;
+        let mut count = self.count.into_bytes().chain_err(cf!(
+            "Failure to convert count ({:?}) into byte vec",
+            self.count
+        ))?;
         wtr.append(&mut count);
 
         let headers = self.headers

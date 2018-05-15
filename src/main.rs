@@ -30,7 +30,7 @@ extern crate btc;
 
 //use futures::sync::{mpsc, oneshot};
 use btc::actor::commons;
-use futures::sync::{mpsc,oneshot};
+use futures::sync::{mpsc, oneshot};
 use structopt::StructOpt;
 
 // use btc::commons::new_from_hex::NewFromHex;
@@ -87,19 +87,24 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
         let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
         d!("After mutex was locked.");
         tx_sched_unlocked
-            .unbounded_send(Box::new(commons::channel_content::MainToSchedRequestContent::Register(
-                socket.peer_addr().expect(&ff!()), 
-                rx_peer.into_future(),
-                tx_router,
-                otx,
-            )))
+            .unbounded_send(Box::new(
+                commons::channel_content::MainToSchedRequestContent::Register(
+                    socket.peer_addr().expect(&ff!()),
+                    rx_peer.into_future(),
+                    tx_router,
+                    otx,
+                ),
+            ))
             .expect(&ff!()); // TODO may error
         d!("After tx_sched send");
-    }//
+    } //
 
     let shot_back = orx.wait().expect(&ff!()); // TODO async
     let actor_id = {
-        if let box commons::channel_content::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+        if let box commons::channel_content::SchedulerResponse::RegisterResponse(Ok(
+            ref res_actor_id,
+        )) = shot_back
+        {
             res_actor_id.clone()
         } else {
             panic!("TODO: error when registering new peer");
@@ -109,8 +114,12 @@ fn process_peer(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSche
     let tx_sched_inner = tx_sched.lock().expect(&ff!()).clone();
 
     let peer = btc::actor::peer::Peer::new(socket, tx_peer, tx_sched_inner, rx_router, actor_id);
-    let peer_machina = btc::actor::peer::machina::Machina::start(peer)
-        .map_err(|_| ())
+    let handshake = btc::actor::peer::machina::handshake::Machina::start(peer);
+    let peer_machina = btc::actor::peer::machina::Machina::start(handshake)
+        .map_err(|e| {
+            e!("peer machina error. {:?}", e);
+            ()
+        })
         .map(|_| ());
 
     tokio::spawn(peer_machina);
@@ -128,19 +137,24 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
         let tx_sched_unlocked = tx_sched.lock().expect(&ff!()); // TODO may error
         d!("After mutex was locked.");
         tx_sched_unlocked
-            .unbounded_send(Box::new(commons::channel_content::MainToSchedRequestContent::Register(
-                socket.peer_addr().expect(&ff!()),
-                rx_peer.into_future(),
-                tx_router,
-                otx,
-            )))
+            .unbounded_send(Box::new(
+                commons::channel_content::MainToSchedRequestContent::Register(
+                    socket.peer_addr().expect(&ff!()),
+                    rx_peer.into_future(),
+                    tx_router,
+                    otx,
+                ),
+            ))
             .expect(&ff!()); // TODO may error
         d!("After tx_sched send");
     }
 
     let shot_back = orx.wait().expect(&ff!()); // TODO async
     let actor_id = {
-        if let box commons::channel_content::SchedulerResponse::RegisterResponse(Ok(ref res_actor_id)) = shot_back {
+        if let box commons::channel_content::SchedulerResponse::RegisterResponse(Ok(
+            ref res_actor_id,
+        )) = shot_back
+        {
             res_actor_id.clone()
         } else {
             panic!("TODO: error when registering new peer");
@@ -151,7 +165,10 @@ fn process_admin(socket: TcpStream, tx_sched: Arc<Mutex<commons::TxMpscMainToSch
 
     let peer = btc::actor::admin::Peer::new(socket, tx_peer, tx_sched_inner, rx_router, actor_id);
     let peer_machina = btc::actor::admin::machina::Machina::start(peer)
-        .map_err(|_| ())
+        .map_err(|e| {
+            e!("admin machina error. {:?}", e);
+            ()
+        })
         .map(|_| ());
 
     tokio::spawn(peer_machina);
@@ -191,14 +208,20 @@ fn run() -> Result<()> {
     let (tx_worker_to_bchain, rx_worker_to_bchain) = mpsc::unbounded();
     let mtx = Arc::new(Mutex::new(tx));
 
-    let router = btc::actor::router::Router::new(rx_peer_messenger_reg, rx_worker_to_router)
-        .map_err(|_| ());
+    let router =
+        btc::actor::router::Router::new(rx_peer_messenger_reg, rx_worker_to_router).map_err(|_| ());
 
     //impl future/state machine
     // let bchain = btc::actor::blockchain::Blockchain::new(tx_bchain_to_sched, rx_worker_to_bchain)
     //     .map_err(|_| ());
-    let scheduler = btc::actor::scheduler::Scheduler::new(rx, tx_peer_messenger_reg, tx_worker_to_router_backup, rx_bchain_to_sched.into_future(), tx_worker_to_bchain, 3)
-        .map_err(|_| ());
+    let scheduler = btc::actor::scheduler::Scheduler::new(
+        rx,
+        tx_peer_messenger_reg,
+        tx_worker_to_router_backup,
+        rx_bchain_to_sched.into_future(),
+        tx_worker_to_bchain,
+        3,
+    ).map_err(|_| ());
 
     thread::spawn(move || {
         tokio::run(router);

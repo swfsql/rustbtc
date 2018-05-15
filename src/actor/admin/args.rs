@@ -1,9 +1,9 @@
 //use codec::msgs::msg;
+use actor::commons::channel_content::ActorId;
 use hex;
 use hex::FromHex;
 use std::net::SocketAddr;
 use std::str::FromStr;
-use actor::commons::channel_content::ActorId;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "")]

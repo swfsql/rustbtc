@@ -72,7 +72,7 @@ impl Stream for Msgs {
         }
         d!("has >=24");
         let header = Header::new(self.rd.iter().take(24)).expect(&ff!());
-        d!("after header made:\n {:?}", &header);
+        d!("after header made");
         if self.rd.iter().len() < header.payload_len as usize + 24usize {
             d!("not enought bytes for payload");
             return Ok(Async::NotReady);

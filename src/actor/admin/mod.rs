@@ -3,8 +3,10 @@ use futures::sync::mpsc;
 use futures::Future;
 use tokio::net::TcpStream;
 
-use actor::commons::channel_content::{WorkerRequestContent, RouterToPeerRequestAndPriority, ActorId};
-use actor::commons::{RxOne,TxMpscMainToSched};
+use actor::commons::channel_content::{
+    ActorId, RouterToPeerRequestAndPriority, WorkerRequestContent,
+};
+use actor::commons::{RxOne, TxMpscMainToSched};
 pub mod args;
 pub mod machina;
 //use::macros;

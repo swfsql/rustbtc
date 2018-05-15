@@ -5,7 +5,7 @@ use futures::Future;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 */
-use actor::commons::{TxMpsc,RxMpscWorkerToBlockChain};
+use actor::commons::{RxMpscWorkerToBlockChain, TxMpsc};
 pub mod machina;
 
 pub struct Blockchain {
@@ -14,7 +14,10 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(tx_bchain_to_sched: TxMpsc, rx_worker_to_bchain: RxMpscWorkerToBlockChain ) -> Blockchain {
+    pub fn new(
+        tx_bchain_to_sched: TxMpsc,
+        rx_worker_to_bchain: RxMpscWorkerToBlockChain,
+    ) -> Blockchain {
         Blockchain {
             tx_bchain_to_sched,
             rx_worker_to_bchain,

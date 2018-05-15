@@ -8,7 +8,6 @@ use std;
 use std::fmt;
 //use std::io::Cursor;
 
-
 mod errors {
     error_chain!{}
 }
@@ -63,9 +62,9 @@ impl Cmd {
             cmd_value::GETADDR => Some(Cmd::GetAddr),
             cmd_value::ADDR => Some(Cmd::Addr),
             cmd_value::GETDATA => Some(Cmd::GetData),
-            cmd_value::INV=> Some(Cmd::Inv),
+            cmd_value::INV => Some(Cmd::Inv),
             cmd_value::BLOCK => Some(Cmd::Block),
-            cmd_value::NOTFOUND=> Some(Cmd::NotFound),
+            cmd_value::NOTFOUND => Some(Cmd::NotFound),
             _ => None,
         }
     }

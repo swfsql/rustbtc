@@ -1,10 +1,13 @@
 use actor;
-use actor::commons::channel_content::{AddrReqId, RequestId, 
-                    WorkerRequestContent, WorkerResponseContent, SchedulerResponse, ActorId, 
-                    SchedToRouterRequestContent,};
+use actor::commons::channel_content::{
+    ActorId, AddrReqId, RequestId, SchedToRouterRequestContent, SchedulerResponse,
+    WorkerRequestContent, WorkerResponseContent,
+};
 
-use actor::commons::{RxOne, RxMpscSf, TxMpsc, TxOne,TxMpscSchedToRouter, TxMpscWorkerToRouter,
-                    TxMpscWorkerToBlockChain};
+use actor::commons::{
+    RxMpscSf, RxOne, TxMpsc, TxMpscSchedToRouter, TxMpscWorkerToBlockChain, TxMpscWorkerToRouter,
+    TxOne,
+};
 
 use futures;
 use futures::sync::{mpsc, oneshot};
@@ -60,13 +63,18 @@ pub struct Scheduler {
 }
 
 impl Scheduler {
-    pub fn new(rx: actor::commons::RxMpscMainToSched, tx_router: TxMpscSchedToRouter, 
-                tx_worker_to_router_backup: TxMpscWorkerToRouter, rx_bchain: RxMpscSf, 
-                tx_worker_to_bchain: TxMpscWorkerToBlockChain, workers_max_tasks: usize) -> Scheduler {
+    pub fn new(
+        rx: actor::commons::RxMpscMainToSched,
+        tx_router: TxMpscSchedToRouter,
+        tx_worker_to_router_backup: TxMpscWorkerToRouter,
+        rx_bchain: RxMpscSf,
+        tx_worker_to_bchain: TxMpscWorkerToBlockChain,
+        workers_max_tasks: usize,
+    ) -> Scheduler {
         let mut last_actor_id = 0;
         let mut inbox = HashMap::new();
         inbox.insert(last_actor_id, Inbox::new(rx_bchain));
-        
+
         last_actor_id += 1;
         Scheduler {
             main_channel: rx,
@@ -107,16 +115,24 @@ impl Future for Scheduler {
                         self.last_actor_id += 1;
                         // let first2 = first.and_then(|msg| (msg, this_actor_id));
                         self.inbox.insert(this_actor_id, Inbox::new(first));
-                        let router_msg = SchedToRouterRequestContent::Register(this_actor_id, addr, tx_mpsc_peer);
-                        self.tx_router.unbounded_send(Box::new(router_msg)).expect(&ff!());
+                        let router_msg = SchedToRouterRequestContent::Register(
+                            this_actor_id,
+                            addr,
+                            tx_mpsc_peer,
+                        );
+                        self.tx_router
+                            .unbounded_send(Box::new(router_msg))
+                            .expect(&ff!());
 
                         let resp = Box::new(SchedulerResponse::RegisterResponse(Ok(this_actor_id)));
                         if let Err(_) = tx_reg_one.send(resp) {
                             e!("Error when registering new actor into scheduler");
                             panic!("Error when registering new actor into scheduler");
                         }
-                    },
-                    actor::commons::channel_content::MainToSchedRequestContent::Unregister(addr) => {
+                    }
+                    actor::commons::channel_content::MainToSchedRequestContent::Unregister(
+                        addr,
+                    ) => {
                         d!("Unregistering Inbox for addr {:?}", &addr);
                         self.inbox.remove(&addr);
                     }
@@ -173,12 +189,12 @@ impl Future for Scheduler {
                     // TODO: unlist oneshot receiver on error,
                     // requires: same addr_req_id inside the error structure
                 }
-            };//
+            }; //
             d!("Removed oneshot from hashmap from the worker who completed the task.");
 
             // Getting the oneshot channel to the peer
             let &mut Inbox(_, ref mut prev_oneshots) =
-                self.inbox.get_mut(&addr_req_id.0).expect(&ff!());//
+                self.inbox.get_mut(&addr_req_id.0).expect(&ff!()); //
 
             // forwards the message to the peer
             prev_oneshots
@@ -247,9 +263,10 @@ impl Future for Scheduler {
                 let (tx, rx) = mpsc::unbounded(); // sched => worker mpsc
                                                   // The worker future (could be a machine)
 
-                let worker = actor::worker::Worker::new(rx, self.tx_worker_to_router_backup.clone())
-                    .map(|_item| ())
-                    .map_err(|_err| ());
+                let worker =
+                    actor::worker::Worker::new(rx, self.tx_worker_to_router_backup.clone())
+                        .map(|_item| ())
+                        .map_err(|_err| ());
                 // let worker = actor::worker::Worker::new(rx, self.toolbox.clone())
                 //     .map(|_item| ())
                 //     .map_err(|_err| ());

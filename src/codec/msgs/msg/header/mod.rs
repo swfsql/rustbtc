@@ -36,12 +36,15 @@ impl NewFromHex for Header {
         let network = Cursor::new(&aux)
             .read_u32::<LittleEndian>()
             .chain_err(cf!("Error at u32 parse for network for value {:?}", aux))?;
-        let network = network::Network::new(network).ok_or(ff!("Error: Network Magic Number unkown"))?;
+        let network =
+            network::Network::new(network).ok_or(ff!("Error: Network Magic Number unkown"))?;
         let cmd = it.by_ref()
             .take(12)
             .cloned()
             .collect::<ArrayVec<[u8; 12]>>();
-        let cmd = cmd::Cmd::new(cmd).ok_or(ff!("Error: Error when reading cmd"))?;
+        
+        let cmd_bytes = cmd.clone().into_iter().collect::<Bytes>();
+        let cmd = cmd::Cmd::new(cmd).ok_or(ff!("Error: Error when reading cmd: <{:?}>", cmd_bytes))?;
         let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let payload_len = Cursor::new(&aux).read_i32::<LittleEndian>().chain_err(cf!(
             "Error at i32 parse for payload_len for value {:?}",

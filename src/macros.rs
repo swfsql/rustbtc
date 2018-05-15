@@ -40,7 +40,6 @@ macro_rules! d {
     ($fmt:expr, $($arg:tt)*) =>(debug!(concat!("{}:{}] ",$fmt),file!()[3..].to_string(),line!(),$($arg)*));
 }
 
-
 #[macro_export]
 macro_rules! t {
     () =>(trace!("{}:{}] ",file!()[3..].to_string(),line!()));

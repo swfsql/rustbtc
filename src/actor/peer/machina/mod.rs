@@ -1,3 +1,18 @@
+pub mod errors {
+    error_chain!{
+        foreign_links {
+            Io(::std::io::Error);
+            HandshakeError(::actor::peer::machina::handshake::errors::Error);
+        }
+    }
+}
+pub use errors::*;
+
+// first implementation here
+//   |        conflicting implementation for `actor::peer::machina::errors::Error`
+
+
+
 use std;
 
 use tokio::prelude::*;
@@ -5,6 +20,10 @@ use tokio::prelude::*;
 use state_machine_future::RentToOwn;
 
 use actor::peer::Peer;
+use codec::msgs::msg::commons::into_bytes::IntoBytes;
+// use actor::peer::machina::handshake::Handshake;
+
+
 
 //use structopt::StructOpt;
 
@@ -12,19 +31,22 @@ use actor::peer::Peer;
 //                   TxOne, WorkerRequest, WorkerRequestContent, WorkerRequestPriority,
 //                  WorkerResponseContent, RxPeers};
 
-use actor::commons::channel_content::{MainToSchedRequestContent, PeerRequest, RouterToPeerRequestAndPriority};
-use actor::commons::{RxOne};
+use actor::commons::channel_content::{
+    MainToSchedRequestContent, PeerRequest, RouterToPeerRequestAndPriority,WorkerResponse,
+    WorkerRequestPriority,AddrReqId,WorkerResponseContent,WorkerRequest,WorkerRequestContent
+};
+use actor::commons::RxOne;
 
 //use futures::sync::{mpsc, oneshot};
-//use futures::sync::{oneshot};
+use futures::sync::{oneshot};
 //use futures;
 //use std::io::{Error, ErrorKind};
 
 //use env_logger::LogBuilder;
 //#[macro_use]
 //use macros;
-pub mod hand_shake;
-
+pub mod handshake;
+// use btc;
 use codec;
 use hex::ToHex;
 
@@ -33,10 +55,36 @@ use hex::ToHex;
 use macros::*;
 */
 
+
+
+defmac!(worker_request mut state_peer, wr, priority => {
+    let wrp = WorkerRequestPriority(wr, priority);
+    let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>>>();
+    let actor_id = state_peer.actor_id;
+    let addr = AddrReqId(actor_id, state_peer.next_request_counter());
+    let wrc = WorkerRequestContent(wrp, otx, addr);
+    state_peer._tx_req.unbounded_send(Box::new(wrc))
+        .expect(&ff!());
+    (state_peer, orx.and_then(|i| Ok(i.expect(&ff!()).0)))
+});
+
+
+macro_rules! ok_some {
+    ($e:expr) => {
+        match $e {
+            // Ok(Async::Ready(t)) => Some(t),
+            Ok(Async::Ready(Some(t))) => Some(t),
+            Ok(Async::NotReady) => None,
+            Ok(Async::Ready(None)) => bail!("aborted"),
+            Err(e) => bail!("Error on ok_ready: {:?}", e), //Err(From::from(e)),
+        }
+    };
+}
+
 #[derive(StateMachineFuture)]
 pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
-    Welcome(Peer),
+    Handshake(handshake::MachinaFuture),
 
     #[state_machine_future(transitions(SimpleWait, SelfRemove, End))]
     Standby(Peer),
@@ -51,24 +99,50 @@ pub enum Machina {
     End(Peer),
 
     #[state_machine_future(error)]
-    MachinaError(std::io::Error),
+    MachinaError(errors::Error),
 }
 
 impl PollMachina for Machina {
-    fn poll_welcome<'a>(
-        peer: &'a mut RentToOwn<'a, Welcome>,
-    ) -> Poll<AfterWelcome, std::io::Error> {
+    fn poll_handshake<'a>(
+        state: &'a mut RentToOwn<'a, Handshake>,
+    ) -> Poll<AfterHandshake, errors::Error> {
         //peer.0.lines.buffer(b"WELCOME\r\n");
         //let _ = peer.0.lines.poll_flush()?;
         //let _ = peer.0.lines.poll_flush()?; // to make sure
         //d!("sent WELCOME");
 
-        transition!(Standby(peer.take().0))
+        d!();
+        let (mut peer, mut version_msg) = try_ready!(state.0.poll());
+d!();
+
+        // let (mut peer, mut version_msg) = match ok_some!(state.0.poll()) {
+        //     Some(tuple) => tuple,
+        //     None => return Ok(Async::NotReady),
+        // };
+
+        // let peer = peer.take();
+        peer.version = Some(version_msg);
+
+        let (mut peer, orx_gh) = worker_request!(peer, WorkerRequest::NewGetHeaders, 100);
+d!();
+        if let WorkerResponse::GetHeaders(gh) = orx_gh.wait().expect(&ff!()) {
+d!("{:?}", gh);
+            // sends get_headers
+            peer.codec.buffer(&gh.into_bytes().expect(&ff!()));
+            peer.codec.poll_flush()?;
+d!("sent getheaders");
+            let next = Standby(peer);
+            transition!(next)
+        } else {
+d!();
+            bail!("Error on Worker Response");
+        };
+        // transition!(Standby(peer.take().0))
     }
 
     fn poll_standby<'a>(
         peer: &'a mut RentToOwn<'a, Standby>,
-    ) -> Poll<AfterStandby, std::io::Error> {
+    ) -> Poll<AfterStandby, errors::Error> {
         d!("poll standby");
         /*
         defmac!(prepare_transition mut state_peer, wr, priority => {
@@ -106,10 +180,7 @@ impl PollMachina for Machina {
                         peer.0.codec.buffer(&raw_msg);
                         let _ = peer.0.codec.poll_flush()?;
                     }
-                    PeerRequest::HandShake(_raw_msg) => {
-
-                    }
-                    
+                    PeerRequest::HandShake(_raw_msg) => {}
                 }
             } else {
                 break;
@@ -117,8 +188,11 @@ impl PollMachina for Machina {
         }
 
         d!("Before polling codec");
-        while let Some(msg) = try_ready!(peer.0.codec.poll()) {
-            i!("Message received:\n{:?}", msg);
+        while let Some(_msg) = try_ready!(peer.0.codec.poll()) {
+            i!("Message received (but ignored for now):");
+
+
+            // TODO: verify message type and transition and stuff
         }
         // Err(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "Peer connection aborted."))
         panic!("Peer connection aborted.");
@@ -126,7 +200,7 @@ impl PollMachina for Machina {
 
     fn poll_simple_wait<'a>(
         state: &'a mut RentToOwn<'a, SimpleWait>,
-    ) -> Poll<AfterSimpleWait, std::io::Error> {
+    ) -> Poll<AfterSimpleWait, errors::Error> {
         d!("SimpleWait pool called");
 
         let resp;
@@ -158,7 +232,7 @@ impl PollMachina for Machina {
 
     fn poll_self_remove<'a>(
         state: &'a mut RentToOwn<'a, SelfRemove>,
-    ) -> Poll<AfterSelfRemove, std::io::Error> {
+    ) -> Poll<AfterSelfRemove, errors::Error> {
         d!("Entered self_remove state!");
         state.0.poll_ignored();
         if state.0.rx_ignored.len() > 0 {
@@ -177,4 +251,4 @@ impl PollMachina for Machina {
         let next = End(state.0); //Calling this simplewait???
         transition!(next);
     }
-}//
+} //

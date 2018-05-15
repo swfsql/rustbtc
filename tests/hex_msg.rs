@@ -62,22 +62,22 @@ fn ping_payload() {
 #[test]
 fn headers_payload() {
     let headers_pl_hex = "\
-                        01\
-                        02000000\
-                        b6ff0b1b1680a2862a30ca44d346d9e8\
-                        910d334beb48ca0c0000000000000000\
-                        9d10aa52ee949386ca9385695f04ede2\
-                        70dda20810decd12bc9b048aaab31471\
-                        24d95a54\
-                        30c31b18\
-                        fe9f0864\
-                        00\
-                       ";
+                          01\
+                          02000000\
+                          b6ff0b1b1680a2862a30ca44d346d9e8\
+                          910d334beb48ca0c0000000000000000\
+                          9d10aa52ee949386ca9385695f04ede2\
+                          70dda20810decd12bc9b048aaab31471\
+                          24d95a54\
+                          30c31b18\
+                          fe9f0864\
+                          00\
+                          ";
     let expected = "\
                     Ping:\n\
                     ├ Nonce: 5597941425041871872\n\
                     ";
-    
+
     let payload_vec: Result<Vec<u8>> =
         Vec::from_hex(headers_pl_hex.trim()).chain_err(cf!("Fail in hex -> Vec<u8>"));
     // let payload_vec: Vec<u8> = payload_vec.clone().expect(&payload_vec.unwrap_err().display_chain().to_string());

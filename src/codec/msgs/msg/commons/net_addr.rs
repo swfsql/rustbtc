@@ -10,8 +10,8 @@ mod errors {
 }
 use errors::*;
 //use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
-use std::net::{SocketAddr, IpAddr};
 use std::convert::From;
+use std::net::{IpAddr, SocketAddr};
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;

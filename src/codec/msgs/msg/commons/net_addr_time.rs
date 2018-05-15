@@ -1,7 +1,7 @@
 //use arrayvec::ArrayVec;
 //use codec::msgs::msg::commons::bytes::Bytes;
-use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 use codec::msgs::msg::commons::net_addr::NetAddr;
+use codec::msgs::msg::commons::new_from_hex::NewFromHex;
 //use std;
 //use std::fmt;
 use std::io::Cursor;
@@ -17,13 +17,13 @@ use errors::*;
 //use std::net::{IpAddr, Ipv4Addr,Ipv6Addr, SocketAddr};
 use std::net::SocketAddr;
 
-use byteorder::{ LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use codec::msgs::msg::commons::into_bytes::IntoBytes;
 
 // falta pub time: u32
 // https://en.bitcoin.it/wiki/Protocol_documentation#Network_address
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct NetAddrTime {
     /*A time in Unix epoch time format. 
     Nodes advertising their own IP address set this to the current time. 
@@ -46,27 +46,24 @@ impl NewFromHex for NetAddrTime {
             .read_u32::<LittleEndian>()
             .chain_err(cf!("Error at u64 parse for service for value {:?}", aux))?;
         let net_addr = NetAddr::new(it.by_ref())?;
-        
-        Ok(NetAddrTime { time,net_addr})
+
+        Ok(NetAddrTime { time, net_addr })
     }
 }
 
 impl NetAddrTime {
     pub fn from_socket_addr(addr: &SocketAddr) -> NetAddrTime {
-
         let time = Utc::now().timestamp() as u32;
         let net_addr = NetAddr::from_socket_addr(addr);
-        (NetAddrTime {time, net_addr})
+        (NetAddrTime { time, net_addr })
     }
 }
 
 impl IntoBytes for NetAddrTime {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
-        wtr.write_u32::<LittleEndian>(self.time).chain_err(cf!(
-            "Failure to convert time ({}) into byte vec",
-            self.time
-        ))?;
+        wtr.write_u32::<LittleEndian>(self.time)
+            .chain_err(cf!("Failure to convert time ({}) into byte vec", self.time))?;
 
         wtr.append(&mut self.net_addr.into_bytes()?);
 
