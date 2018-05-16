@@ -10,7 +10,7 @@ pub mod machina;
 pub struct Peer {
     codec: Msgs,
     rx_ignored: Vec<RxOne>,
-    _tx_req: TxMpsc,
+    tx_req: TxMpsc,
     tx_sched: TxMpscMainToSched,
     rx_router: RxMpscRouterToPeer,
     actor_id: ActorId,
@@ -29,7 +29,7 @@ impl Peer {
         Peer {
             codec: Msgs::new(socket),
             rx_ignored: Vec::new(),
-            _tx_req: tx_req,
+            tx_req: tx_req,
             tx_sched: tx_sched,
             rx_router: rx_router,
             actor_id,

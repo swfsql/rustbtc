@@ -42,6 +42,7 @@ impl NewFromHex for Header {
             .take(12)
             .cloned()
             .collect::<ArrayVec<[u8; 12]>>();
+
         
         let cmd_bytes = cmd.clone().into_iter().collect::<Bytes>();
         let cmd = cmd::Cmd::new(cmd).ok_or(ff!("Error: Error when reading cmd: <{:?}>", cmd_bytes))?;

@@ -57,16 +57,16 @@ use macros::*;
 
 
 
-defmac!(worker_request mut state_peer, wr, priority => {
-    let wrp = WorkerRequestPriority(wr, priority);
-    let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>>>();
-    let actor_id = state_peer.actor_id;
-    let addr = AddrReqId(actor_id, state_peer.next_request_counter());
-    let wrc = WorkerRequestContent(wrp, otx, addr);
-    state_peer._tx_req.unbounded_send(Box::new(wrc))
-        .expect(&ff!());
-    (state_peer, orx.and_then(|i| Ok(i.expect(&ff!()).0)))
-});
+// defmac!(worker_request mut state_peer, wr, priority => {
+//     let wrp = WorkerRequestPriority(wr, priority);
+//     let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>>>();
+//     let actor_id = state_peer.actor_id;
+//     let addr = AddrReqId(actor_id, state_peer.next_request_counter());
+//     let wrc = WorkerRequestContent(wrp, otx, addr);
+//     state_peer._tx_req.unbounded_send(Box::new(wrc))
+//         .expect(&ff!());
+//     (state_peer, orx.and_then(|i| Ok(i.expect(&ff!()).0)))
+// });
 
 
 macro_rules! ok_some {
@@ -127,6 +127,7 @@ d!();
 d!();
         if let WorkerResponse::GetHeaders(gh) = orx_gh.wait().expect(&ff!()) {
 d!("{:?}", gh);
+d!("{:?}", gh.into_bytes());
             // sends get_headers
             peer.codec.buffer(&gh.into_bytes().expect(&ff!()));
             peer.codec.poll_flush()?;

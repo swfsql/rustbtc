@@ -195,7 +195,7 @@ fn run() -> Result<()> {
             .next()
             .expect("Error when generating new log path")
     };
-    println!("{:?}", &available_log_path);
+    //println!("{:?}", &available_log_path);
 
     fern::Dispatch::new()
         // Perform allocation-free log formatting

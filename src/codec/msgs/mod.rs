@@ -32,6 +32,32 @@ impl Msgs {
     }
 
     pub fn poll_flush(&mut self) -> Poll<(), io::Error> {
+        d!("pool flush called");
+
+
+        // Ok([249, 190, 180, 217, g 103, e 101, t 116, h 104, e 101, a 97, d 100, e 101, r 114, s 115, 
+        // - 0, - 0, - 0, - 0, - 0, - 0, 5D 93, F6 246, e0 224, e2 226])
+        // b"\xf9\xbe\xb4\xd9getheaders\0\0\0\0\0\0]\xf6\xe0\xe2"
+
+
+
+
+
+        
+        {
+            let mut outs = self.wr.clone();
+            d!("{:?}", outs);
+            while(!outs.is_empty()) {
+                let header = Header::new(outs.iter().take(24)).expect(&ff!());
+                let msg = msg::Msg::new(
+                    outs
+                        .split_to(header.payload_len as usize + 24usize)
+                        .iter(),
+                ).expect(&ff!());
+                d!("Sending Message on Peer Socket:\n{:?}", &msg);
+            }
+        }
+        
         while !self.wr.is_empty() {
             let n = try_ready!(self.socket.poll_write(&self.wr));
             assert!(n > 0);
@@ -84,7 +110,7 @@ impl Stream for Msgs {
                 .split_to(header.payload_len as usize + 24usize)
                 .iter(),
         ).expect(&ff!());
-        d!("finished building msg:\n{:?}", &msg);
+        d!("Finished building msg recieved:\n{:?}", &msg);
 
         if sock_closed {
             Ok(Async::Ready(None))

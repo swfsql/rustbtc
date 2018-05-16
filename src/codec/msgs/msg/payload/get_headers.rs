@@ -32,7 +32,7 @@ impl NewFromHex for GetHeaders {
         I: IntoIterator<Item = &'a u8>,
     {
         let mut it = it.into_iter();
-        let aux = it.by_ref().take(3).cloned().collect::<Vec<u8>>();
+        let aux = it.by_ref().take(4).cloned().collect::<Vec<u8>>();
         let version = Cursor::new(&aux)
             .read_i32::<LittleEndian>()
             .chain_err(cf!("Error read to version as i32 for value {:?}", aux))?;

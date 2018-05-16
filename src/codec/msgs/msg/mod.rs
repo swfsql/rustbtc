@@ -13,7 +13,8 @@ use std::fmt;
 //use codec::msgs::msg::commons::params::Network;
 use codec::msgs::msg::payload::version::Version;
 use codec::msgs::msg::payload::Payload;
-
+use arrayvec::ArrayVec;
+use codec::msgs::msg::commons::var_uint::VarUint;
 use chrono::Utc;
 use rand;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
@@ -73,17 +74,41 @@ impl Msg {
     }
 
     pub fn new_get_headers() -> Msg {
-        let get_headers_pl_raw = [];
+
+        let version = 70013_i32;
+        let hash_count = VarUint::from_bytes(&[1u8]);
+        let mut hash_genesis: ArrayVec<[u8; 32]> = ArrayVec::new();
+        (0..32).for_each(|_| hash_genesis.push(0));
+        hash_genesis.clone_from_slice(&
+            [0x00, 0x00, 0x00, 0x00,  0x00, 0x19, 0xd6, 0x68,
+            0x9c, 0x08, 0x5a, 0xe1,  0x65, 0x83, 0x1e, 0x93,
+            0x4f, 0xf7, 0x63, 0xae,  0x46, 0xa2, 0xa6, 0xc1,
+            0x72, 0xb3, 0xf1, 0xb6,  0x0a, 0x8c, 0xe2, 0x6f]);
+        let block_locator_hashes: Vec<ArrayVec<[u8; 32]>> = vec![hash_genesis];
+        let mut hash_stop: ArrayVec<[u8; 32]> = ArrayVec::new();
+        (0..32).for_each(|_| hash_stop.push(0));
+        // hash_stop.clone_from_slice(&[0; 32]);
+
+        let payload = payload::get_headers::GetHeaders {
+            version,
+            hash_count,
+            block_locator_hashes,
+            hash_stop,
+        };
+
+        let get_headers_pl_raw = payload.into_bytes().expect(&ff!());
+
         let get_headers_header = header::Header {
             network: header::network::Network::Main,
             cmd: header::cmd::Cmd::GetHeaders,
             payload_len: get_headers_pl_raw.len() as i32,
             payloadchk: Msg::chk(&get_headers_pl_raw[..]).expect(&ff!()),
-        };
+        };  
+
 
         Msg {
             header: get_headers_header,
-            payload: None,
+            payload: Some(Payload::GetHeaders(payload)),
         }
     }
 

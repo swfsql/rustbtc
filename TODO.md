@@ -4,15 +4,6 @@ MACHINA:
     worker/ version & verack
     admin/ get_headers, 
 
-
--> fazer newversion
--> fazer newverack
-
--> fazer getheaders
--> receber headers
-
-102, 101, 101, 102, 105, 108, 116, 101, 114, 0, 0, 0
-
 ----
 máquinas.. do bchain
 ...

@@ -10,6 +10,9 @@ use actor::commons::{RxOne, TxMpscMainToSched};
 pub mod args;
 pub mod machina;
 //use::macros;
+use futures::AndThen;
+
+
 
 pub struct Peer {
     codec: Lines,
