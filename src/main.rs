@@ -185,7 +185,7 @@ fn run() -> Result<()> {
         let ext = path.extension().expect("Error to extract log path file extension");
         let stem = path.file_stem().expect("Error to extract log path file stem");
         let parent = path.parent().expect("Error to extract log path file parent");
-        let mut next = path;
+        //let mut next = path;
         (1..)
             .map(|i| parent.join(format!("{}.{}.{}", 
                 stem.to_string_lossy().to_string(), 

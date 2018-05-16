@@ -2,8 +2,8 @@ use std::net::SocketAddr;
 //use std::thread;
 
 //use tokio::io;
-use futures;
-use futures::sync::{mpsc, oneshot};
+//use futures;
+//use futures::sync::{mpsc, oneshot};
 //use futures::future::{select_all, Either};
 
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ use actor::commons::{
     RxMpscSf, TxMpscMainToSched, TxMpscRouterToPeer, TxOne, TxOneWorkerToBlockChain,
     TxOneWorkerToRouter, TxRegOne,
 };
-use codec;
+//use codec;
 use codec::msgs::msg::Msg;
 use errors::*;
 use std;

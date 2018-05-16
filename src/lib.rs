@@ -32,8 +32,6 @@ extern crate structopt;
 #[macro_use]
 pub mod macros;
 
-//#[macro_use]
-//extern crate defmac;
 
 pub mod actor;
 pub mod blockchain;

@@ -26,9 +26,13 @@ pub enum Cmd {
     GetAddr,
     Addr,
     GetData,
+    GetBlocks,
     Block,
     Inv,
     NotFound,
+    FeeFilter,
+    MemPool,
+    Reject,
 }
 
 mod cmd_value {
@@ -46,6 +50,10 @@ mod cmd_value {
     pub const GETDATA: &[u8] = b"getdata\0\0\0\0\0";
     pub const INV: &[u8] = b"add\0\0\0\0\0\0\0\0\0";
     pub const NOTFOUND: &[u8] = b"notfound\0\0\0\0";
+    pub const GETBLOCKS: &[u8] = b"getblocks\0\0\0";
+    pub const FEEFILTER: &[u8] = b"feefilter\0\0\0";
+    pub const MEMPOOL: &[u8] = b"mempool\0\0\0\0\0";
+    pub const REJECT: &[u8] = b"reject\0\0\0\0\0\0";
 }
 
 impl Cmd {
@@ -65,6 +73,10 @@ impl Cmd {
             cmd_value::INV => Some(Cmd::Inv),
             cmd_value::BLOCK => Some(Cmd::Block),
             cmd_value::NOTFOUND => Some(Cmd::NotFound),
+            cmd_value::FEEFILTER => Some(Cmd::FeeFilter),
+            cmd_value::GETBLOCKS => Some(Cmd::GetBlocks),
+            cmd_value::MEMPOOL => Some(Cmd::MemPool),
+            cmd_value::REJECT => Some(Cmd::Reject),
             _ => None,
         }
     }
@@ -82,9 +94,13 @@ impl Cmd {
             Cmd::GetAddr => cmd_value::GETADDR,
             Cmd::Addr => cmd_value::ADDR,
             Cmd::GetData => cmd_value::GETDATA,
+            Cmd::GetBlocks => cmd_value::GETBLOCKS,
             Cmd::Block => cmd_value::BLOCK,
             Cmd::Inv => cmd_value::INV,
             Cmd::NotFound => cmd_value::NOTFOUND,
+            Cmd::FeeFilter => cmd_value::FEEFILTER,
+            Cmd::MemPool => cmd_value::MEMPOOL,
+            Cmd::Reject => cmd_value::REJECT,
         };
         bytes.iter().cloned().collect::<ArrayVec<[u8; 12]>>()
     }
@@ -105,8 +121,12 @@ impl std::fmt::Debug for Cmd {
             Cmd::Addr => format!("Cmd::Addr <{:?}>\n", self.value()),
             Cmd::GetData => format!("Cmd::GetData <{:?}>\n", self.value()),
             Cmd::Inv => format!("Cmd::Inv <{:?}>\n", self.value()),
+            Cmd::GetBlocks => format!("Cmd::GetBlocks <{:?}>\n", self.value()),
             Cmd::Block => format!("Cmd::Block <{:?}>\n", self.value()),
             Cmd::NotFound => format!("Cmd::NotFound <{:?}>\n", self.value()),
+            Cmd::FeeFilter => format!("Cmd::FeeFilter <{:?}>\n", self.value()),
+            Cmd::MemPool => format!("Cmd::MemPool <{:?}>\n", self.value()),
+            Cmd::Reject => format!("Cmd::Reject <{:?}>\n", self.value()),
         };
         write!(f, "{}", s)
     }

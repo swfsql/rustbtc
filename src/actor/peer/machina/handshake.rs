@@ -9,7 +9,7 @@ pub mod errors {
     }
 }
 use errors::*;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{ SocketAddr};
 
 use state_machine_future::RentToOwn;
 use tokio::prelude::*;
@@ -50,28 +50,6 @@ pub enum Machina {
     Error(errors::Error),
 }
 
-// macro_rules! ok_some {
-//     ($e:expr) => {
-//         match $e {
-//             // Ok(Async::Ready(t)) => Some(t),
-//             Ok(Async::Ready(Some(t))) => Some(t),
-//             Ok(Async::NotReady) => None,
-//             Ok(Async::Ready(None)) => bail!("aborted"),
-//             Err(e) => bail!("Error on ok_ready: {:?}", e), //Err(From::from(e)),
-//         }
-//     };
-// }
-
-// defmac!(worker_request mut state_peer, wr, priority => {
-//     let wrp = WorkerRequestPriority(wr, priority);
-//     let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>>>();
-//     let actor_id = state_peer.actor_id;
-//     let addr = AddrReqId(actor_id, state_peer.next_request_counter());
-//     let wrc = WorkerRequestContent(wrp, otx, addr);
-//     state_peer._tx_req.unbounded_send(Box::new(wrc))
-//         .expect(&ff!());
-//     (state_peer, orx.and_then(|i| Ok(i.expect(&ff!()).0)))
-// });
 
 impl PollMachina for Machina {
     fn poll_start<'a>(state: &'a mut RentToOwn<'a, Start>) -> Poll<AfterStart, errors::Error> {

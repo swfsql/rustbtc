@@ -73,6 +73,7 @@ impl Msg {
         }
     }
 
+    //TODO: Add parameters on get_headers
     pub fn new_get_headers() -> Msg {
 
         let version = 70013_i32;
@@ -239,6 +240,22 @@ impl NewFromHex for Msg {
                     .chain_err(cf!("Error at creating NotFound"))?;
                 Some(payload::Payload::NotFound(not_found))
             }
+            header::cmd::Cmd::FeeFilter => {
+                let fee_filter = payload::fee_filter::FeeFilter::new(it_pl)
+                    .chain_err(cf!("Error at creating FeeFilter"))?;
+                Some(payload::Payload::FeeFilter(fee_filter))
+            }
+            header::cmd::Cmd::GetBlocks => {
+                let get_blocks = payload::get_blocks::GetBlocks::new(it_pl)
+                    .chain_err(cf!("Error at creating GetBlocks"))?;
+                Some(payload::Payload::GetBlocks(get_blocks))
+            }
+            header::cmd::Cmd::MemPool => Some(payload::Payload::MemPool),
+            header::cmd::Cmd::Reject => {
+                let reject = payload::reject::Reject::new(it_pl)
+                    .chain_err(cf!("Error at creating Reject"))?;
+                Some(payload::Payload::Reject(reject))
+            }
         };
         // header.payload_len // TODO
         Ok(Msg { header, payload })
@@ -264,8 +281,12 @@ impl std::fmt::Debug for Msg {
                 payload::Payload::Addr(ref addr) => format!("{:?}", addr),
                 payload::Payload::GetData(ref get_data) => format!("{:?}", get_data),
                 payload::Payload::Inv(ref inv) => format!("{:?}", inv),
+                payload::Payload::GetBlocks(ref get_blocks) => format!("{:?}", get_blocks),
                 payload::Payload::Block(ref block) => format!("{:?}", block),
                 payload::Payload::NotFound(ref not_found) => format!("{:?}", not_found),
+                payload::Payload::FeeFilter(ref fee_filter) => format!("{:?}", fee_filter),
+                payload::Payload::MemPool => "MemPool".into(),
+                payload::Payload::Reject(ref reject) => format!("{:?}", reject),
             },
             None => "None".to_string(),
         }.lines()
@@ -290,10 +311,14 @@ impl IntoBytes for Msg {
                 &payload::Payload::Headers(ref headers) => headers.into_bytes()?,
                 &payload::Payload::GetAddr => vec![],
                 &payload::Payload::Addr(ref addr) => addr.into_bytes()?,
+                &payload::Payload::GetBlocks(ref get_block) => get_block.into_bytes()?,
                 &payload::Payload::Block(ref block) => block.into_bytes()?,
                 &payload::Payload::GetData(ref get_data) => get_data.into_bytes()?,
                 &payload::Payload::Inv(ref inv) => inv.into_bytes()?,
                 &payload::Payload::NotFound(ref not_found) => not_found.into_bytes()?,
+                &payload::Payload::FeeFilter(ref fee_filter) => fee_filter.into_bytes()?,
+                &payload::Payload::MemPool => vec![],
+                &payload::Payload::Reject(ref reject) => reject.into_bytes()?,
             },
             None => vec![],
         };

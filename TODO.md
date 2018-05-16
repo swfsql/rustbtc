@@ -19,13 +19,10 @@ fazer alguma validação de blocos,
 ...
 
 CODEC:
-	feefilter
-	reject
-	mempool
-
-	getblocks
-	merkleblock
 	blocktxn
 	getblocktxn
+	
+	merkleblock
+
 	sendcmpctblock
 	cmpctblock

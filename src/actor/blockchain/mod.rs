@@ -9,6 +9,7 @@ use actor::commons::{RxMpscWorkerToBlockChain, TxMpsc};
 pub mod machina;
 
 pub struct Blockchain {
+    //TODO Blockchain && blockheaders
     tx_bchain_to_sched: TxMpsc,
     rx_worker_to_bchain: RxMpscWorkerToBlockChain,
 }

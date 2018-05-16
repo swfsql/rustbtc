@@ -1,4 +1,5 @@
 pub mod addr;
+pub mod get_blocks;
 pub mod block;
 pub mod get_data;
 pub mod get_headers;
@@ -9,6 +10,8 @@ pub mod ping;
 pub mod pong;
 pub mod tx;
 pub mod version;
+pub mod fee_filter;
+pub mod reject;
 //use codec::msgs::msg::commons::into_bytes::IntoBytes;
 //use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
@@ -25,9 +28,13 @@ pub enum Payload {
     GetAddr,
     Addr(addr::Addr),
     GetData(get_data::GetData),
+    GetBlocks(get_blocks::GetBlocks),
     Block(block::Block),
     Inv(inv::Inv),
     NotFound(not_found::NotFound),
+    FeeFilter(fee_filter::FeeFilter),
+    MemPool,
+    Reject(reject::Reject)
 }
 
 /*

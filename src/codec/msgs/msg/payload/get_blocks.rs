@@ -19,15 +19,15 @@ use errors::*;
 // https://bitcoin.org/en/developer-reference#ping
 
 #[derive(Clone, Debug)]
-pub struct GetHeaders {
+pub struct GetBlocks {
     pub version: i32,
     pub hash_count: VarUint,
     pub block_locator_hashes: Vec<ArrayVec<[u8; 32]>>,
     pub hash_stop: ArrayVec<[u8; 32]>,
 }
 
-impl NewFromHex for GetHeaders {
-    fn new<'a, I>(it: I) -> Result<GetHeaders>
+impl NewFromHex for GetBlocks {
+    fn new<'a, I>(it: I) -> Result<GetBlocks>
     where
         I: IntoIterator<Item = &'a u8>,
     {
@@ -60,7 +60,7 @@ impl NewFromHex for GetHeaders {
             .cloned()
             .collect::<ArrayVec<[u8; 32]>>();
 
-        Ok(GetHeaders {
+        Ok(GetBlocks {
             version,
             hash_count,
             block_locator_hashes,
@@ -69,7 +69,7 @@ impl NewFromHex for GetHeaders {
     }
 }
 
-impl IntoBytes for GetHeaders {
+impl IntoBytes for GetBlocks {
     fn into_bytes(&self) -> Result<Vec<u8>> {
         let mut wtr = vec![];
 

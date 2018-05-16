@@ -47,7 +47,7 @@ impl Msgs {
         {
             let mut outs = self.wr.clone();
             d!("{:?}", outs);
-            while(!outs.is_empty()) {
+            while !outs.is_empty() {
                 let header = Header::new(outs.iter().take(24)).expect(&ff!());
                 let msg = msg::Msg::new(
                     outs

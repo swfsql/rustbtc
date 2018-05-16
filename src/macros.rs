@@ -34,18 +34,6 @@ macro_rules! worker_request {
     }
 }}
 
-// defmac!(worker_request mut state_peer, wr, priority => {
-//     let wrp = WorkerRequestPriority(wr, priority);
-//     let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>>>();
-//     let actor_id = state_peer.actor_id;
-//     let addr = AddrReqId(actor_id, state_peer.next_request_counter());
-//     let wrc = WorkerRequestContent(wrp, otx, addr);
-//     state_peer._tx_req.unbounded_send(Box::new(wrc))
-//         .expect(&ff!());
-//     (state_peer, orx.and_then(|i| Ok(i.expect(&ff!()).0)))
-// });
-
-
 #[macro_export]
 macro_rules! cf {
     () =>(|| {format!("[{}:{}] ",file!()[3..].to_string(),line!())});

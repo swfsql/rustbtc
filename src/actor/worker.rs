@@ -14,8 +14,8 @@ use tokio::prelude::*;
 //use rand::{Rng, thread_rng};
 //use admin;
 use actor::peer;
-use codec;
-use codec::msgs::msg;
+//use codec;
+//use codec::msgs::msg;
 use codec::msgs::msg::Msg;
 use futures::sync::oneshot;
 

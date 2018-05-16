@@ -13,7 +13,7 @@ pub use errors::*;
 
 
 
-use std;
+//use std;
 
 use tokio::prelude::*;
 
@@ -55,32 +55,6 @@ use hex::ToHex;
 use macros::*;
 */
 
-
-
-// defmac!(worker_request mut state_peer, wr, priority => {
-//     let wrp = WorkerRequestPriority(wr, priority);
-//     let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>>>();
-//     let actor_id = state_peer.actor_id;
-//     let addr = AddrReqId(actor_id, state_peer.next_request_counter());
-//     let wrc = WorkerRequestContent(wrp, otx, addr);
-//     state_peer._tx_req.unbounded_send(Box::new(wrc))
-//         .expect(&ff!());
-//     (state_peer, orx.and_then(|i| Ok(i.expect(&ff!()).0)))
-// });
-
-
-macro_rules! ok_some {
-    ($e:expr) => {
-        match $e {
-            // Ok(Async::Ready(t)) => Some(t),
-            Ok(Async::Ready(Some(t))) => Some(t),
-            Ok(Async::NotReady) => None,
-            Ok(Async::Ready(None)) => bail!("aborted"),
-            Err(e) => bail!("Error on ok_ready: {:?}", e), //Err(From::from(e)),
-        }
-    };
-}
-
 #[derive(StateMachineFuture)]
 pub enum Machina {
     #[state_machine_future(start, transitions(Standby))]
@@ -112,7 +86,7 @@ impl PollMachina for Machina {
         //d!("sent WELCOME");
 
         d!();
-        let (mut peer, mut version_msg) = try_ready!(state.0.poll());
+        let (mut peer, version_msg) = try_ready!(state.0.poll());
 d!();
 
         // let (mut peer, mut version_msg) = match ok_some!(state.0.poll()) {
@@ -145,17 +119,6 @@ d!();
         peer: &'a mut RentToOwn<'a, Standby>,
     ) -> Poll<AfterStandby, errors::Error> {
         d!("poll standby");
-        /*
-        defmac!(prepare_transition mut state_peer, wr, priority => {
-            let wrp = WorkerRequestPriority(wr, priority);
-            let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-            let skt = state_peer.lines.socket.peer_addr().unwrap();
-            let addr = AddrReqId(skt, state_peer.next_request_counter());
-            let wrc = WorkerRequestContent(wrp, otx, addr);
-            state_peer.tx_req.unbounded_send(Box::new(wrc)).unwrap();
-            (state_peer, orx)
-        });
-        */
 
         peer.0.poll_ignored();
 

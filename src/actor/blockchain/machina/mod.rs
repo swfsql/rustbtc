@@ -69,15 +69,7 @@
 //     ) -> Poll<AfterStandby, std::io::Error> {
 //         d!("poll standby");
 //         /*
-//         defmac!(prepare_transition mut state_peer, wr, priority => {
-//             let wrp = WorkerRequestPriority(wr, priority);
-//             let (otx, orx) = oneshot::channel::<Result<Box<WorkerResponseContent>, _>>();
-//             let skt = state_peer.lines.socket.peer_addr().unwrap();
-//             let addr = AddrReqId(skt, state_peer.next_request_counter());
-//             let wrc = WorkerRequestContent(wrp, otx, addr);
-//             state_peer.tx_req.unbounded_send(Box::new(wrc)).unwrap();
-//             (state_peer, orx)
-//         });
+
 //         */
 
 //         peer.0.poll_ignored();
