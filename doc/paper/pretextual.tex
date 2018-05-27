@@ -1,0 +1,97 @@
+% Os elementos a seguir aparecerão antes do início do artigo em si.
+
+% Espaçamento de 1,5cm por linha
+\OnehalfSpacing
+
+% Capa
+\imprimircapa
+
+% Folha de rosto
+\imprimirfolhaderosto
+
+% Folha de aprovação
+% COMANDO EXCLUSIVO DA ABNTEX2UNIFEI.
+\imprimirfolhadeaprovacao{Este Trabalho de Pesquisa foi julgado, como requisito parcial, para aprovação na disciplina Trabalho Final de Graduação da Engenharia da Computação da Universidade Federal de Itajubá – \textit{campus} Itabira.}
+
+
+% Espaço reservado a dedicatórias
+%\begin{dedicatoria}
+%\null
+%\vfill
+%Espaço reservado à dedicatória, elemento opcional destinado a homenagear %pessoas importantes na vida do autor do trabalho.
+%\end{dedicatoria}
+
+
+% Agradecimentos
+\begin{agradecimentos}[Agradecimentos]
+Aos professores e demais do corpo discente da faculdade pelo conhecimento proporcionado ao longo de vários anos. Conhecimento técnico, profissional e também pessoal, que auxiliou na forma como entendemos e enxergamos o mundo--uma via de mão dupla. E especialmente ao professor Paulo, pela paciência e orientação a nós e ao projeto, inclusive pelos conteúdos lecionados que se relacionam com o tema deste trabalho.
+\end{agradecimentos}
+
+% Epígrafe
+%\begin{epigrafe}
+%\null
+%\vfill
+%Espaço reservado à epígrafe, elemento opcional, elaborado conforme a ABNT NBR 10520, em que se transcreve uma citação literal, com autoria, referente ao assunto abordado no trabalho.
+%\end{epigrafe}
+
+
+% Resumo
+\begin{resumo}
+O \textit{Bitcoin Core}, nodo mais popular de \textit{Bitcoin}, está sendo modificados para que possua uma menor quantidade de bloqueios de execução concorrente. Devido este tipo de modificação ser delicado e devido a necessidade da execução paralela, que resultaria em um maior uso da capacidade total das computadores de múltiplos núcleos, é desejável que exista uma implementação alternativa do nodo que tenha garantias de segurança de memória. Tais garantias são inerentes à linguagem \textit{Rust}, que com conceitos incomuns, oferece ferramentas que, em tempo de compilação, previnem algumas classes de erros de memória, como \textit{data-races} e \textit{use-after-free}.
+Pretende-se compreender os conceitos gerais em torno do ecossistema do \textit{Bitcoin}, da sua \textit{Blockchain} e em torno do funcionamento de um nodo de uma rede P2P, para que o nodo possa ser planejado, implementado e utilizado, realizando o \textit{download} da \textit{Blockchain} e fazendo parte da rede da criptomoeda.
+
+Palavras-chave: \textit{Actor Model}. \textit{Bitcoin}. Nodo. P2P. \textit{Rust}.
+\end{resumo}
+
+\begin{resumo}[Abstract]
+The Bitcoin Core, the most popular Bitcoin node, is being changed in order to have fewer concurrent excecution thread blocks. Due this type of modification being delicated, and due to the parallel execution needed, which results in a higher usage from a multicore computer's total capacity, it is desired that there is an alternative node implementation that offers memory-safety guarantees when concurrent access are being made.
+Such guarantees are inherent to the Rust language, which with uncommon concepts, offers tools that, in compile time, prevent some memory class errors, such as data-races and use-after-free.
+It is intended to comprehend the overall concepts related to the Bitcoin ecosystem, it's Blockchain and a P2P node's function in order to plan, implement and utilize a new node, whereas it will be able to download the Blockchain and be part of the crypto's network.
+
+Keywords: Actor Model. Bitcoin. Node. P2P. Rust.
+
+\end{resumo}
+
+
+% Lista de Figuras
+\pdfbookmark[0]{\listfigurename}{lof}
+\listoffigures*
+\cleardoublepage
+
+% Lista de Tabelas
+%\pdfbookmark[0]{\listtablename}{lot}
+%\listoftables*
+%\cleardoublepage
+
+%Lista de Abreviaturas e Siglas
+\begin{siglas}
+    \item[Arc] \textit{Atomic Reference Counter}
+    \item[BTC] \textit{Bitcoin}
+    \item[CPU] \textit{Central Processing Unit}
+    \item[IPC] \textit{Inter Process Communication}
+    \item[MPSC] \textit{Multiple Producer Single Consumer}
+    \item[Mutex] \textit{Mutual Exclusion}
+    \item[P2P] \textit{Peer-to-Peer}
+    \item[QRCode] \textit{Quick Response Code}
+    \item[Rc] \textit{Reference Counter}
+    \item[RIPEMD] \textit{RACE Integrity Primitives Evaluation Message Digest}
+    \item[RwLock] \textit{Reader Writer Lock}
+    \item[SHA] \textit{Secure Hash Algorithm}
+    \item[SPV] \textit{Simple Payment Verification}
+    \item[TCP] \textit{Transmission Control Protocol}
+\end{siglas}
+
+% Lista de Símbolos
+%\begin{simbolos}
+%  \item[$ \Gamma $] Letra grega Gama
+%  \item[$ \Lambda $] Lambda
+%  \item[$ \zeta $] Letra grega minúscula zeta
+%  \item[$ \in $] Pertence
+%  \item[O(n)] Ordem de um algoritmo
+%  \item[©] Copyright
+%\end{simbolos}
+
+% Sumário
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
+\cleardoublepage

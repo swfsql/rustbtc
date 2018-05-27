@@ -1,0 +1,138 @@
+% =========================================================
+%                      ABNTEX2UNIFEI
+% Uma extensão do abntex2 para a Universidade Federal de
+% Itajubá - Campus Itabira.
+%
+% Criado por Lucas Samuel Vieira (luksamuk)
+%            lucas.samuel2002@gmail.com
+%            luksamuk@unifei.edu.br
+%
+% Este projeto é distribuido sob a licença MIT.
+% Contribua com o projeto e reporte bugs em:
+% https://github.com/luksamuk/abntex2unifei
+% =========================================================
+
+
+\ProvidesPackage{abntex2unifei}[2016/04/10 Criacao do pacote]
+
+% ---
+% Outros pacotes necessários
+% ---
+\usepackage{times}          % Pacote para o uso da Times New Roman
+
+% ---
+% Fontes
+% ---
+
+% Sempre usar Times New Roman
+\renewcommand{\sfdefault}{\rmdefault}
+
+% Fonte do título
+\renewcommand{\ABNTEXchapterfontsize}{\bfseries \normalsize }
+% Fonte da seção
+\renewcommand{\ABNTEXsectionfontsize}{\bfseries \normalsize}
+% Fonte de subsubseção
+\renewcommand{\ABNTEXsubsectionfontsize}{\normalsize}
+
+% ---
+% Redefinições da capa
+% ---
+
+\renewcommand{\imprimircapa}{
+\begin{capa}
+\center
+	{\ABNTEXchapterfont\large\MakeUppercase\imprimirinstituicao}
+	
+	\vspace*{2cm}
+	
+	{\ABNTEXchapterfont\large\MakeUppercase\imprimirautor}\noindent\par
+	%\vspace*{5cm}
+	\vfill
+	\begin{minipage}{.5\textwidth}
+		\centering
+		\ABNTEXchapterfont\large\MakeUppercase\imprimirtitulo
+	\end{minipage}
+	\vfill
+	{\large\MakeUppercase\imprimirlocal\\}
+	{\large\imprimirdata}
+\end{capa}
+}
+
+% ---
+% Redefinições da folha de rosto
+% ---
+
+\makeatletter
+
+\renewcommand{\folhaderostocontent}{
+\begin{center}
+{\ABNTEXchapterfont\large\MakeUppercase\imprimirautor}\noindent\par
+
+%\vspace*{10cm}
+\vfill
+\begin{minipage}{.5\textwidth}
+	\centering
+	{\ABNTEXchapterfont\large\MakeUppercase\imprimirtitulo}
+\end{minipage}
+
+\hspace{.45\textwidth}
+  \begin{minipage}{.5\textwidth}
+  	\SingleSpacing
+  	\imprimirpreambulo
+  	\bigskip
+  	\noindent \par Professor Orientador: \imprimirorientador
+  \end{minipage}
+  \vfill
+	{\large\MakeUppercase\imprimirlocal\\}
+	{\large\imprimirdata}
+\end{center}
+}
+
+\makeatother
+
+
+% ---
+% Definição da folha de aprovação
+% ---
+
+\newcommand{\imprimirfolhadeaprovacao}[1] {
+\begin{folhadeaprovacao}
+	\begin{center}
+	
+	
+		{\ABNTEXchapterfont\large\MakeUppercase\imprimirautor}\noindent\par
+		\vspace*{5cm}
+		
+		
+		\begin{minipage}{.5\textwidth}
+			\centering
+			{\ABNTEXchapterfont\large\MakeUppercase\imprimirtitulo}
+		\end{minipage}
+		
+		\hspace{.45\textwidth}
+		\begin{minipage}{.5\textwidth}
+  		\SingleSpacing
+  		#1
+  		\bigskip
+  		\noindent \par Pontuação obtida: \hrulefill
+  		\end{minipage}
+		
+		\vfill
+		{\imprimirlocal, \noindent\rule{8mm}{0.1mm} de \noindent\rule{40mm}{0.1mm} de 2018.}\\
+		\vspace*{2cm}
+		\par\noindent\imprimirorientador\\
+		Professor Orientador\\	
+		
+		\vspace*{3cm}
+		BANCA EXAMINADORA
+		\vspace*{1cm}
+
+		\begin{minipage}{.5\textwidth}
+			\hrulefill
+			\noindent\par\hrulefill
+			\noindent\par\hrulefill
+		\end{minipage}		
+		
+	\end{center}
+\end{folhadeaprovacao}
+}

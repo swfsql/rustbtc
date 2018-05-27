@@ -1,0 +1,99 @@
+
+% Configuração geral
+\include{config}
+
+\usepackage[footnotes,hybrid,underscores=false]{markdown}
+%\usepackage[hybrid]{markdown}
+\markdownSetup{
+	rendererPrototypes={
+    	blockQuoteBegin = {\begin{citacao}},
+        blockQuoteEnd = {\end{citacao}}
+	}
+}
+
+% Compila o indice
+\makeindex
+
+\newcommand{\REF}[1]{\autoref{#1}--\nameref{#1}}
+
+\begin{document}
+
+	% Elementos pré-textuais
+	\pretextual
+	\include{pretextual}
+	
+    % Sumário
+    %\pdfbookmark[0]{\contentsname}{toc}
+    %\tableofcontents*
+
+
+	% Elementos textuais
+	\textual
+	
+	% Inclui fontes não-citadas nas referências,
+	% apenas para que apareçam como exemplo.
+
+    
+    \nocite{acao}
+    \nocite{akka}
+    \nocite{bitnodes}
+    \nocite{dollar}
+    \nocite{pull}
+    \nocite{rust}
+    \nocite{turon}
+    \nocite{tokiors}
+    \nocite{tokio}
+    \nocite{chat}
+    \nocite{scorex}
+    \nocite{struct}
+    \nocite{state}
+    \nocite{sutter}
+    \nocite{peck}
+    \nocite{bis}
+    \nocite{satoshi}
+    \nocite{btcref}
+    \nocite{newbery}
+    \nocite{katz}
+    \nocite{rothbard}
+    \nocite{cura}
+    \nocite{beingessner}
+    \nocite{Yu}
+    \nocite{Antonopoulos}
+    \nocite{Ulrich}
+    \nocite{agha}
+    \nocite{cointele}
+    
+
+
+    \markdownInput{01_00_intro.md}%
+    \markdownInput{01_01_ea.md}%
+    \markdownInput{01_02_nd.md}%
+    \markdownInput{02_00_fund.md}%
+    \markdownInput{02_01_btc.md}%
+    \markdownInput{02_02_rust.md}%
+    \markdownInput{02_03_p2p.md}%
+    \markdownInput{02_04_actor.md}%
+    \markdownInput{02_05_final.md}%
+    \markdownInput{03_00_intro.md}%
+    \markdownInput{03_01_nodo.md}%
+    \markdownInput{03_02_blockchain.md}%
+    \markdownInput{03_03_carteira.md}%
+    \markdownInput{03_04_final.md}%
+    
+
+	% Referencial Teórico
+	%\include{referencialteorico}
+
+	% Metodologia
+	%\include{metodologia}
+	
+	% Conclusão
+	%\include{consideracoesfinais}
+
+
+	% Elementos pós-textuais
+	\postextual
+	\include{postextual}
+
+
+\end{document}

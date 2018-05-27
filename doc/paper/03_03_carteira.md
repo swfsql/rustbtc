@@ -1,0 +1,3 @@
+## Carteira de Bitcoin
+
+Este módulo consistirá em um programa seguro de interface que fornece informações, como histórico de transação e contabilização do saldo, e opções de ações, como transferência de *bitcoins* e a representação dos endereços públicos em código QR, relacionadas às chaves privadas fornecidas ou criadas no programa pelo usuário. Todas as informações ou ações referentes às chaves privadas serão encriptadas por segurança.
