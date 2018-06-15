@@ -24,7 +24,7 @@
 
 % Agradecimentos
 \begin{agradecimentos}[Agradecimentos]
-Aos professores e demais do corpo discente da faculdade pelo conhecimento proporcionado ao longo de vários anos. Conhecimento técnico, profissional e também pessoal, que auxiliou na forma como entendemos e enxergamos o mundo--uma via de mão dupla. E especialmente ao professor Paulo, pela paciência e orientação a nós e ao projeto, inclusive pelos conteúdos lecionados que se relacionam com o tema deste trabalho.
+Aos professores e demais do corpo discente da faculdade pelo conhecimento proporcionado ao longo de vários anos. Conhecimento técnico, profissional e também pessoal, que auxiliou na forma como entendemos e enxergamos o mundo -- uma via de mão dupla. Também ao nosso professor e orientador Paulo, pela paciência e orientação a nós e ao projeto, inclusive pelos conteúdos lecionados que se relacionam com o tema deste trabalho.
 \end{agradecimentos}
 
 % Epígrafe
@@ -37,16 +37,25 @@ Aos professores e demais do corpo discente da faculdade pelo conhecimento propor
 
 % Resumo
 \begin{resumo}
-O \textit{Bitcoin Core}, nodo mais popular de \textit{Bitcoin}, está sendo modificados para que possua uma menor quantidade de bloqueios de execução concorrente. Devido este tipo de modificação ser delicado e devido a necessidade da execução paralela, que resultaria em um maior uso da capacidade total das computadores de múltiplos núcleos, é desejável que exista uma implementação alternativa do nodo que tenha garantias de segurança de memória. Tais garantias são inerentes à linguagem \textit{Rust}, que com conceitos incomuns, oferece ferramentas que, em tempo de compilação, previnem algumas classes de erros de memória, como \textit{data-races} e \textit{use-after-free}.
-Pretende-se compreender os conceitos gerais em torno do ecossistema do \textit{Bitcoin}, da sua \textit{Blockchain} e em torno do funcionamento de um nodo de uma rede P2P, para que o nodo possa ser planejado, implementado e utilizado, realizando o \textit{download} da \textit{Blockchain} e fazendo parte da rede da criptomoeda.
+O \textit{Bitcoin Core}, nodo mais popular de \textit{Bitcoin}, está sendo modificado para que possua uma menor quantidade de bloqueios de execução concorrente. Decorrente deste tipo de modificação ser delicada e da necessidade da execução paralela, que permitiria maior uso da capacidade total dos computadores de múltiplos núcleos, é desejável que exista uma implementação alternativa de nodo que tenha garantias de segurança de memória, uma vez que a detecção e a correção posterior dos erros de execução paralela seriam custosas. Tais garantias são inerentes à linguagem \textit{Rust}, que com conceitos incomuns, oferece ferramentas que, em tempo de compilação, previnem algumas classes de erros de memória, como \textit{data-races} e \textit{use-after-free}.
 
-Palavras-chave: \textit{Actor Model}. \textit{Bitcoin}. Nodo. P2P. \textit{Rust}.
+Pretende-se compreender os conceitos gerais em torno do ecossistema do \textit{Bitcoin}, da sua \textit{Blockchain} e em torno do funcionamento de um nodo de uma rede \textit{P2P}, para que componentes de um nodo possam ser planejados, implementados e utilizados de tal forma que consigam realizar conexões com outros nodos da rede e oferecer uma estrutura inicial de um nodo gerenciável, de modo a facilitar o desenvolvimento de componentes posteriores, que poderão possuir as mesmas características desejáveis de assincronia e segurança.
+
+Para facilitar a execução assíncrona dos componentes, foram implementados \textit{actors} do sistema \textit{Actor Model}, alguns dos quais possuem um comportamento definido por máquinas de estados, em uma topologia de canais de comunicação entre os \textit{actors}.
+
+O programa foi compilado com sucesso e tal resultado indica fortes garantias de segurança, sendo isto devido, principalmente, às garantias inerentes ao compilador da linguagem de programação \textit{Rust}. Também foram feitos testes que corroboram com a assincronicidade dos componentes internos e do comportamento do nodo em relação ao processamento de informação e sua comunicação com a rede.
+
+Palavras-chave: \textit{Actor Model}. \textit{Bitcoin}. Nodo. \textit{P2P}. \textit{Rust}.
 \end{resumo}
 
 \begin{resumo}[Abstract]
-The Bitcoin Core, the most popular Bitcoin node, is being changed in order to have fewer concurrent excecution thread blocks. Due this type of modification being delicated, and due to the parallel execution needed, which results in a higher usage from a multicore computer's total capacity, it is desired that there is an alternative node implementation that offers memory-safety guarantees when concurrent access are being made.
-Such guarantees are inherent to the Rust language, which with uncommon concepts, offers tools that, in compile time, prevent some memory class errors, such as data-races and use-after-free.
-It is intended to comprehend the overall concepts related to the Bitcoin ecosystem, it's Blockchain and a P2P node's function in order to plan, implement and utilize a new node, whereas it will be able to download the Blockchain and be part of the crypto's network.
+The Bitcoin Core, the most popular Bitcoin node, is being modified in order to have fewer thread blocks on concurrent excecution. Due to the delicated nature of this kind of modification, and also to the parallel execution requierement, which results in a higher usage of a multicore computer's total capacity, it is desired that there is an alternative node implementation that offers memory-safety guarantees when concurrent access are being made.
+
+It is intended to understand the general concepts around the Bitcoin ecosystem, it's Blockchain and also around the operation of a P2P Node Network, so that components of a node can be planned, implemented and used in such that they may connect with other nodes of the network and offer an initial structure of a manageable node, facilitating the development of later components that may have the same asynchrony and security requirements.
+
+To facilitate the asynchronous execution of the components, actors from the Actor Model system have been implemented, some of which have a behavior defined by state machines, also in a communication channel topology between themselves.
+
+The software has been successfully compiled and therefore implies in a strong security guarantee, mainly due to the inertors of the compiler of the Rust programming language. Tests were also carried out to corroborate to the of the internal components' asynchronicity and the node's behavior in relation to information processing and it's network communication.
 
 Keywords: Actor Model. Bitcoin. Node. P2P. Rust.
 
@@ -67,6 +76,7 @@ Keywords: Actor Model. Bitcoin. Node. P2P. Rust.
 \begin{siglas}
     \item[Arc] \textit{Atomic Reference Counter}
     \item[BTC] \textit{Bitcoin}
+    \item[CLI] \textit{Command-Line Interface}
     \item[CPU] \textit{Central Processing Unit}
     \item[IPC] \textit{Inter Process Communication}
     \item[MPSC] \textit{Multiple Producer Single Consumer}
@@ -79,6 +89,7 @@ Keywords: Actor Model. Bitcoin. Node. P2P. Rust.
     \item[SHA] \textit{Secure Hash Algorithm}
     \item[SPV] \textit{Simple Payment Verification}
     \item[TCP] \textit{Transmission Control Protocol}
+    \item[UTXO] \textit{Unspent Transaction Output}
 \end{siglas}
 
 % Lista de Símbolos

@@ -11,10 +11,14 @@
 	}
 }
 
+\renewcommand\topfraction{.9}
+\renewcommand\textfraction{0.35}
+\renewcommand\floatpagefraction{0.8}
+
 % Compila o indice
 \makeindex
 
-\newcommand{\REF}[1]{\autoref{#1}--\nameref{#1}}
+\newcommand{\REF}[1]{\autoref{#1} -- \nameref{#1}}
 
 \begin{document}
 
@@ -43,6 +47,7 @@
     \nocite{turon}
     \nocite{tokiors}
     \nocite{tokio}
+    \nocite{consensus}
     \nocite{chat}
     \nocite{scorex}
     \nocite{struct}
@@ -62,7 +67,8 @@
     \nocite{Ulrich}
     \nocite{agha}
     \nocite{cointele}
-    
+    \nocite{lambda}
+    \nocite{belt}
 
 
     \markdownInput{01_00_intro.md}%
@@ -77,8 +83,9 @@
     \markdownInput{03_00_intro.md}%
     \markdownInput{03_01_nodo.md}%
     \markdownInput{03_02_blockchain.md}%
-    \markdownInput{03_03_carteira.md}%
+    %\markdownInput{03_03_carteira.md}%
     \markdownInput{03_04_final.md}%
+    \markdownInput{04_00_conc.md}%
     
 
 	% Referencial Teórico
